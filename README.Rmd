@@ -28,23 +28,9 @@ either one undifferentiated blob or six isolated characters. Neither is right �
 開心 ("happy") is one word of two characters, and splitting it destroys the
 signal you were trying to measure.
 
-**tidycjk** is the measurement layer for that problem: it tells you what script
-and language a text column is in, how much of it is CJK, which characters it
-contains, how wide it will print, and how to normalise the width variants away
-— as tidy verbs that return tibbles.
-
-## What this version does and does not do
-
-Segmentation — the actual splitting of 開心 out of a sentence — is **not** in
-this release. It needs a dictionary and a statistical model, and the dependency
-question is unresolved. What ships here is everything that follows exactly from
-the Unicode specification, with no data downloads and no compiled code.
-
-`tidycjk` does not re-implement Unicode. Display width and padding come from
-[stringi](https://stringi.gagolewski.com/), which reads ICU's live Unicode
-tables; if all you need is `stri_width()`, call it directly. What this package
-adds is the CJK-facing layer on top: script and language classification, the
-tidy verbs, and a width normaliser that is surgical where `NFKC` is not.
+**tidycjk** tells you what script and language a text column is in, how much of
+it is CJK, which characters it contains, how wide it will print, and normalises
+the width variants away — as tidy verbs that return tibbles.
 
 ## Installation
 
