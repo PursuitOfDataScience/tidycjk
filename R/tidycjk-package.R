@@ -24,8 +24,10 @@
 #'
 #' @section Relationship to stringi:
 #' \pkg{tidycjk} does not re-implement Unicode. Display width comes from
-#' [stringi::stri_width()] and padding from [stringi::stri_pad()], both of
-#' which read ICU's live Unicode tables; \pkg{tidycjk} adds the CJK-specific
+#' [stringi::stri_width()] and padding from [stringi::stri_pad()] --
+#' [stringi](https://CRAN.R-project.org/package=stringi) -- both of which
+#' read the live Unicode tables in [ICU](https://icu.unicode.org), the
+#' Unicode Consortium's C library. \pkg{tidycjk} adds the CJK-specific
 #' layer on top and keeps the naming consistent with the rest of the package.
 #' If all you need is the width of a string, call \pkg{stringi} directly.
 "_PACKAGE"

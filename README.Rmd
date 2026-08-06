@@ -22,9 +22,10 @@ knitr::opts_chunk$set(
 Text tooling in R assumes that words are separated by whitespace, and Chinese,
 Japanese and Korean writing does not oblige.
 
-tidytext splits on whitespace. Chinese and Japanese don't use whitespace. Give
-tidytext an English sentence and you get words; give it 我今天很開心 and you get
-either one undifferentiated blob or six isolated characters. Neither is right —
+[tidytext](https://CRAN.R-project.org/package=tidytext) splits on whitespace. Chinese and
+Japanese don't use whitespace. Give `tidytext` an English sentence and you get
+words; give it 我今天很開心 and you get either one undifferentiated blob or six
+isolated characters. Neither is right —
 開心 ("happy") is one word of two characters, and splitting it destroys the
 signal you were trying to measure.
 
@@ -41,8 +42,8 @@ pak::pak("PursuitOfDataScience/tidyckj")
 
 ## The tidy layer
 
-Two verbs take `(data, column)` and return a tibble, so they drop into a dplyr
-pipeline.
+Two verbs take `(data, column)` and return a tibble, so they drop into a
+[dplyr](https://CRAN.R-project.org/package=dplyr) pipeline.
 
 ```{r summary}
 library(tidycjk)
@@ -71,10 +72,12 @@ cjk_char_counts(posts, text)
 
 ## Segmentation
 
-`cjk_tokens()` is the CJK-aware counterpart of `tidytext::unnest_tokens()`.
-Where a word ends is a fact about a language rather than about Unicode, so the
-engine is pluggable: `"jiebar"` (the default) uses jiebaR, and `"character"`
-needs nothing and gives one token per character.
+`cjk_tokens()` is the CJK-aware counterpart of
+[tidytext](https://CRAN.R-project.org/package=tidytext)'s `unnest_tokens()`. Where a word
+ends is a fact about a language rather than about Unicode, so the
+engine is pluggable: `"jiebar"` (the default) uses
+[jiebaR](https://CRAN.R-project.org/package=jiebaR), and `"character"` needs
+nothing and gives one token per character.
 
 ```{r tokens}
 cjk_tokens(posts[1:2, ], text, engine = "character")
@@ -84,7 +87,7 @@ cjk_tokens(posts[1:2, ], text, engine = "character")
 cjk_segment("hello 中文 world", engine = "character")
 ```
 
-With jiebaR installed, 開心 stays one word instead of being cut in half:
+With `jiebaR` installed, 開心 stays one word instead of being cut in half:
 
 ```{r jieba, eval = requireNamespace("jiebaR", quietly = TRUE)}
 cjk_segment("我今天很開心")
@@ -160,7 +163,9 @@ to_halfwidth(x) == "ガ"
 
 ## The vector layer
 
-Everything above has a stringr-style counterpart on plain character vectors:
+Everything above has a
+[stringr](https://CRAN.R-project.org/package=stringr)-style counterpart on plain
+character vectors:
 `has_cjk()`, `cjk_script()`, `cjk_detect_language()`, `cjk_ratio()`,
 `cjk_width()`, `cjk_pad()`, `cjk_truncate()`, `to_halfwidth()` and
 `to_fullwidth()`. All are vectorised, propagate `NA`, and return zero-length
@@ -177,11 +182,11 @@ head(cjk_blocks(), 8)
 
 | Need | Use |
 |---|---|
-| Display width, width-aware padding | `stringi::stri_width()`, `stringi::stri_pad()` — `cjk_width()` and `cjk_pad()` wrap these |
-| Chinese segmentation | `jiebaR` |
-| Pinyin | `pinyin`, `hanyupinyin` |
-| Traditional/simplified conversion | `tmcn`; `OpenCC` outside R for phrase-level accuracy |
-| Japanese utilities | `zipangu`, `Nippon` |
+| Display width, width-aware padding | [stringi](https://CRAN.R-project.org/package=stringi) — `stri_width()` and `stri_pad()`, which `cjk_width()` and `cjk_pad()` wrap |
+| Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) |
+| Pinyin | [pinyin](https://CRAN.R-project.org/package=pinyin), [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) |
+| Traditional/simplified conversion | [tmcn](https://CRAN.R-project.org/package=tmcn); [OpenCC](https://github.com/BYVoid/OpenCC) outside R for phrase-level accuracy |
+| Japanese utilities | [zipangu](https://CRAN.R-project.org/package=zipangu), [Nippon](https://CRAN.R-project.org/package=Nippon) |
 
 ## License
 

@@ -27,7 +27,8 @@ sentence as one token; this dispatches to a real segmenter instead.
 }
 \details{
 The work is done by an engine, named by \code{engine} and listed by
-\code{\link[=cjk_segmenters]{cjk_segmenters()}}. The default \code{"jiebar"} needs the \pkg{jiebaR} package,
+\code{\link[=cjk_segmenters]{cjk_segmenters()}}. The default \code{"jiebar"} needs
+\href{https://CRAN.R-project.org/package=jiebaR}{jiebaR},
 which is in \code{Suggests}; \code{"character"} needs nothing but only tokenises by
 character. See \code{\link[=cjk_segmenters]{cjk_segmenters()}} for the difference and for how to plug in
 your own.

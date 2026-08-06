@@ -26,13 +26,15 @@ register_cjk_segmenter(name, fn)
 \details{
 Where a word begins and ends in CJK text is a fact about a language, not
 about Unicode, so it cannot be derived the way everything else in this
-package is. Rather than pick one segmenter and bake it in, \code{tidycjk}
+package is. Rather than pick one segmenter and bake it in, \pkg{tidycjk}
 dispatches on a name.
 
 Two engines ship with the package:
 
 \itemize{
-\item \code{"jiebar"}, the default, wraps \pkg{jiebaR} (cppjieba), the standard
+\item \code{"jiebar"}, the default, wraps
+\href{https://CRAN.R-project.org/package=jiebaR}{jiebaR}, which binds
+\href{https://github.com/yanyiwu/cppjieba}{cppjieba} and is the standard
 Chinese segmenter for R. \pkg{jiebaR} is in \code{Suggests}, so it has to be
 installed separately; you will be prompted the first time you use it.
 Arguments in \code{...} are passed to \code{jiebaR::worker()}.

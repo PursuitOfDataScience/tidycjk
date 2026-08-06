@@ -27,8 +27,9 @@
 #' and Hangul Jamo medial vowels and final consonants are zero; everything else
 #' is one.
 #'
-#' The computation is [stringi::stri_width()], which reads ICU's Unicode
-#' tables. `cjk_width()` exists so that the width, the padding and the
+#' The computation is [stringi::stri_width()], which reads the Unicode tables
+#' shipped with [ICU](https://icu.unicode.org), the Unicode Consortium's C
+#' library. `cjk_width()` exists so that the width, the padding and the
 #' truncation in a CJK pipeline all read the same way; if width is all you
 #' need, `stri_width()` is the more direct call.
 #'

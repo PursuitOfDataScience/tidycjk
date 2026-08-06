@@ -25,12 +25,13 @@ text.
 \description{
 \code{cjk_tokens()} segments a text column and returns one row per token,
 carrying the other columns along. It is the CJK-aware counterpart of
-\code{tidytext::unnest_tokens()}, which splits on whitespace and therefore
+\href{https://CRAN.R-project.org/package=tidytext}{tidytext}'s
+\code{unnest_tokens()}, which splits on whitespace and therefore
 returns CJK sentences whole.
 }
 \details{
 Rows that produce no tokens -- empty strings, and text with nothing an
-engine recognises -- are dropped, as they are in \code{tidytext}. \code{NA} text
+engine recognises -- are dropped, as they are in \pkg{tidytext}. \code{NA} text
 yields one row with an \code{NA} token, so a missing document does not silently
 vanish from the output.
 

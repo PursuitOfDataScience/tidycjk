@@ -22,8 +22,10 @@ compiled code, bundles no data, and makes no network requests.
   language rather than about Unicode. `cjk_segmenters()` lists what is
   available and `register_cjk_segmenter()` adds an engine: any function of
   `(x, ...)` returning a list of character vectors.
-* Two engines ship. `"jiebar"` wraps jiebaR (cppjieba) and is the
-  default; jiebaR is in `Suggests` and is requested with
+* Two engines ship. `"jiebar"` wraps
+  [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
+  [cppjieba](https://github.com/yanyiwu/cppjieba), and is the default;
+  `jiebaR` is in `Suggests` and is requested with
   `rlang::check_installed()` on first use, so the package itself stays free of
   compiled dependencies. `"character"` needs nothing: one token per CJK
   character, with runs of non-CJK text split on whitespace. It is character
@@ -45,11 +47,12 @@ compiled code, bundles no data, and makes no network requests.
   Han-only string gets `NA`. `cjk_detect_language(x, han_only = "chinese")`
   opts into the guess and keeps the assumption visible in the calling code.
 
-* **Width is delegated to stringi.** `cjk_width()` and `cjk_pad()` wrap
-  `stringi::stri_width()` and `stringi::stri_pad()`, which read ICU's live
-  Unicode tables. A hand-maintained range table would go stale at every Unicode
+* **Width is delegated to [stringi](https://CRAN.R-project.org/package=stringi).**
+  `cjk_width()` and `cjk_pad()` wrap `stringi::stri_width()` and
+  `stringi::stri_pad()`, which read the live Unicode tables in
+  [ICU](https://icu.unicode.org), the Unicode Consortium's C library. A hand-maintained range table would go stale at every Unicode
   release and would already be wrong for a few hundred assigned code points.
-  `cjk_truncate()` has no stringi equivalent and is implemented here.
+  `cjk_truncate()` has no `stringi` equivalent and is implemented here.
 
 * **Normalisation is surgical.** `to_halfwidth()` maps fullwidth ASCII, the
   ideographic space and halfwidth katakana, and touches nothing else. `NFKC`
@@ -68,12 +71,19 @@ compiled code, bundles no data, and makes no network requests.
 
 ## Not in this release
 
-* **Pinyin, stroke counts and radicals.** These need the Unihan database.
+* **Pinyin, stroke counts and radicals.** These need the
+  [Unihan database](https://www.unicode.org/charts/unihan.html).
   `data-raw/unihan.R` downloads and parses it, but no character data is
-  hand-written or bundled yet. `pinyin` and `hanyupinyin` are on CRAN today.
-* **Traditional/simplified conversion.** Unihan gives character-level mappings
+  hand-written or bundled yet.
+  [pinyin](https://CRAN.R-project.org/package=pinyin) and
+  [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) are on CRAN
+  today.
+* **Traditional/simplified conversion.** The
+  [Unihan database](https://www.unicode.org/charts/unihan.html) gives
+  character-level mappings
   only, and character-level conversion is wrong often enough to matter: one
   simplified character can map to several traditional ones and the right choice
   is context-dependent. Shipping it as if it were complete would be a
-  disservice. `tmcn` offers character-level conversion today; OpenCC is the
-  phrase-level answer outside R.
+  disservice. [tmcn](https://CRAN.R-project.org/package=tmcn) offers
+  character-level conversion today; [OpenCC](https://github.com/BYVoid/OpenCC)
+  is the phrase-level answer outside R.

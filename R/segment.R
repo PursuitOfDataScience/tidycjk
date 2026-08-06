@@ -19,7 +19,8 @@
 
 # --- built-in engines -------------------------------------------------------
 
-# jiebaR wraps cppjieba, the standard Chinese segmenter. It is in Suggests:
+# jiebaR (https://CRAN.R-project.org/package=jiebaR) wraps cppjieba, the
+# standard Chinese segmenter. It is in Suggests:
 # it needs compilation and a bundled dictionary, which is exactly the weight
 # this package otherwise avoids.
 .cjk_engine_jiebar <- function(x, ...) {
@@ -84,12 +85,14 @@
 #' @details
 #' Where a word begins and ends in CJK text is a fact about a language, not
 #' about Unicode, so it cannot be derived the way everything else in this
-#' package is. Rather than pick one segmenter and bake it in, `tidycjk`
+#' package is. Rather than pick one segmenter and bake it in, \pkg{tidycjk}
 #' dispatches on a name.
 #'
 #' Two engines ship with the package:
 #'
-#' * `"jiebar"`, the default, wraps \pkg{jiebaR} (cppjieba), the standard
+#' * `"jiebar"`, the default, wraps
+#'   [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
+#'   [cppjieba](https://github.com/yanyiwu/cppjieba) and is the standard
 #'   Chinese segmenter for R. \pkg{jiebaR} is in `Suggests`, so it has to be
 #'   installed separately; you will be prompted the first time you use it.
 #'   Arguments in `...` are passed to `jiebaR::worker()`.
@@ -167,7 +170,8 @@ register_cjk_segmenter <- function(name, fn) {
 #'
 #' @details
 #' The work is done by an engine, named by `engine` and listed by
-#' [cjk_segmenters()]. The default `"jiebar"` needs the \pkg{jiebaR} package,
+#' [cjk_segmenters()]. The default `"jiebar"` needs
+#' [jiebaR](https://CRAN.R-project.org/package=jiebaR),
 #' which is in `Suggests`; `"character"` needs nothing but only tokenises by
 #' character. See [cjk_segmenters()] for the difference and for how to plug in
 #' your own.
@@ -216,12 +220,13 @@ cjk_segment <- function(x, engine = "jiebar", ...) {
 #'
 #' `cjk_tokens()` segments a text column and returns one row per token,
 #' carrying the other columns along. It is the CJK-aware counterpart of
-#' `tidytext::unnest_tokens()`, which splits on whitespace and therefore
+#' [tidytext](https://CRAN.R-project.org/package=tidytext)'s
+#' `unnest_tokens()`, which splits on whitespace and therefore
 #' returns CJK sentences whole.
 #'
 #' @details
 #' Rows that produce no tokens -- empty strings, and text with nothing an
-#' engine recognises -- are dropped, as they are in `tidytext`. `NA` text
+#' engine recognises -- are dropped, as they are in \pkg{tidytext}. `NA` text
 #' yields one row with an `NA` token, so a missing document does not silently
 #' vanish from the output.
 #'

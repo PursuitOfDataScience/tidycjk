@@ -36,8 +36,10 @@ you actually have, so the wide definition never hides the detail.
 \section{Relationship to stringi}{
 
 \pkg{tidycjk} does not re-implement Unicode. Display width comes from
-\code{stringi::stri_width()} and padding from \code{stringi::stri_pad()}, both of
-which read ICU's live Unicode tables; \pkg{tidycjk} adds the CJK-specific
+\code{stringi::stri_width()} and padding from \code{stringi::stri_pad()} --
+\href{https://CRAN.R-project.org/package=stringi}{stringi} -- both of which
+read the live Unicode tables in \href{https://icu.unicode.org}{ICU}, the
+Unicode Consortium's C library. \pkg{tidycjk} adds the CJK-specific
 layer on top and keeps the naming consistent with the rest of the package.
 If all you need is the width of a string, call \pkg{stringi} directly.
 }

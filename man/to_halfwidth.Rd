@@ -61,8 +61,9 @@ the normal way.
 With \code{compose = TRUE}, the default, the pair is folded into the single
 precomposed code point: U+FF76 U+FF9E becomes U+30AC, one character, rather
 than U+30AB followed by U+309B. Voicing adds one to the base throughout the
-ka, sa, ta and ha rows; the semi-voiced mark adds two and applies to the ha
-row only. Five characters break the arithmetic and are mapped explicitly:
+ka, sa, ta and ha rows, and to the katakana iteration mark U+30FD; the
+semi-voiced mark adds two and applies to the ha row only. Five characters
+break the arithmetic and are mapped explicitly:
 U+30A6 voices to U+30F4, and the wa-row characters U+30EF, U+30F0, U+30F1
 and U+30F2 voice into U+30F7 to U+30FA. Every pair agrees with Unicode NFC
 composition.
@@ -81,8 +82,9 @@ uncomposed voiced mark is not a form anyone wants.
 The Unicode compatibility decomposition of U+FF9E is the \emph{combining} mark
 U+3099, so \code{NFKC} maps the halfwidth voiced mark onto a combining
 character. These functions map it to the \emph{spacing} mark U+309B instead
-(and U+FF9F to U+309C), which is what ICU's own halfwidth-to-fullwidth
-transform does. The difference is only visible with \code{compose = FALSE}, and
+(and U+FF9F to U+309C), which is what \href{https://icu.unicode.org}{ICU}'s own
+halfwidth-to-fullwidth transform does. The difference is only visible with
+\code{compose = FALSE}, and
 the spacing mark is the safer of the two there: a stray combining mark would
 silently attach itself to whatever character happened to precede it.
 }
