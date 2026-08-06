@@ -1,0 +1,60 @@
+url: https://pursuitofdatascience.github.io/tidyckj/
+template:
+  bootstrap: 5
+
+development:
+  mode: release
+
+authors:
+  Youzhi Yu:
+    href: https://youzhi.netlify.app/
+  footer:
+    text: "Crafted by"
+  sidebar:
+    roles: [aut, cre]
+
+home:
+  sidebar:
+    structure: [links, license, community, citation, authors, dev]
+
+reference:
+- title: Summarise a text column
+  desc: >
+    Verbs taking `(data, column)` and returning a tibble, for a dplyr pipeline.
+  contents:
+  - cjk_summary
+  - cjk_char_counts
+- title: Detect & classify
+  contents:
+  - has_cjk
+  - cjk_script
+  - cjk_detect_language
+  - cjk_ratio
+- title: Display width
+  desc: >
+    Terminal columns rather than characters, so CJK tables line up.
+  contents:
+  - cjk_width
+  - cjk_pad
+  - cjk_truncate
+- title: Normalise width variants
+  contents:
+  - to_halfwidth
+  - to_fullwidth
+- title: Reference data
+  contents:
+  - cjk_blocks
+- title: Package
+  contents:
+  - tidycjk-package
+
+navbar:
+  type: default
+  left:
+  - text: Reference
+    href: reference/index.html
+  - text: News
+    href: news/index.html
+  right:
+  - icon: fa-github fa-lg
+    href: https://github.com/PursuitOfDataScience/tidyckj

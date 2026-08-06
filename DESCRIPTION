@@ -1,0 +1,44 @@
+Package: tidycjk
+Type: Package
+Title: Tidy Tools for Chinese, Japanese and Korean Text
+Version: 0.1.0
+Authors@R:
+    c(person(given = "Youzhi",
+             family = "Yu",
+             role = c("aut", "cre"),
+             email = "yuyouzhi666@icloud.com"))
+Description: A tidy toolkit for text that is written in Chinese, Japanese or
+    Korean. Most text tooling in R assumes that words are separated by
+    whitespace, which CJK writing does not use, so ordinary summaries of a text
+    column either treat a sentence as one undifferentiated blob or split it into
+    isolated characters. 'tidycjk' classifies characters by Unicode block,
+    reports which script and which language a text is written in, measures how
+    much of a text is CJK, and turns those measurements into tibbles that slot
+    straight into a 'tidyverse' workflow. It also measures display width in
+    terminal columns, pads and truncates to a width rather than to a character
+    count, and normalises fullwidth and halfwidth forms surgically -- including
+    composing halfwidth katakana voiced marks into single code points -- without
+    the collateral damage of a full 'NFKC' pass. Language detection deliberately
+    returns NA rather than guessing when a text is written in Han characters
+    only, because Japanese written without kana cannot be distinguished from
+    Chinese by script alone. Everything is derived from the Unicode
+    specification; the package makes no network requests and needs no compiled
+    code of its own.
+License: GPL (>= 3)
+URL: https://pursuitofdatascience.github.io/tidyckj/,
+    https://github.com/PursuitOfDataScience/tidyckj
+BugReports: https://github.com/PursuitOfDataScience/tidyckj/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 3.5.0)
+Imports:
+    dplyr (>= 1.1.0),
+    stringi,
+    tibble
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

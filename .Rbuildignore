@@ -1,0 +1,16 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^README\.html$
+^cran-comments\.md$
+^\.github$
+^CRAN-SUBMISSION$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^data-raw$
+^\.git$
+^\.gitignore$
+^tidycjk\.Rcheck$
+^tidycjk_.*\.tar\.gz$

@@ -1,0 +1,54 @@
+# TEMPORARY. Generates man/*.Rd, NAMESPACE and README.md and commits them back
+# to the branch, because the environment the package was written in has no R
+# installation. Delete this workflow once the generated files are in the
+# repository and R-CMD-check is green; roxygen output belongs in a normal
+# `devtools::document()` run on the maintainer's machine after that.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/tidycjk-r-package-pfamgs]
+
+name: bootstrap-docs
+
+permissions:
+  contents: write
+
+jobs:
+  document:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::roxygen2, any::devtools, local::.
+          needs: development
+
+      - name: Document
+        run: Rscript -e 'roxygen2::roxygenise()'
+
+      - name: Build README
+        run: Rscript -e 'devtools::build_readme()'
+
+      - name: Run tests
+        run: Rscript -e 'devtools::test(stop_on_failure = TRUE)'
+
+      - name: Commit generated files
+        run: |
+          git config --local user.name "$GITHUB_ACTOR"
+          git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git add man NAMESPACE README.md
+          if git diff --staged --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "docs: regenerate Rd, NAMESPACE and README"
+            git push
+          fi
