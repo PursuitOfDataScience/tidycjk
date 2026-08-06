@@ -1,0 +1,261 @@
+# Segmentation: splitting CJK text into words.
+#
+# This is the problem the package is named for, and the one piece of it that
+# cannot be derived from the Unicode specification. Where a word begins and
+# ends in CJK text is a statistical question about a language, not a property
+# of a code point, so it needs a dictionary and a model. That is a heavy
+# dependency, and which one is right depends on the language and the corpus.
+#
+# So the engine is pluggable. cjk_segment() dispatches on a name, the built-in
+# engines are registered here, and register_cjk_segmenter() lets a caller add
+# their own without waiting for this package to grow support for it. An engine
+# is any function of (x, ...) returning a list of character vectors, parallel
+# to x.
+
+# User-registered engines. Built-ins are not kept here, so a caller can shadow
+# one deliberately but cannot delete it by accident.
+.cjk_engine_registry <- new.env(parent = emptyenv())
+
+
+# --- built-in engines -------------------------------------------------------
+
+# jiebaR wraps cppjieba, the standard Chinese segmenter. It is in Suggests:
+# it needs compilation and a bundled dictionary, which is exactly the weight
+# this package otherwise avoids.
+.cjk_engine_jiebar <- function(x, ...) {
+  rlang::check_installed("jiebaR", reason = "for `engine = \"jiebar\"`.")
+  worker <- jiebaR::worker(...)
+  lapply(x, function(s) {
+    if (is.na(s)) {
+      return(NA_character_)
+    }
+    if (!nzchar(s)) {
+      return(character(0))
+    }
+    as.character(jiebaR::segment(s, worker))
+  })
+}
+
+# The dictionary-free baseline: every CJK character is its own token, and each
+# run of non-CJK text is split on whitespace. It needs nothing and it is
+# honest about what it is -- character tokenisation, not word segmentation.
+# For Chinese it will split a two-character word in half, which is the very
+# thing a real segmenter exists to prevent; for Japanese and Korean it is
+# further off still. Use it as a baseline, or when a per-character unit is
+# what you actually want.
+.cjk_engine_character <- function(x, ...) {
+  lapply(.cjk_codepoints(x), function(cp) {
+    if (is.null(cp)) {
+      return(NA_character_)
+    }
+    if (length(cp) == 0L) {
+      return(character(0))
+    }
+    is_cjk <- !is.na(.cjk_block_index(cp))
+    # group into maximal runs: each CJK character alone, each non-CJK run whole
+    run <- cumsum(c(TRUE, is_cjk[-1] | is_cjk[-length(is_cjk)]))
+    pieces <- vapply(split(cp, run), function(g) {
+      stringi::stri_enc_fromutf32(list(g))
+    }, character(1), USE.NAMES = FALSE)
+    cjk_piece <- vapply(split(is_cjk, run), function(g) g[[1]], logical(1),
+                        USE.NAMES = FALSE)
+    out <- unlist(lapply(seq_along(pieces), function(i) {
+      if (cjk_piece[[i]]) {
+        pieces[[i]]
+      } else {
+        w <- unlist(strsplit(pieces[[i]], "[[:space:]]+"), use.names = FALSE)
+        w[nzchar(w)]
+      }
+    }), use.names = FALSE)
+    if (is.null(out)) character(0) else out
+  })
+}
+
+.cjk_builtin_engines <- function() {
+  list(jiebar = .cjk_engine_jiebar, character = .cjk_engine_character)
+}
+
+
+#' Segmentation engines
+#'
+#' `cjk_segmenters()` lists the engines [cjk_segment()] can dispatch to, and
+#' `register_cjk_segmenter()` adds one.
+#'
+#' @details
+#' Where a word begins and ends in CJK text is a fact about a language, not
+#' about Unicode, so it cannot be derived the way everything else in this
+#' package is. Rather than pick one segmenter and bake it in, `tidycjk`
+#' dispatches on a name.
+#'
+#' Two engines ship with the package:
+#'
+#' * `"jiebar"`, the default, wraps \pkg{jiebaR} (cppjieba), the standard
+#'   Chinese segmenter for R. \pkg{jiebaR} is in `Suggests`, so it has to be
+#'   installed separately; you will be prompted the first time you use it.
+#'   Arguments in `...` are passed to `jiebaR::worker()`.
+#' * `"character"` needs nothing at all: every CJK character becomes its own
+#'   token and runs of non-CJK text are split on whitespace. It is character
+#'   tokenisation rather than word segmentation, and for Chinese it will cut
+#'   two-character words in half. It is a baseline, not an answer.
+#'
+#' An engine is any function taking `(x, ...)` -- a character vector and the
+#' dots from `cjk_segment()` -- and returning a list the same length as `x`,
+#' each element a character vector of tokens. `NA` input should give
+#' `NA_character_` and the empty string should give `character(0)`;
+#' `cjk_segment()` checks the shape and complains if an engine breaks the
+#' contract.
+#'
+#' @param name Name of the engine, a single string.
+#' @param fn A function of `(x, ...)` returning a list of character vectors.
+#'
+#' @return `cjk_segmenters()` returns a character vector of engine names.
+#'   `register_cjk_segmenter()` is called for its side effect and returns
+#'   `name` invisibly.
+#' @seealso [cjk_segment()], [cjk_tokens()].
+#' @examples
+#' cjk_segmenters()
+#'
+#' # an engine that splits on an explicit marker
+#' register_cjk_segmenter("pipe", function(x, ...) strsplit(x, "|",
+#'                                                          fixed = TRUE))
+#' cjk_segment("\u4e2d\u6587|\u5f88\u597d", engine = "pipe")
+#' @export
+cjk_segmenters <- function() {
+  sort(unique(c(names(.cjk_builtin_engines()),
+                ls(.cjk_engine_registry))))
+}
+
+#' @rdname cjk_segmenters
+#' @export
+register_cjk_segmenter <- function(name, fn) {
+  if (!is.character(name) || length(name) != 1L || is.na(name) ||
+      !nzchar(name)) {
+    stop("`name` must be a single, non-empty string.", call. = FALSE)
+  }
+  if (!is.function(fn)) {
+    stop("`fn` must be a function.", call. = FALSE)
+  }
+  assign(name, fn, envir = .cjk_engine_registry)
+  invisible(name)
+}
+
+.cjk_get_engine <- function(engine) {
+  if (is.function(engine)) {
+    return(engine)
+  }
+  if (!is.character(engine) || length(engine) != 1L || is.na(engine)) {
+    stop("`engine` must be a single string or a function.", call. = FALSE)
+  }
+  if (exists(engine, envir = .cjk_engine_registry, inherits = FALSE)) {
+    return(get(engine, envir = .cjk_engine_registry, inherits = FALSE))
+  }
+  builtin <- .cjk_builtin_engines()
+  if (!is.null(builtin[[engine]])) {
+    return(builtin[[engine]])
+  }
+  stop("Unknown engine \"", engine, "\". Available: ",
+       paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
+       call. = FALSE)
+}
+
+
+#' Split CJK text into words
+#'
+#' `cjk_segment()` splits each string into tokens. Chinese and Japanese do not
+#' put spaces between words, so splitting on whitespace returns the whole
+#' sentence as one token; this dispatches to a real segmenter instead.
+#'
+#' @details
+#' The work is done by an engine, named by `engine` and listed by
+#' [cjk_segmenters()]. The default `"jiebar"` needs the \pkg{jiebaR} package,
+#' which is in `Suggests`; `"character"` needs nothing but only tokenises by
+#' character. See [cjk_segmenters()] for the difference and for how to plug in
+#' your own.
+#'
+#' @inheritParams has_cjk
+#' @param engine Name of a segmentation engine, or a function implementing
+#'   one. Defaults to `"jiebar"`.
+#' @param ... Passed to the engine. For `"jiebar"` these go to
+#'   `jiebaR::worker()`.
+#'
+#' @return A list the same length as `x`, each element a character vector of
+#'   tokens. `NA` input gives `NA_character_`; the empty string gives
+#'   `character(0)`.
+#' @seealso [cjk_tokens()] for the tidy version, [cjk_segmenters()] for the
+#'   engines.
+#' @examples
+#' # the dictionary-free baseline, one token per CJK character
+#' cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "character")
+#'
+#' # non-CJK runs stay whole and are split on whitespace
+#' cjk_segment("hello \u4e2d\u6587 world", engine = "character")
+#'
+#' # a real segmenter keeps \u958b\u5fc3 together as one word
+#' if (requireNamespace("jiebaR", quietly = TRUE)) {
+#'   cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3")
+#' }
+#' @export
+cjk_segment <- function(x, engine = "jiebar", ...) {
+  x <- as.character(x)
+  if (length(x) == 0L) {
+    return(list())
+  }
+  fn <- .cjk_get_engine(engine)
+  out <- fn(x, ...)
+  if (!is.list(out) || length(out) != length(x)) {
+    stop("The segmentation engine must return a list as long as `x`.",
+         call. = FALSE)
+  }
+  lapply(out, function(tok) {
+    if (is.null(tok)) character(0) else as.character(tok)
+  })
+}
+
+
+#' One row per token
+#'
+#' `cjk_tokens()` segments a text column and returns one row per token,
+#' carrying the other columns along. It is the CJK-aware counterpart of
+#' `tidytext::unnest_tokens()`, which splits on whitespace and therefore
+#' returns CJK sentences whole.
+#'
+#' @details
+#' Rows that produce no tokens -- empty strings, and text with nothing an
+#' engine recognises -- are dropped, as they are in `tidytext`. `NA` text
+#' yields one row with an `NA` token, so a missing document does not silently
+#' vanish from the output.
+#'
+#' The token column is called `token` and is added to `data`; an existing
+#' column of that name is replaced.
+#'
+#' @inheritParams cjk_summary
+#' @inheritParams cjk_segment
+#'
+#' @return `data`, as a tibble, with one row per token and an added `token`
+#'   column. Row order follows the input, and tokens within a row follow the
+#'   text.
+#' @seealso [cjk_segment()] for the vector version, [cjk_char_counts()] when
+#'   you want characters rather than words.
+#' @examples
+#' df <- data.frame(
+#'   id = 1:2,
+#'   text = c("\u6211\u5f88\u958b\u5fc3", "hello \u4e2d\u6587")
+#' )
+#' cjk_tokens(df, text, engine = "character")
+#' @export
+cjk_tokens <- function(data, col, engine = "jiebar", ...) {
+  v <- as.character(dplyr::pull(data, {{ col }}))
+  toks <- cjk_segment(v, engine = engine, ...)
+  # keep NA rows as a single NA token so a missing document stays visible
+  toks <- lapply(toks, function(tok) if (length(tok) == 0L) NULL else tok)
+  n <- vapply(toks, function(tok) if (is.null(tok)) 0L else length(tok),
+              integer(1))
+
+  out <- tibble::as_tibble(data)
+  out <- out[rep(seq_len(nrow(out)), times = n), , drop = FALSE]
+  flat <- unlist(toks, use.names = FALSE)
+  # unlist() of nothing is NULL, and assigning NULL would drop the column
+  # rather than create an empty one
+  out$token <- if (is.null(flat)) character(0) else flat
+  out
+}

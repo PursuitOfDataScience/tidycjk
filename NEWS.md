@@ -2,9 +2,10 @@
 
 First release.
 
-`tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text. This release
-covers the layer that follows exactly from the Unicode specification: no data
-downloads, no compiled code, no network access at build time or run time.
+`tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text: word
+segmentation, script and language classification, display width, and width
+normalisation, as verbs that return tibbles. The package itself has no
+compiled code, bundles no data, and makes no network requests.
 
 ## Tidy layer
 
@@ -12,6 +13,21 @@ downloads, no compiled code, no network access at build time or run time.
   `mean_ratio` for a text column.
 * `cjk_char_counts(data, col)` returns one row per distinct CJK character with
   its code point, script, Unicode block and count.
+
+## Segmentation
+
+* `cjk_segment(x, engine = "jiebar")` splits CJK text into words, and
+  `cjk_tokens(data, col)` is the tidy version, returning one row per token.
+* The engine is pluggable, because where a word ends is a fact about a
+  language rather than about Unicode. `cjk_segmenters()` lists what is
+  available and `register_cjk_segmenter()` adds an engine: any function of
+  `(x, ...)` returning a list of character vectors.
+* Two engines ship. `"jiebar"` wraps jiebaR (cppjieba) and is the
+  default; jiebaR is in `Suggests` and is requested with
+  `rlang::check_installed()` on first use, so the package itself stays free of
+  compiled dependencies. `"character"` needs nothing: one token per CJK
+  character, with runs of non-CJK text split on whitespace. It is character
+  tokenisation rather than word segmentation and says so on its help page.
 
 ## Vector layer
 
@@ -52,9 +68,6 @@ downloads, no compiled code, no network access at build time or run time.
 
 ## Not in this release
 
-* **Segmentation.** Splitting a CJK sentence into words needs a dictionary and
-  a statistical model. The engine question is unresolved; `jiebaR` exists for
-  Chinese today.
 * **Pinyin, stroke counts and radicals.** These need the Unihan database.
   `data-raw/unihan.R` downloads and parses it, but no character data is
   hand-written or bundled yet. `pinyin` and `hanyupinyin` are on CRAN today.

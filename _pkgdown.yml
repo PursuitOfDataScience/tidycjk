@@ -24,6 +24,15 @@ reference:
   contents:
   - cjk_summary
   - cjk_char_counts
+  - cjk_tokens
+- title: Segment
+  desc: >
+    Splitting CJK text into words. Where a word ends is a fact about a
+    language rather than about Unicode, so the engine is pluggable.
+  contents:
+  - cjk_segment
+  - cjk_segmenters
+  - register_cjk_segmenter
 - title: Detect & classify
   contents:
   - has_cjk

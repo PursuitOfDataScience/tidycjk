@@ -69,6 +69,30 @@ row scores high on the first and near zero on the second.
 cjk_char_counts(posts, text)
 ```
 
+## Segmentation
+
+`cjk_tokens()` is the CJK-aware counterpart of `tidytext::unnest_tokens()`.
+Where a word ends is a fact about a language rather than about Unicode, so the
+engine is pluggable: `"jiebar"` (the default) uses jiebaR, and `"character"`
+needs nothing and gives one token per character.
+
+```{r tokens}
+cjk_tokens(posts[1:2, ], text, engine = "character")
+```
+
+```{r segment}
+cjk_segment("hello 中文 world", engine = "character")
+```
+
+With jiebaR installed, 開心 stays one word instead of being cut in half:
+
+```{r jieba, eval = requireNamespace("jiebaR", quietly = TRUE)}
+cjk_segment("我今天很開心")
+```
+
+`cjk_segmenters()` lists the engines and `register_cjk_segmenter()` adds one —
+any function of `(x, ...)` returning a list of character vectors.
+
 ## Which language is this?
 
 ```{r language}

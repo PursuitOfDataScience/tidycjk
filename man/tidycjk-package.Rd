@@ -14,9 +14,10 @@ The package has two layers. The \strong{vector layer} takes an atomic character
 vector and returns an atomic vector of the same length, in the manner of
 \pkg{stringr}: \code{\link[=has_cjk]{has_cjk()}}, \code{\link[=cjk_script]{cjk_script()}}, \code{\link[=cjk_detect_language]{cjk_detect_language()}},
 \code{\link[=cjk_width]{cjk_width()}}, \code{\link[=cjk_pad]{cjk_pad()}}, \code{\link[=cjk_truncate]{cjk_truncate()}}, \code{\link[=cjk_ratio]{cjk_ratio()}},
-\code{\link[=to_halfwidth]{to_halfwidth()}} and \code{\link[=to_fullwidth]{to_fullwidth()}}. The \strong{tidy layer} takes
-\code{verb(data, col, ...)} with the column unquoted and returns a tibble:
-\code{\link[=cjk_summary]{cjk_summary()}} and \code{\link[=cjk_char_counts]{cjk_char_counts()}}.
+\code{\link[=to_halfwidth]{to_halfwidth()}} and \code{\link[=to_fullwidth]{to_fullwidth()}}. \code{\link[=cjk_segment]{cjk_segment()}} belongs to the same
+layer but returns a list, because the number of tokens per string varies.
+The \strong{tidy layer} takes \code{verb(data, col, ...)} with the column unquoted and
+returns a tibble: \code{\link[=cjk_summary]{cjk_summary()}}, \code{\link[=cjk_char_counts]{cjk_char_counts()}} and \code{\link[=cjk_tokens]{cjk_tokens()}}.
 
 Every vector-layer function is vectorised, propagates \code{NA} element-wise,
 and returns a zero-length vector of the right type for zero-length input.

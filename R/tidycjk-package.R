@@ -6,9 +6,10 @@
 #' vector and returns an atomic vector of the same length, in the manner of
 #' \pkg{stringr}: [has_cjk()], [cjk_script()], [cjk_detect_language()],
 #' [cjk_width()], [cjk_pad()], [cjk_truncate()], [cjk_ratio()],
-#' [to_halfwidth()] and [to_fullwidth()]. The **tidy layer** takes
-#' `verb(data, col, ...)` with the column unquoted and returns a tibble:
-#' [cjk_summary()] and [cjk_char_counts()].
+#' [to_halfwidth()] and [to_fullwidth()]. [cjk_segment()] belongs to the same
+#' layer but returns a list, because the number of tokens per string varies.
+#' The **tidy layer** takes `verb(data, col, ...)` with the column unquoted and
+#' returns a tibble: [cjk_summary()], [cjk_char_counts()] and [cjk_tokens()].
 #'
 #' Every vector-layer function is vectorised, propagates `NA` element-wise,
 #' and returns a zero-length vector of the right type for zero-length input.
