@@ -84,10 +84,9 @@ cjk_char_counts(posts, text)
 
 `cjk_tokens()` is the CJK-aware counterpart of
 [tidytext](https://CRAN.R-project.org/package=tidytext)'s `unnest_tokens()`. Where a word
-ends is a fact about a language rather than about Unicode, so the engine
-is pluggable: `"jiebar"` (the default) uses
-[jiebaR](https://CRAN.R-project.org/package=jiebaR), and `"character"`
-needs nothing and gives one token per character.
+ends is a fact about a language rather than about Unicode, so no segmenter is
+bundled and `engine` is required — quietly handing back character tokens to
+someone who asked for words is the mistake this package exists to avoid.
 
 ``` r
 cjk_tokens(posts[1:2, ], text, engine = "character")
@@ -113,14 +112,29 @@ cjk_segment("hello 中文 world", engine = "character")
 #> [1] "hello" "中"    "文"    "world"
 ```
 
-With `jiebaR` installed, 開心 stays one word instead of being cut in half:
+`"character"` is the one engine that needs no dictionary: one token per CJK
+character, non-CJK runs split on whitespace. It is character tokenisation, not
+word segmentation.
 
-``` r
-cjk_segment("我今天很開心")
+For real Chinese word segmentation, register
+[jiebaR](https://CRAN.R-project.org/package=jiebaR). It was archived from CRAN on
+2025-05-01, so install it with
+`remotes::install_github("qinwf/jiebaR")`, then:
+
+```r
+register_cjk_segmenter("jiebar", function(x, ...) {
+  worker <- jiebaR::worker(...)
+  lapply(x, function(s) {
+    if (is.na(s)) return(NA_character_)
+    if (!nzchar(s)) return(character(0))
+    as.character(jiebaR::segment(s, worker))
+  })
+})
+
+cjk_segment("我今天很開心", engine = "jiebar")
 ```
 
-`cjk_segmenters()` lists the engines and `register_cjk_segmenter()` adds
-one — any function of `(x, ...)` returning a list of character vectors.
+The same shape works for any segmenter you can call from R.
 
 ## Which language is this?
 
@@ -236,7 +250,7 @@ head(cjk_blocks(), 8)
 | Need | Use |
 |----|----|
 | Display width, width-aware padding | [stringi](https://CRAN.R-project.org/package=stringi) — `stri_width()` and `stri_pad()`, which `cjk_width()` and `cjk_pad()` wrap |
-| Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) |
+| Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) — archived from CRAN 2025-05-01; register it as a `tidycjk` engine |
 | Pinyin | [pinyin](https://CRAN.R-project.org/package=pinyin), [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) |
 | Traditional/simplified conversion | [tmcn](https://CRAN.R-project.org/package=tmcn); [OpenCC](https://github.com/BYVoid/OpenCC) outside R for phrase-level accuracy |
 | Japanese utilities | [zipangu](https://CRAN.R-project.org/package=zipangu), [Nippon](https://CRAN.R-project.org/package=Nippon) |

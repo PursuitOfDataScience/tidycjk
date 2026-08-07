@@ -26,31 +26,50 @@ register_cjk_segmenter(name, fn)
 \details{
 Where a word begins and ends in CJK text is a fact about a language, not
 about Unicode, so it cannot be derived the way everything else in this
-package is. Rather than pick one segmenter and bake it in, \pkg{tidycjk}
-dispatches on a name.
+package is. It needs a dictionary and a statistical model, and which one is
+right depends on the language and the corpus. \pkg{tidycjk} therefore
+bundles no word segmenter and dispatches on a name instead.
 
-Two engines ship with the package:
-
-\itemize{
-\item \code{"jiebar"}, the default, wraps
-\href{https://CRAN.R-project.org/package=jiebaR}{jiebaR}, which binds
-\href{https://github.com/yanyiwu/cppjieba}{cppjieba} and is the standard
-Chinese segmenter for R. \pkg{jiebaR} is in \code{Suggests}, so it has to be
-installed separately; you will be prompted the first time you use it.
-Arguments in \code{...} are passed to \code{jiebaR::worker()}.
-\item \code{"character"} needs nothing at all: every CJK character becomes its own
-token and runs of non-CJK text are split on whitespace. It is character
-tokenisation rather than word segmentation, and for Chinese it will cut
-two-character words in half. It is a baseline, not an answer.
+One engine ships with the package. \code{"character"} needs nothing at all:
+every CJK character becomes its own token and runs of non-CJK text are
+split on whitespace. It is character tokenisation rather than word
+segmentation, and for Chinese it will cut two-character words in half. It
+is a baseline, not an answer.
 }
+\section{Registering a word segmenter}{
+
+\href{https://CRAN.R-project.org/package=jiebaR}{jiebaR}, which binds
+\href{https://github.com/yanyiwu/cppjieba}{cppjieba}, is the usual choice for
+Chinese. It was archived from CRAN on 2025-05-01, so it cannot be a
+dependency of a CRAN package and \code{install.packages()} will not find it;
+install it from source with
+\code{remotes::install_github("qinwf/jiebaR")}. Once you have it, four lines
+make it an engine:
+
+```
+register_cjk_segmenter("jiebar", function(x, ...) {
+worker <- jiebaR::worker(...)
+lapply(x, function(s) {
+if (is.na(s)) return(NA_character_)
+if (!nzchar(s)) return(character(0))
+as.character(jiebaR::segment(s, worker))
+})
+})
+```
+
+The same shape works for any segmenter you can call from R.
+}
+
+\section{The engine contract}{
 
 An engine is any function taking \code{(x, ...)} -- a character vector and the
-dots from \code{cjk_segment()} -- and returning a list the same length as \code{x},
+dots from \code{\link[=cjk_segment]{cjk_segment()}} -- and returning a list the same length as \code{x},
 each element a character vector of tokens. \code{NA} input should give
 \code{NA_character_} and the empty string should give \code{character(0)};
-\code{cjk_segment()} checks the shape and complains if an engine breaks the
+\code{\link[=cjk_segment]{cjk_segment()}} checks the shape and complains if an engine breaks the
 contract.
 }
+
 \examples{
 cjk_segmenters()
 

@@ -1,11 +1,19 @@
-# Segmentation: the engine registry, the built-in engines, and the tidy verb.
+# Segmentation: the engine registry, the built-in engine, and the tidy verb.
 #
-# Everything here runs without jiebaR except the two tests that ask for it by
-# name, which skip when it is not installed.
+# No word segmenter is bundled -- jiebaR was archived from CRAN -- so the
+# registry is exercised with engines defined here.
 
-test_that("the built-in engines are listed", {
-  expect_true(all(c("character", "jiebar") %in% cjk_segmenters()))
+test_that("the built-in engine is listed", {
+  expect_true("character" %in% cjk_segmenters())
   expect_type(cjk_segmenters(), "character")
+})
+
+test_that("engine is required, with a message that says what to do", {
+  # quietly returning character tokens to someone who asked for words is the
+  # mistake this package exists to avoid, so the choice has to be explicit
+  expect_error(cjk_segment(ZH), "no safe default")
+  expect_error(cjk_segment(ZH), "character")
+  expect_error(cjk_tokens(data.frame(text = ZH), text), "no safe default")
 })
 
 test_that("the character engine gives one token per CJK character", {
@@ -166,23 +174,28 @@ test_that("cjk_tokens() composes with the rest of the package", {
   expect_equal(sum(cjk_width(out$token)), 16L)
 })
 
-test_that("jiebaR keeps a multi-character word together", {
-  skip_if_not_installed("jiebaR")
-  # U+4ECA U+5929 ("today") is one word of two characters, and is written the
-  # same way in simplified and traditional, so it is in jieba's dictionary
-  # whichever the corpus. The character engine cuts it in half; a real
-  # segmenter does not. That difference is the reason this layer exists.
+test_that("a registered word segmenter keeps a multi-character word whole", {
+  # the documented registration shape, with a two-entry dictionary standing in
+  # for a real one: U+4ECA U+5929 ("today") is one word of two characters, and
+  # the character engine cuts it in half
+  register_cjk_segmenter("test_dict", function(x, ...) {
+    lapply(x, function(s) {
+      if (is.na(s)) {
+        return(NA_character_)
+      }
+      if (!nzchar(s)) {
+        return(character(0))
+      }
+      unlist(strsplit(gsub("\u4eca\u5929", "|\u4eca\u5929|", s), "|",
+                      fixed = TRUE))
+    })
+  })
+  on.exit(rm("test_dict", envir = .cjk_engine_registry), add = TRUE)
+
   today <- "\u4eca\u5929"
   expect_equal(length(cjk_segment(today, engine = "character")[[1]]), 2L)
-  # U+6211 U+4ECA U+5929 U+5F88 U+5F00 U+5FC3, "I am very happy today"
-  expect_true(today %in% cjk_segment("\u6211\u4eca\u5929\u5f88\u5f00\u5fc3")[[1]])
-})
-
-test_that("jiebaR is the default engine and honours the vector contract", {
-  skip_if_not_installed("jiebaR")
-  out <- cjk_segment(c(ZH_SENTENCE, "", NA))
-  expect_length(out, 3L)
-  expect_true(length(out[[1]]) >= 1L)
-  expect_equal(out[[2]], character(0))
-  expect_equal(out[[3]], NA_character_)
+  expect_true(today %in% cjk_segment(today, engine = "test_dict")[[1]])
+  expect_equal(cjk_segment(NA_character_, engine = "test_dict")[[1]],
+               NA_character_)
+  expect_equal(cjk_segment("", engine = "test_dict")[[1]], character(0))
 })

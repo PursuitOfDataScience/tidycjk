@@ -4,7 +4,7 @@
 \alias{cjk_tokens}
 \title{One row per token}
 \usage{
-cjk_tokens(data, col, engine = "jiebar", ...)
+cjk_tokens(data, col, engine, ...)
 }
 \arguments{
 \item{data}{A data frame or tibble containing a text column.}
@@ -12,10 +12,9 @@ cjk_tokens(data, col, engine = "jiebar", ...)
 \item{col}{The text column to scan, supplied unquoted.}
 
 \item{engine}{Name of a segmentation engine, or a function implementing
-one. Defaults to \code{"jiebar"}.}
+one. Required; see \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
 
-\item{...}{Passed to the engine. For \code{"jiebar"} these go to
-\code{jiebaR::worker()}.}
+\item{...}{Passed to the engine.}
 }
 \value{
 \code{data}, as a tibble, with one row per token and an added \code{token}
@@ -36,7 +35,8 @@ yields one row with an \code{NA} token, so a missing document does not silently
 vanish from the output.
 
 The token column is called \code{token} and is added to \code{data}; an existing
-column of that name is replaced.
+column of that name is replaced. As with \code{\link[=cjk_segment]{cjk_segment()}}, \code{engine} is
+required.
 }
 \examples{
 df <- data.frame(

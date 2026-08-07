@@ -4,16 +4,15 @@
 \alias{cjk_segment}
 \title{Split CJK text into words}
 \usage{
-cjk_segment(x, engine = "jiebar", ...)
+cjk_segment(x, engine, ...)
 }
 \arguments{
 \item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
 
 \item{engine}{Name of a segmentation engine, or a function implementing
-one. Defaults to \code{"jiebar"}.}
+one. Required; see \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
 
-\item{...}{Passed to the engine. For \code{"jiebar"} these go to
-\code{jiebaR::worker()}.}
+\item{...}{Passed to the engine.}
 }
 \value{
 A list the same length as \code{x}, each element a character vector of
@@ -23,15 +22,15 @@ tokens. \code{NA} input gives \code{NA_character_}; the empty string gives
 \description{
 \code{cjk_segment()} splits each string into tokens. Chinese and Japanese do not
 put spaces between words, so splitting on whitespace returns the whole
-sentence as one token; this dispatches to a real segmenter instead.
+sentence as one token; this dispatches to a segmentation engine instead.
 }
 \details{
-The work is done by an engine, named by \code{engine} and listed by
-\code{\link[=cjk_segmenters]{cjk_segmenters()}}. The default \code{"jiebar"} needs
-\href{https://CRAN.R-project.org/package=jiebaR}{jiebaR},
-which is in \code{Suggests}; \code{"character"} needs nothing but only tokenises by
-character. See \code{\link[=cjk_segmenters]{cjk_segmenters()}} for the difference and for how to plug in
-your own.
+\code{engine} is required and has no default. The only engine \pkg{tidycjk} can
+ship without a dictionary is \code{"character"}, which tokenises by character
+rather than by word -- a different answer from the one you are asking for,
+and quietly returning it would be the mistake this package exists to avoid.
+\code{\link[=cjk_segmenters]{cjk_segmenters()}} lists what is available and shows how to register a real
+word segmenter.
 }
 \examples{
 # the dictionary-free baseline, one token per CJK character
@@ -39,13 +38,8 @@ cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "character")
 
 # non-CJK runs stay whole and are split on whitespace
 cjk_segment("hello \u4e2d\u6587 world", engine = "character")
-
-# a real segmenter keeps \u958b\u5fc3 together as one word
-if (requireNamespace("jiebaR", quietly = TRUE)) {
-  cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3")
-}
 }
 \seealso{
 \code{\link[=cjk_tokens]{cjk_tokens()}} for the tidy version, \code{\link[=cjk_segmenters]{cjk_segmenters()}} for the
-engines.
+engines and for registering one.
 }

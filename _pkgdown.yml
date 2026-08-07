@@ -28,7 +28,8 @@ reference:
 - title: Segment
   desc: >
     Splitting CJK text into words. Where a word ends is a fact about a
-    language rather than about Unicode, so the engine is pluggable.
+    language rather than about Unicode, so no segmenter is bundled and the
+    engine is a required, pluggable choice.
   contents:
   - cjk_segment
   - cjk_segmenters

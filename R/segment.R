@@ -11,6 +11,14 @@
 # their own without waiting for this package to grow support for it. An engine
 # is any function of (x, ...) returning a list of character vectors, parallel
 # to x.
+#
+# No word segmenter is bundled, and `engine` has no default. jiebaR was the
+# obvious candidate and it was archived from CRAN on 2025-05-01, so it cannot
+# be a dependency of a CRAN package; and the only engine we can ship without
+# one, "character", answers a different question from the one a caller asking
+# for words is asking. Rather than quietly hand back character tokens, the
+# choice is required. ?cjk_segmenters shows how to register jiebaR in four
+# lines if you have it.
 
 # User-registered engines. Built-ins are not kept here, so a caller can shadow
 # one deliberately but cannot delete it by accident.
@@ -18,24 +26,6 @@
 
 
 # --- built-in engines -------------------------------------------------------
-
-# jiebaR (https://CRAN.R-project.org/package=jiebaR) wraps cppjieba, the
-# standard Chinese segmenter. It is in Suggests:
-# it needs compilation and a bundled dictionary, which is exactly the weight
-# this package otherwise avoids.
-.cjk_engine_jiebar <- function(x, ...) {
-  rlang::check_installed("jiebaR", reason = "for `engine = \"jiebar\"`.")
-  worker <- jiebaR::worker(...)
-  lapply(x, function(s) {
-    if (is.na(s)) {
-      return(NA_character_)
-    }
-    if (!nzchar(s)) {
-      return(character(0))
-    }
-    as.character(jiebaR::segment(s, worker))
-  })
-}
 
 # The dictionary-free baseline: every CJK character is its own token, and each
 # run of non-CJK text is split on whitespace. It needs nothing and it is
@@ -73,7 +63,7 @@
 }
 
 .cjk_builtin_engines <- function() {
-  list(jiebar = .cjk_engine_jiebar, character = .cjk_engine_character)
+  list(character = .cjk_engine_character)
 }
 
 
@@ -85,27 +75,46 @@
 #' @details
 #' Where a word begins and ends in CJK text is a fact about a language, not
 #' about Unicode, so it cannot be derived the way everything else in this
-#' package is. Rather than pick one segmenter and bake it in, \pkg{tidycjk}
-#' dispatches on a name.
+#' package is. It needs a dictionary and a statistical model, and which one is
+#' right depends on the language and the corpus. \pkg{tidycjk} therefore
+#' bundles no word segmenter and dispatches on a name instead.
 #'
-#' Two engines ship with the package:
+#' One engine ships with the package. `"character"` needs nothing at all:
+#' every CJK character becomes its own token and runs of non-CJK text are
+#' split on whitespace. It is character tokenisation rather than word
+#' segmentation, and for Chinese it will cut two-character words in half. It
+#' is a baseline, not an answer.
 #'
-#' * `"jiebar"`, the default, wraps
-#'   [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
-#'   [cppjieba](https://github.com/yanyiwu/cppjieba) and is the standard
-#'   Chinese segmenter for R. \pkg{jiebaR} is in `Suggests`, so it has to be
-#'   installed separately; you will be prompted the first time you use it.
-#'   Arguments in `...` are passed to `jiebaR::worker()`.
-#' * `"character"` needs nothing at all: every CJK character becomes its own
-#'   token and runs of non-CJK text are split on whitespace. It is character
-#'   tokenisation rather than word segmentation, and for Chinese it will cut
-#'   two-character words in half. It is a baseline, not an answer.
+#' # Registering a word segmenter
+#'
+#' [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
+#' [cppjieba](https://github.com/yanyiwu/cppjieba), is the usual choice for
+#' Chinese. It was archived from CRAN on 2025-05-01, so it cannot be a
+#' dependency of a CRAN package and `install.packages()` will not find it;
+#' install it from source with
+#' `remotes::install_github("qinwf/jiebaR")`. Once you have it, four lines
+#' make it an engine:
+#'
+#' ```
+#' register_cjk_segmenter("jiebar", function(x, ...) {
+#'   worker <- jiebaR::worker(...)
+#'   lapply(x, function(s) {
+#'     if (is.na(s)) return(NA_character_)
+#'     if (!nzchar(s)) return(character(0))
+#'     as.character(jiebaR::segment(s, worker))
+#'   })
+#' })
+#' ```
+#'
+#' The same shape works for any segmenter you can call from R.
+#'
+#' # The engine contract
 #'
 #' An engine is any function taking `(x, ...)` -- a character vector and the
-#' dots from `cjk_segment()` -- and returning a list the same length as `x`,
+#' dots from [cjk_segment()] -- and returning a list the same length as `x`,
 #' each element a character vector of tokens. `NA` input should give
 #' `NA_character_` and the empty string should give `character(0)`;
-#' `cjk_segment()` checks the shape and complains if an engine breaks the
+#' [cjk_segment()] checks the shape and complains if an engine breaks the
 #' contract.
 #'
 #' @param name Name of the engine, a single string.
@@ -166,40 +175,41 @@ register_cjk_segmenter <- function(name, fn) {
 #'
 #' `cjk_segment()` splits each string into tokens. Chinese and Japanese do not
 #' put spaces between words, so splitting on whitespace returns the whole
-#' sentence as one token; this dispatches to a real segmenter instead.
+#' sentence as one token; this dispatches to a segmentation engine instead.
 #'
 #' @details
-#' The work is done by an engine, named by `engine` and listed by
-#' [cjk_segmenters()]. The default `"jiebar"` needs
-#' [jiebaR](https://CRAN.R-project.org/package=jiebaR),
-#' which is in `Suggests`; `"character"` needs nothing but only tokenises by
-#' character. See [cjk_segmenters()] for the difference and for how to plug in
-#' your own.
+#' `engine` is required and has no default. The only engine \pkg{tidycjk} can
+#' ship without a dictionary is `"character"`, which tokenises by character
+#' rather than by word -- a different answer from the one you are asking for,
+#' and quietly returning it would be the mistake this package exists to avoid.
+#' [cjk_segmenters()] lists what is available and shows how to register a real
+#' word segmenter.
 #'
 #' @inheritParams has_cjk
 #' @param engine Name of a segmentation engine, or a function implementing
-#'   one. Defaults to `"jiebar"`.
-#' @param ... Passed to the engine. For `"jiebar"` these go to
-#'   `jiebaR::worker()`.
+#'   one. Required; see [cjk_segmenters()].
+#' @param ... Passed to the engine.
 #'
 #' @return A list the same length as `x`, each element a character vector of
 #'   tokens. `NA` input gives `NA_character_`; the empty string gives
 #'   `character(0)`.
 #' @seealso [cjk_tokens()] for the tidy version, [cjk_segmenters()] for the
-#'   engines.
+#'   engines and for registering one.
 #' @examples
 #' # the dictionary-free baseline, one token per CJK character
 #' cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "character")
 #'
 #' # non-CJK runs stay whole and are split on whitespace
 #' cjk_segment("hello \u4e2d\u6587 world", engine = "character")
-#'
-#' # a real segmenter keeps \u958b\u5fc3 together as one word
-#' if (requireNamespace("jiebaR", quietly = TRUE)) {
-#'   cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3")
-#' }
 #' @export
-cjk_segment <- function(x, engine = "jiebar", ...) {
+cjk_segment <- function(x, engine, ...) {
+  if (missing(engine)) {
+    stop("`engine` must be given; there is no safe default. Use ",
+         "engine = \"character\" for character tokenisation, or register a ",
+         "word segmenter -- see ?cjk_segmenters. Available: ",
+         paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
+         call. = FALSE)
+  }
   x <- as.character(x)
   if (length(x) == 0L) {
     return(list())
@@ -231,7 +241,8 @@ cjk_segment <- function(x, engine = "jiebar", ...) {
 #' vanish from the output.
 #'
 #' The token column is called `token` and is added to `data`; an existing
-#' column of that name is replaced.
+#' column of that name is replaced. As with [cjk_segment()], `engine` is
+#' required.
 #'
 #' @inheritParams cjk_summary
 #' @inheritParams cjk_segment
@@ -248,7 +259,14 @@ cjk_segment <- function(x, engine = "jiebar", ...) {
 #' )
 #' cjk_tokens(df, text, engine = "character")
 #' @export
-cjk_tokens <- function(data, col, engine = "jiebar", ...) {
+cjk_tokens <- function(data, col, engine, ...) {
+  if (missing(engine)) {
+    stop("`engine` must be given; there is no safe default. Use ",
+         "engine = \"character\" for character tokenisation, or register a ",
+         "word segmenter -- see ?cjk_segmenters. Available: ",
+         paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
+         call. = FALSE)
+  }
   v <- as.character(dplyr::pull(data, {{ col }}))
   toks <- cjk_segment(v, engine = engine, ...)
   # keep NA rows as a single NA token so a missing document stays visible

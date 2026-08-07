@@ -35,11 +35,9 @@ Depends:
     R (>= 3.5.0)
 Imports:
     dplyr (>= 1.1.0),
-    rlang,
     stringi,
     tibble
 Suggests:
-    jiebaR,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)

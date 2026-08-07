@@ -16,20 +16,23 @@ compiled code, bundles no data, and makes no network requests.
 
 ## Segmentation
 
-* `cjk_segment(x, engine = "jiebar")` splits CJK text into words, and
-  `cjk_tokens(data, col)` is the tidy version, returning one row per token.
-* The engine is pluggable, because where a word ends is a fact about a
-  language rather than about Unicode. `cjk_segmenters()` lists what is
+* `cjk_segment(x, engine)` splits CJK text into words, and
+  `cjk_tokens(data, col, engine)` is the tidy version, returning one row per
+  token.
+* The engine is pluggable and **required**. `cjk_segmenters()` lists what is
   available and `register_cjk_segmenter()` adds an engine: any function of
   `(x, ...)` returning a list of character vectors.
-* Two engines ship. `"jiebar"` wraps
-  [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
-  [cppjieba](https://github.com/yanyiwu/cppjieba), and is the default;
-  `jiebaR` is in `Suggests` and is requested with
-  `rlang::check_installed()` on first use, so the package itself stays free of
-  compiled dependencies. `"character"` needs nothing: one token per CJK
-  character, with runs of non-CJK text split on whitespace. It is character
-  tokenisation rather than word segmentation and says so on its help page.
+* No word segmenter is bundled, and `engine` has no default.
+  [jiebaR](https://CRAN.R-project.org/package=jiebaR) was the obvious
+  candidate and was archived from CRAN on 2025-05-01, so it cannot be a
+  dependency of a CRAN package. `?cjk_segmenters` shows the four lines that
+  register it once you have installed it from source.
+* The one engine that ships is `"character"`: one token per CJK character,
+  with runs of non-CJK text split on whitespace. It is character tokenisation
+  rather than word segmentation and says so on its help page. Making it the
+  silent default would have handed character tokens to callers asking for
+  words, which is the mistake this package exists to avoid, so the choice is
+  explicit instead.
 
 ## Vector layer
 
