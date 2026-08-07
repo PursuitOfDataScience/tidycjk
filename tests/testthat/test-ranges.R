@@ -101,6 +101,18 @@ test_that("cjk_blocks() is a tibble with the documented shape", {
   )
 })
 
+test_that("the cached block table is stable across calls", {
+  # .cjk_ranges() memoises, because .cjk_block_index() is called once per
+  # element and rebuilding the table there made it a per-element cost. The
+  # cache must be invisible: same value every time, and no caller mutates it.
+  expect_identical(.cjk_ranges(), .cjk_ranges())
+  expect_identical(cjk_blocks(), cjk_blocks())
+  before <- .cjk_ranges()
+  invisible(cjk_char_counts(data.frame(text = ZH), text))
+  invisible(cjk_script(ZH))
+  expect_identical(.cjk_ranges(), before)
+})
+
 test_that("code point splitting distinguishes NA from the empty string", {
   cps <- .cjk_codepoints(c("A", "", NA))
   expect_equal(cps[[1]], 0x41L)

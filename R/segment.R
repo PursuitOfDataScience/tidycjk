@@ -133,8 +133,12 @@
 #' cjk_segment("\u4e2d\u6587|\u5f88\u597d", engine = "pipe")
 #' @export
 cjk_segmenters <- function() {
+  # Radix order, not the session's collation: everything else in this package
+  # orders deterministically, and the list of available engines should not come
+  # back differently on a machine with a different locale.
   sort(unique(c(names(.cjk_builtin_engines()),
-                ls(.cjk_engine_registry))))
+                ls(.cjk_engine_registry))),
+       method = "radix")
 }
 
 #' @rdname cjk_segmenters
