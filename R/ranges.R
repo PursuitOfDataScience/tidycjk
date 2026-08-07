@@ -12,7 +12,17 @@
 # sits inside Halfwidth and Fullwidth Forms (U+FF00-U+FFEF). The katakana is
 # the more informative label, so the enclosing block is split around it.
 
+# The table is a constant, but .cjk_block_index() is called once per element of
+# the input vector, so rebuilding it there means rebuilding it for every string
+# in the corpus. Building it once and caching it is the difference between a
+# constant cost and a per-element one.
+.cjk_cache <- new.env(parent = emptyenv())
+
 .cjk_ranges <- function() {
+  cached <- .cjk_cache$ranges
+  if (!is.null(cached)) {
+    return(cached)
+  }
   # start, end, block, script -- ascending by start, no overlaps.
   m <- rbind(
     c(0x1100,  0x11FF),
@@ -38,7 +48,7 @@
     c(0x2B820, 0x2CEAF),
     c(0x2CEB0, 0x2EBEF)
   )
-  list(
+  tab <- list(
     start = m[, 1],
     end = m[, 2],
     block = c(
@@ -90,6 +100,8 @@
       "han"
     )
   )
+  .cjk_cache$ranges <- tab
+  tab
 }
 
 # Scripts that identify a writing system, as opposed to the two ancillary
