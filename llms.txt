@@ -3,32 +3,17 @@
 Text tooling in R assumes that words are separated by whitespace, and
 Chinese, Japanese and Korean writing does not oblige.
 
-tidytext splits on whitespace. Chinese and Japanese don’t use
-whitespace. Give tidytext an English sentence and you get words; give it
-我今天很開心 and you get either one undifferentiated blob or six
-isolated characters. Neither is right — 開心 (“happy”) is one word of
-two characters, and splitting it destroys the signal you were trying to
-measure.
+[tidytext](https://CRAN.R-project.org/package=tidytext) splits on
+whitespace. Chinese and Japanese don’t use whitespace. Give `tidytext`
+an English sentence and you get words; give it 我今天很開心 and you get
+either one undifferentiated blob or six isolated characters. Neither is
+right — 開心 (“happy”) is one word of two characters, and splitting it
+destroys the signal you were trying to measure.
 
-**tidycjk** is the measurement layer for that problem: it tells you what
-script and language a text column is in, how much of it is CJK, which
-characters it contains, how wide it will print, and how to normalise the
-width variants away — as tidy verbs that return tibbles.
-
-## What this version does and does not do
-
-Segmentation — the actual splitting of 開心 out of a sentence — is
-**not** in this release. It needs a dictionary and a statistical model,
-and the dependency question is unresolved. What ships here is everything
-that follows exactly from the Unicode specification, with no data
-downloads and no compiled code.
-
-`tidycjk` does not re-implement Unicode. Display width and padding come
-from [stringi](https://stringi.gagolewski.com/), which reads ICU’s live
-Unicode tables; if all you need is `stri_width()`, call it directly.
-What this package adds is the CJK-facing layer on top: script and
-language classification, the tidy verbs, and a width normaliser that is
-surgical where `NFKC` is not.
+**tidycjk** tells you what script and language a text column is in, how
+much of it is CJK, which characters it contains, how wide it will print,
+and normalises the width variants away — as tidy verbs that return
+tibbles.
 
 ## Installation
 
@@ -41,7 +26,7 @@ pak::pak("PursuitOfDataScience/tidyckj")
 ## The tidy layer
 
 Two verbs take `(data, column)` and return a tibble, so they drop into a
-dplyr pipeline.
+[dplyr](https://CRAN.R-project.org/package=dplyr) pipeline.
 
 ``` r
 
@@ -88,6 +73,67 @@ cjk_char_counts(posts, text)
 #> 10 ち        12385 hiragana Hiragana                   1
 #> # ℹ 15 more rows
 ```
+
+## Segmentation
+
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+is the CJK-aware counterpart of
+[tidytext](https://CRAN.R-project.org/package=tidytext)’s
+`unnest_tokens()`. Where a word ends is a fact about a language rather
+than about Unicode, so no segmenter is bundled and `engine` is required
+— quietly handing back character tokens to someone who asked for words
+is the mistake this package exists to avoid.
+
+``` r
+
+cjk_tokens(posts[1:2, ], text, engine = "character")
+#> # A tibble: 17 × 3
+#>       id text         token
+#>    <int> <chr>        <chr>
+#>  1     1 我今天很開心 我
+#>  2     1 我今天很開心 今
+#>  3     1 我今天很開心 天
+#>  4     1 我今天很開心 很
+#>  5     1 我今天很開心 開
+#>  6     1 我今天很開心 心
+#>  7     2 こんにちは、元気ですか こ
+#>  8     2 こんにちは、元気ですか ん
+#>  9     2 こんにちは、元気ですか に
+#> 10     2 こんにちは、元気ですか ち
+#> # ℹ 7 more rows
+```
+
+``` r
+
+cjk_segment("hello 中文 world", engine = "character")
+#> [[1]]
+#> [1] "hello" "中"    "文"    "world"
+```
+
+`"character"` is the one engine that needs no dictionary: one token per
+CJK character, non-CJK runs split on whitespace. It is character
+tokenisation, not word segmentation.
+
+For real Chinese word segmentation, register
+[jiebaR](https://CRAN.R-project.org/package=jiebaR). It was archived
+from CRAN on 2025-05-01, so install it with
+`remotes::install_github("qinwf/jiebaR")`, then:
+
+``` r
+
+register_cjk_segmenter("jiebar", function(x, ...) {
+  worker <- jiebaR::worker(...)
+  lapply(x, function(s) {
+    if (is.na(s)) return(NA_character_)
+    if (!nzchar(s)) return(character(0))
+    as.character(jiebaR::segment(s, worker))
+  })
+})
+
+cjk_segment("我今天很開心", engine = "jiebar")
+```
+
+The same shape works for any segmenter you can call from R.
 
 ## Which language is this?
 
@@ -181,8 +227,9 @@ to_halfwidth(x) == "ガ"
 
 ## The vector layer
 
-Everything above has a stringr-style counterpart on plain character
-vectors:
+Everything above has a
+[stringr](https://CRAN.R-project.org/package=stringr)-style counterpart
+on plain character vectors:
 [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md),
 [`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md),
 [`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_detect_language.md),
@@ -220,11 +267,11 @@ head(cjk_blocks(), 8)
 
 | Need | Use |
 |----|----|
-| Display width, width-aware padding | [`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html), [`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html) — [`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md) and [`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md) wrap these |
-| Chinese segmentation | `jiebaR` |
-| Pinyin | `pinyin`, `hanyupinyin` |
-| Traditional/simplified conversion | `tmcn`; `OpenCC` outside R for phrase-level accuracy |
-| Japanese utilities | `zipangu`, `Nippon` |
+| Display width, width-aware padding | [stringi](https://CRAN.R-project.org/package=stringi) — `stri_width()` and `stri_pad()`, which [`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md) and [`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md) wrap |
+| Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) — archived from CRAN 2025-05-01; register it as a `tidycjk` engine |
+| Pinyin | [pinyin](https://CRAN.R-project.org/package=pinyin), [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) |
+| Traditional/simplified conversion | [tmcn](https://CRAN.R-project.org/package=tmcn); [OpenCC](https://github.com/BYVoid/OpenCC) outside R for phrase-level accuracy |
+| Japanese utilities | [zipangu](https://CRAN.R-project.org/package=zipangu), [Nippon](https://CRAN.R-project.org/package=Nippon) |
 
 ## License
 
@@ -241,6 +288,20 @@ pipeline.
   : Summarise CJK content in a text column
 - [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
   : Count the CJK characters in a text column
+- [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+  : One row per token
+
+## Segment
+
+Splitting CJK text into words. Where a word ends is a fact about a
+language rather than about Unicode, so no segmenter is bundled and the
+engine is a required, pluggable choice.
+
+- [`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+  : Split CJK text into words
+- [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  [`register_cjk_segmenter()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  : Segmentation engines
 
 ## Detect & classify
 

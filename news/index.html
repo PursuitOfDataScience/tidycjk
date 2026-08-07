@@ -33,13 +33,21 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="tidycjk-010">tidycjk 0.1.0<a class="anchor" aria-label="anchor" href="#tidycjk-010"></a></h2>
 <p>First release.</p>
-<p><code>tidycjk</code> is a tidy toolkit for Chinese, Japanese and Korean text. This release covers the layer that follows exactly from the Unicode specification: no data downloads, no compiled code, no network access at build time or run time.</p>
+<p><code>tidycjk</code> is a tidy toolkit for Chinese, Japanese and Korean text: word segmentation, script and language classification, display width, and width normalisation, as verbs that return tibbles. The package itself has no compiled code, bundles no data, and makes no network requests.</p>
 <div class="section level3">
 <h3 id="tidy-layer-0-1-0">Tidy layer<a class="anchor" aria-label="anchor" href="#tidy-layer-0-1-0"></a></h3>
 <ul><li>
 <code>cjk_summary(data, col)</code> reports <code>n_docs</code>, <code>n_with_cjk</code>, <code>prop_with_cjk</code> and <code>mean_ratio</code> for a text column.</li>
 <li>
 <code>cjk_char_counts(data, col)</code> returns one row per distinct CJK character with its code point, script, Unicode block and count.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="segmentation-0-1-0">Segmentation<a class="anchor" aria-label="anchor" href="#segmentation-0-1-0"></a></h3>
+<ul><li>
+<code>cjk_segment(x, engine)</code> splits CJK text into words, and <code>cjk_tokens(data, col, engine)</code> is the tidy version, returning one row per token.</li>
+<li>The engine is pluggable and <strong>required</strong>. <code><a href="../reference/cjk_segmenters.html">cjk_segmenters()</a></code> lists what is available and <code><a href="../reference/cjk_segmenters.html">register_cjk_segmenter()</a></code> adds an engine: any function of <code>(x, ...)</code> returning a list of character vectors.</li>
+<li>No word segmenter is bundled, and <code>engine</code> has no default. <a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a> was the obvious candidate and was archived from CRAN on 2025-05-01, so it cannot be a dependency of a CRAN package. <code><a href="../reference/cjk_segmenters.html">?cjk_segmenters</a></code> shows the four lines that register it once you have installed it from source.</li>
+<li>The one engine that ships is <code>"character"</code>: one token per CJK character, with runs of non-CJK text split on whitespace. It is character tokenisation rather than word segmentation and says so on its help page. Making it the silent default would have handed character tokens to callers asking for words, which is the mistake this package exists to avoid, so the choice is explicit instead.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="vector-layer-0-1-0">Vector layer<a class="anchor" aria-label="anchor" href="#vector-layer-0-1-0"></a></h3>
@@ -57,7 +65,7 @@
 <div class="section level3">
 <h3 id="notes-on-the-design-0-1-0">Notes on the design<a class="anchor" aria-label="anchor" href="#notes-on-the-design-0-1-0"></a></h3>
 <ul><li><p><strong>Language detection returns <code>NA</code> rather than guessing.</strong> Japanese written without kana is not distinguishable from Chinese by script alone, so a Han-only string gets <code>NA</code>. <code>cjk_detect_language(x, han_only = "chinese")</code> opts into the guess and keeps the assumption visible in the calling code.</p></li>
-<li><p><strong>Width is delegated to stringi.</strong> <code><a href="../reference/cjk_width.html">cjk_width()</a></code> and <code><a href="../reference/cjk_pad.html">cjk_pad()</a></code> wrap <code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code> and <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code>, which read ICU’s live Unicode tables. A hand-maintained range table would go stale at every Unicode release and would already be wrong for a few hundred assigned code points. <code><a href="../reference/cjk_truncate.html">cjk_truncate()</a></code> has no stringi equivalent and is implemented here.</p></li>
+<li><p><strong>Width is delegated to <a href="https://CRAN.R-project.org/package=stringi" class="external-link">stringi</a>.</strong> <code><a href="../reference/cjk_width.html">cjk_width()</a></code> and <code><a href="../reference/cjk_pad.html">cjk_pad()</a></code> wrap <code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code> and <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code>, which read the live Unicode tables in <a href="https://icu.unicode.org" class="external-link">ICU</a>, the Unicode Consortium’s C library. A hand-maintained range table would go stale at every Unicode release and would already be wrong for a few hundred assigned code points. <code><a href="../reference/cjk_truncate.html">cjk_truncate()</a></code> has no <code>stringi</code> equivalent and is implemented here.</p></li>
 <li><p><strong>Normalisation is surgical.</strong> <code><a href="../reference/to_halfwidth.html">to_halfwidth()</a></code> maps fullwidth ASCII, the ideographic space and halfwidth katakana, and touches nothing else. <code>NFKC</code> additionally rewrites ligatures, superscripts, Roman numerals, circled numbers, the no-break space and the CJK compatibility ideographs, which is almost never wanted.</p></li>
 <li><p><strong>Voiced marks are composed by default.</strong> Halfwidth katakana writes a voiced syllable as two code points; <code>compose = TRUE</code> folds them into the single precomposed character, so <code>"ｶﾞ"</code> becomes <code>"ガ"</code>. Every pair in the composition table agrees with Unicode NFC, including the five that break the base-plus-one rule.</p></li>
 <li><p><strong>Ties never depend on the locale.</strong> <code><a href="../reference/cjk_script.html">cjk_script()</a></code> and <code><a href="../reference/cjk_char_counts.html">cjk_char_counts()</a></code> break ties by first appearance rather than by collation order.</p></li>
@@ -65,11 +73,9 @@
 <div class="section level3">
 <h3 id="not-in-this-release-0-1-0">Not in this release<a class="anchor" aria-label="anchor" href="#not-in-this-release-0-1-0"></a></h3>
 <ul><li>
-<strong>Segmentation.</strong> Splitting a CJK sentence into words needs a dictionary and a statistical model. The engine question is unresolved; <code>jiebaR</code> exists for Chinese today.</li>
+<strong>Pinyin, stroke counts and radicals.</strong> These need the <a href="https://www.unicode.org/charts/unihan.html" class="external-link">Unihan database</a>. <code>data-raw/unihan.R</code> downloads and parses it, but no character data is hand-written or bundled yet. <a href="https://CRAN.R-project.org/package=pinyin" class="external-link">pinyin</a> and <a href="https://CRAN.R-project.org/package=hanyupinyin" class="external-link">hanyupinyin</a> are on CRAN today.</li>
 <li>
-<strong>Pinyin, stroke counts and radicals.</strong> These need the Unihan database. <code>data-raw/unihan.R</code> downloads and parses it, but no character data is hand-written or bundled yet. <code>pinyin</code> and <code>hanyupinyin</code> are on CRAN today.</li>
-<li>
-<strong>Traditional/simplified conversion.</strong> Unihan gives character-level mappings only, and character-level conversion is wrong often enough to matter: one simplified character can map to several traditional ones and the right choice is context-dependent. Shipping it as if it were complete would be a disservice. <code>tmcn</code> offers character-level conversion today; OpenCC is the phrase-level answer outside R.</li>
+<strong>Traditional/simplified conversion.</strong> The <a href="https://www.unicode.org/charts/unihan.html" class="external-link">Unihan database</a> gives character-level mappings only, and character-level conversion is wrong often enough to matter: one simplified character can map to several traditional ones and the right choice is context-dependent. Shipping it as if it were complete would be a disservice. <a href="https://CRAN.R-project.org/package=tmcn" class="external-link">tmcn</a> offers character-level conversion today; <a href="https://github.com/BYVoid/OpenCC" class="external-link">OpenCC</a> is the phrase-level answer outside R.</li>
 </ul></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

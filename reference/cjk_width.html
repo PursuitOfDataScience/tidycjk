@@ -66,8 +66,9 @@ Asian Width is Wide or Fullwidth are two columns; combining marks and format
 characters (general categories <code>Mn</code>, <code>Me</code>, <code>Cf</code>), C0 and C1 control codes,
 and Hangul Jamo medial vowels and final consonants are zero; everything else
 is one.</p>
-<p>The computation is <code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code>, which reads ICU's Unicode
-tables. <code>cjk_width()</code> exists so that the width, the padding and the
+<p>The computation is <code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code>, which reads the Unicode tables
+shipped with <a href="https://icu.unicode.org" class="external-link">ICU</a>, the Unicode Consortium's C
+library. <code>cjk_width()</code> exists so that the width, the padding and the
 truncation in a CJK pipeline all read the same way; if width is all you
 need, <code>stri_width()</code> is the more direct call.</p>
 <p>East Asian Ambiguous characters – Greek letters, some box-drawing, the

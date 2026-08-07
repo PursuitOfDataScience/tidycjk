@@ -33,11 +33,14 @@ manner of stringr:
 [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
 and
 [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md).
-The **tidy layer** takes `verb(data, col, ...)` with the column unquoted
-and returns a tibble:
-[`cjk_summary()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_summary.md)
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+belongs to the same layer but returns a list, because the number of
+tokens per string varies. The **tidy layer** takes
+`verb(data, col, ...)` with the column unquoted and returns a tibble:
+[`cjk_summary()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_summary.md),
+[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
 and
-[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md).
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md).
 
 Every vector-layer function is vectorised, propagates `NA` element-wise,
 and returns a zero-length vector of the right type for zero-length
@@ -61,11 +64,12 @@ hides the detail.
 tidycjk does not re-implement Unicode. Display width comes from
 [`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html)
 and padding from
-[`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html),
-both of which read ICU's live Unicode tables; tidycjk adds the
-CJK-specific layer on top and keeps the naming consistent with the rest
-of the package. If all you need is the width of a string, call stringi
-directly.
+[`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html) –
+[stringi](https://CRAN.R-project.org/package=stringi) – both of which
+read the live Unicode tables in [ICU](https://icu.unicode.org), the
+Unicode Consortium's C library. tidycjk adds the CJK-specific layer on
+top and keeps the naming consistent with the rest of the package. If all
+you need is the width of a string, call stringi directly.
 
 ## See also
 

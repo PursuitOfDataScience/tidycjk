@@ -9,6 +9,20 @@ pipeline.
   : Summarise CJK content in a text column
 - [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
   : Count the CJK characters in a text column
+- [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+  : One row per token
+
+## Segment
+
+Splitting CJK text into words. Where a word ends is a fact about a
+language rather than about Unicode, so no segmenter is bundled and the
+engine is a required, pluggable choice.
+
+- [`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+  : Split CJK text into words
+- [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  [`register_cjk_segmenter()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  : Segmentation engines
 
 ## Detect & classify
 

@@ -44,9 +44,10 @@
 vector and returns an atomic vector of the same length, in the manner of
 <span class="pkg">stringr</span>: <code><a href="has_cjk.html">has_cjk()</a></code>, <code><a href="cjk_script.html">cjk_script()</a></code>, <code><a href="cjk_detect_language.html">cjk_detect_language()</a></code>,
 <code><a href="cjk_width.html">cjk_width()</a></code>, <code><a href="cjk_pad.html">cjk_pad()</a></code>, <code><a href="cjk_truncate.html">cjk_truncate()</a></code>, <code><a href="cjk_ratio.html">cjk_ratio()</a></code>,
-<code><a href="to_halfwidth.html">to_halfwidth()</a></code> and <code><a href="to_halfwidth.html">to_fullwidth()</a></code>. The <strong>tidy layer</strong> takes
-<code>verb(data, col, ...)</code> with the column unquoted and returns a tibble:
-<code><a href="cjk_summary.html">cjk_summary()</a></code> and <code><a href="cjk_char_counts.html">cjk_char_counts()</a></code>.</p>
+<code><a href="to_halfwidth.html">to_halfwidth()</a></code> and <code><a href="to_halfwidth.html">to_fullwidth()</a></code>. <code><a href="cjk_segment.html">cjk_segment()</a></code> belongs to the same
+layer but returns a list, because the number of tokens per string varies.
+The <strong>tidy layer</strong> takes <code>verb(data, col, ...)</code> with the column unquoted and
+returns a tibble: <code><a href="cjk_summary.html">cjk_summary()</a></code>, <code><a href="cjk_char_counts.html">cjk_char_counts()</a></code> and <code><a href="cjk_tokens.html">cjk_tokens()</a></code>.</p>
 <p>Every vector-layer function is vectorised, propagates <code>NA</code> element-wise,
 and returns a zero-length vector of the right type for zero-length input.</p>
     </div>
@@ -66,8 +67,10 @@ you actually have, so the wide definition never hides the detail.</p>
 
 
 <p><span class="pkg">tidycjk</span> does not re-implement Unicode. Display width comes from
-<code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code> and padding from <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code>, both of
-which read ICU's live Unicode tables; <span class="pkg">tidycjk</span> adds the CJK-specific
+<code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code> and padding from <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code> –
+<a href="https://CRAN.R-project.org/package=stringi" class="external-link">stringi</a> – both of which
+read the live Unicode tables in <a href="https://icu.unicode.org" class="external-link">ICU</a>, the
+Unicode Consortium's C library. <span class="pkg">tidycjk</span> adds the CJK-specific
 layer on top and keeps the naming consistent with the rest of the package.
 If all you need is the width of a string, call <span class="pkg">stringi</span> directly.</p>
     </div>

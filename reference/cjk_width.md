@@ -33,10 +33,11 @@ zero; everything else is one.
 
 The computation is
 [`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html),
-which reads ICU's Unicode tables. `cjk_width()` exists so that the
-width, the padding and the truncation in a CJK pipeline all read the
-same way; if width is all you need, `stri_width()` is the more direct
-call.
+which reads the Unicode tables shipped with
+[ICU](https://icu.unicode.org), the Unicode Consortium's C library.
+`cjk_width()` exists so that the width, the padding and the truncation
+in a CJK pipeline all read the same way; if width is all you need,
+`stri_width()` is the more direct call.
 
 East Asian Ambiguous characters – Greek letters, some box-drawing, the
 degree sign – are one column. They render as two in a CJK-configured

@@ -4,10 +4,10 @@
 
 First release.
 
-`tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text. This
-release covers the layer that follows exactly from the Unicode
-specification: no data downloads, no compiled code, no network access at
-build time or run time.
+`tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text: word
+segmentation, script and language classification, display width, and
+width normalisation, as verbs that return tibbles. The package itself
+has no compiled code, bundles no data, and makes no network requests.
 
 ### Tidy layer
 
@@ -15,6 +15,31 @@ build time or run time.
   `prop_with_cjk` and `mean_ratio` for a text column.
 - `cjk_char_counts(data, col)` returns one row per distinct CJK
   character with its code point, script, Unicode block and count.
+
+### Segmentation
+
+- `cjk_segment(x, engine)` splits CJK text into words, and
+  `cjk_tokens(data, col, engine)` is the tidy version, returning one row
+  per token.
+- The engine is pluggable and **required**.
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  lists what is available and
+  [`register_cjk_segmenter()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  adds an engine: any function of `(x, ...)` returning a list of
+  character vectors.
+- No word segmenter is bundled, and `engine` has no default.
+  [jiebaR](https://CRAN.R-project.org/package=jiebaR) was the obvious
+  candidate and was archived from CRAN on 2025-05-01, so it cannot be a
+  dependency of a CRAN package.
+  [`?cjk_segmenters`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  shows the four lines that register it once you have installed it from
+  source.
+- The one engine that ships is `"character"`: one token per CJK
+  character, with runs of non-CJK text split on whitespace. It is
+  character tokenisation rather than word segmentation and says so on
+  its help page. Making it the silent default would have handed
+  character tokens to callers asking for words, which is the mistake
+  this package exists to avoid, so the choice is explicit instead.
 
 ### Vector layer
 
@@ -45,7 +70,8 @@ build time or run time.
   `cjk_detect_language(x, han_only = "chinese")` opts into the guess and
   keeps the assumption visible in the calling code.
 
-- **Width is delegated to stringi.**
+- **Width is delegated to
+  [stringi](https://CRAN.R-project.org/package=stringi).**
   [`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md)
   and
   [`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md)
@@ -53,11 +79,12 @@ build time or run time.
   [`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html)
   and
   [`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html),
-  which read ICU’s live Unicode tables. A hand-maintained range table
+  which read the live Unicode tables in [ICU](https://icu.unicode.org),
+  the Unicode Consortium’s C library. A hand-maintained range table
   would go stale at every Unicode release and would already be wrong for
   a few hundred assigned code points.
   [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md)
-  has no stringi equivalent and is implemented here.
+  has no `stringi` equivalent and is implemented here.
 
 - **Normalisation is surgical.**
   [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
@@ -80,16 +107,19 @@ build time or run time.
 
 ### Not in this release
 
-- **Segmentation.** Splitting a CJK sentence into words needs a
-  dictionary and a statistical model. The engine question is unresolved;
-  `jiebaR` exists for Chinese today.
-- **Pinyin, stroke counts and radicals.** These need the Unihan
-  database. `data-raw/unihan.R` downloads and parses it, but no
-  character data is hand-written or bundled yet. `pinyin` and
-  `hanyupinyin` are on CRAN today.
-- **Traditional/simplified conversion.** Unihan gives character-level
-  mappings only, and character-level conversion is wrong often enough to
-  matter: one simplified character can map to several traditional ones
-  and the right choice is context-dependent. Shipping it as if it were
-  complete would be a disservice. `tmcn` offers character-level
-  conversion today; OpenCC is the phrase-level answer outside R.
+- **Pinyin, stroke counts and radicals.** These need the [Unihan
+  database](https://www.unicode.org/charts/unihan.html).
+  `data-raw/unihan.R` downloads and parses it, but no character data is
+  hand-written or bundled yet.
+  [pinyin](https://CRAN.R-project.org/package=pinyin) and
+  [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) are on
+  CRAN today.
+- **Traditional/simplified conversion.** The [Unihan
+  database](https://www.unicode.org/charts/unihan.html) gives
+  character-level mappings only, and character-level conversion is wrong
+  often enough to matter: one simplified character can map to several
+  traditional ones and the right choice is context-dependent. Shipping
+  it as if it were complete would be a disservice.
+  [tmcn](https://CRAN.R-project.org/package=tmcn) offers character-level
+  conversion today; [OpenCC](https://github.com/BYVoid/OpenCC) is the
+  phrase-level answer outside R.

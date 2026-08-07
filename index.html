@@ -49,14 +49,8 @@
 <!-- badges: start -->
 
 <p>Text tooling in R assumes that words are separated by whitespace, and Chinese, Japanese and Korean writing does not oblige.</p>
-<p>tidytext splits on whitespace. Chinese and Japanese don’t use whitespace. Give tidytext an English sentence and you get words; give it 我今天很開心 and you get either one undifferentiated blob or six isolated characters. Neither is right — 開心 (“happy”) is one word of two characters, and splitting it destroys the signal you were trying to measure.</p>
-<p><strong>tidycjk</strong> is the measurement layer for that problem: it tells you what script and language a text column is in, how much of it is CJK, which characters it contains, how wide it will print, and how to normalise the width variants away — as tidy verbs that return tibbles.</p>
-<div class="section level2">
-<h2 id="what-this-version-does-and-does-not-do">What this version does and does not do<a class="anchor" aria-label="anchor" href="#what-this-version-does-and-does-not-do"></a>
-</h2>
-<p>Segmentation — the actual splitting of 開心 out of a sentence — is <strong>not</strong> in this release. It needs a dictionary and a statistical model, and the dependency question is unresolved. What ships here is everything that follows exactly from the Unicode specification, with no data downloads and no compiled code.</p>
-<p><code>tidycjk</code> does not re-implement Unicode. Display width and padding come from <a href="https://stringi.gagolewski.com/" class="external-link">stringi</a>, which reads ICU’s live Unicode tables; if all you need is <code>stri_width()</code>, call it directly. What this package adds is the CJK-facing layer on top: script and language classification, the tidy verbs, and a width normaliser that is surgical where <code>NFKC</code> is not.</p>
-</div>
+<p><a href="https://CRAN.R-project.org/package=tidytext" class="external-link">tidytext</a> splits on whitespace. Chinese and Japanese don’t use whitespace. Give <code>tidytext</code> an English sentence and you get words; give it 我今天很開心 and you get either one undifferentiated blob or six isolated characters. Neither is right — 開心 (“happy”) is one word of two characters, and splitting it destroys the signal you were trying to measure.</p>
+<p><strong>tidycjk</strong> tells you what script and language a text column is in, how much of it is CJK, which characters it contains, how wide it will print, and normalises the width variants away — as tidy verbs that return tibbles.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -67,7 +61,7 @@
 <div class="section level2">
 <h2 id="the-tidy-layer">The tidy layer<a class="anchor" aria-label="anchor" href="#the-tidy-layer"></a>
 </h2>
-<p>Two verbs take <code>(data, column)</code> and return a tibble, so they drop into a dplyr pipeline.</p>
+<p>Two verbs take <code>(data, column)</code> and return a tibble, so they drop into a <a href="https://CRAN.R-project.org/package=dplyr" class="external-link">dplyr</a> pipeline.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pursuitofdatascience.github.io/tidyckj/">tidycjk</a></span><span class="op">)</span></span>
 <span></span>
@@ -106,16 +100,55 @@
 <span><span class="co">#&gt; # ℹ 15 more rows</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="segmentation">Segmentation<a class="anchor" aria-label="anchor" href="#segmentation"></a>
+</h2>
+<p><code><a href="reference/cjk_tokens.html">cjk_tokens()</a></code> is the CJK-aware counterpart of <a href="https://CRAN.R-project.org/package=tidytext" class="external-link">tidytext</a>’s <code>unnest_tokens()</code>. Where a word ends is a fact about a language rather than about Unicode, so no segmenter is bundled and <code>engine</code> is required — quietly handing back character tokens to someone who asked for words is the mistake this package exists to avoid.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_tokens.html">cjk_tokens</a></span><span class="op">(</span><span class="va">posts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="op">]</span>, <span class="va">text</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 17 × 3</span></span>
+<span><span class="co">#&gt;       id text         token</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;chr&gt;        &lt;chr&gt;</span></span>
+<span><span class="co">#&gt;  1     1 我今天很開心 我</span></span>
+<span><span class="co">#&gt;  2     1 我今天很開心 今</span></span>
+<span><span class="co">#&gt;  3     1 我今天很開心 天</span></span>
+<span><span class="co">#&gt;  4     1 我今天很開心 很</span></span>
+<span><span class="co">#&gt;  5     1 我今天很開心 開</span></span>
+<span><span class="co">#&gt;  6     1 我今天很開心 心</span></span>
+<span><span class="co">#&gt;  7     2 こんにちは、元気ですか こ</span></span>
+<span><span class="co">#&gt;  8     2 こんにちは、元気ですか ん</span></span>
+<span><span class="co">#&gt;  9     2 こんにちは、元気ですか に</span></span>
+<span><span class="co">#&gt; 10     2 こんにちは、元気ですか ち</span></span>
+<span><span class="co">#&gt; # ℹ 7 more rows</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"hello 中文 world"</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "hello" "中"    "文"    "world"</span></span></code></pre></div>
+<p><code>"character"</code> is the one engine that needs no dictionary: one token per CJK character, non-CJK runs split on whitespace. It is character tokenisation, not word segmentation.</p>
+<p>For real Chinese word segmentation, register <a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a>. It was archived from CRAN on 2025-05-01, so install it with <code>remotes::install_github("qinwf/jiebaR")</code>, then:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_segmenters.html">register_cjk_segmenter</a></span><span class="op">(</span><span class="st">"jiebar"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">worker</span> <span class="op">&lt;-</span> <span class="fu">jiebaR</span><span class="fu">::</span><span class="fu">worker</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">x</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NA_character_</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu">jiebaR</span><span class="fu">::</span><span class="fu">segment</span><span class="op">(</span><span class="va">s</span>, <span class="va">worker</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, engine <span class="op">=</span> <span class="st">"jiebar"</span><span class="op">)</span></span></code></pre></div>
+<p>The same shape works for any segmenter you can call from R.</p>
+</div>
+<div class="section level2">
 <h2 id="which-language-is-this">Which language is this?<a class="anchor" aria-label="anchor" href="#which-language-is-this"></a>
 </h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_script.html">cjk_script</a></span><span class="op">(</span><span class="va">posts</span><span class="op">$</span><span class="va">text</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "han"      "hiragana" "hangul"   "han"      NA</span></span>
 <span><span class="fu"><a href="reference/cjk_detect_language.html">cjk_detect_language</a></span><span class="op">(</span><span class="va">posts</span><span class="op">$</span><span class="va">text</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] NA         "japanese" "korean"   NA         NA</span></span></code></pre></div>
 <p>Row 4 is <code>NA</code>, and that is the interesting one. 東京都 is Tokyo Metropolis — Japanese — but it is written entirely in Han characters, and nothing in the script distinguishes it from Chinese. Any library that answers <code>"chinese"</code> there is guessing, and it will be wrong on Japanese input in a way you cannot detect downstream. <code>tidycjk</code> returns <code>NA</code>.</p>
 <p>If your corpus is known to be Chinese, ask for the guess explicitly, so that the assumption is visible in the script rather than buried in a default:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_detect_language.html">cjk_detect_language</a></span><span class="op">(</span><span class="va">posts</span><span class="op">$</span><span class="va">text</span>, han_only <span class="op">=</span> <span class="st">"chinese"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "chinese"  "japanese" "korean"   "chinese"  NA</span></span></code></pre></div>
 </div>
@@ -123,7 +156,7 @@
 <h2 id="display-width">Display width<a class="anchor" aria-label="anchor" href="#display-width"></a>
 </h2>
 <p><code><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar()</a></code> counts characters. A terminal counts columns, and a CJK character takes two of them — which is why every console table containing CJK text comes out ragged.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">labels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"中文"</span>, <span class="st">"abcd"</span>, <span class="st">"日本語"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="va">labels</span><span class="op">)</span>      <span class="co"># all look comparable</span></span>
@@ -131,7 +164,7 @@
 <span><span class="fu"><a href="reference/cjk_width.html">cjk_width</a></span><span class="op">(</span><span class="va">labels</span><span class="op">)</span>  <span class="co"># they are not</span></span>
 <span><span class="co">#&gt; [1] 4 4 6</span></span></code></pre></div>
 <p>Pad and truncate by width and the columns line up:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"|"</span>, <span class="fu"><a href="reference/cjk_pad.html">cjk_pad</a></span><span class="op">(</span><span class="va">labels</span>, <span class="fl">8</span><span class="op">)</span>, <span class="st">"|"</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; |中文    |</span></span>
 <span><span class="co">#&gt; |abcd    |</span></span>
@@ -144,7 +177,7 @@
 <h2 id="fullwidth-and-halfwidth">Fullwidth and halfwidth<a class="anchor" aria-label="anchor" href="#fullwidth-and-halfwidth"></a>
 </h2>
 <p>The usual advice is to run <code>NFKC</code>. <code>NFKC</code> does fix width, and it also rewrites ligatures, Roman numerals, circled numbers and compatibility ideographs. <code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> changes width and nothing else.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span>          <span class="co"># fullwidth digits that would not parse</span></span>
 <span><span class="co">#&gt; [1] "123"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span><span class="op">)</span></span>
@@ -153,7 +186,7 @@
 <span><span class="fu"><a href="reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"½ Ⅸ ①"</span><span class="op">)</span>          <span class="co"># NFKC would mangle all three; this leaves them</span></span>
 <span><span class="co">#&gt; [1] "½ Ⅸ ①"</span></span></code></pre></div>
 <p>Halfwidth katakana writes a voiced syllable as two code points. Composing them into one is the difference between text that matches a literal and text that silently doesn’t:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="st">"ｶﾞ"</span>          <span class="co"># U+FF76 U+FF9E — two code points</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 2</span></span>
@@ -165,9 +198,9 @@
 <div class="section level2">
 <h2 id="the-vector-layer">The vector layer<a class="anchor" aria-label="anchor" href="#the-vector-layer"></a>
 </h2>
-<p>Everything above has a stringr-style counterpart on plain character vectors: <code><a href="reference/has_cjk.html">has_cjk()</a></code>, <code><a href="reference/cjk_script.html">cjk_script()</a></code>, <code><a href="reference/cjk_detect_language.html">cjk_detect_language()</a></code>, <code><a href="reference/cjk_ratio.html">cjk_ratio()</a></code>, <code><a href="reference/cjk_width.html">cjk_width()</a></code>, <code><a href="reference/cjk_pad.html">cjk_pad()</a></code>, <code><a href="reference/cjk_truncate.html">cjk_truncate()</a></code>, <code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> and <code><a href="reference/to_halfwidth.html">to_fullwidth()</a></code>. All are vectorised, propagate <code>NA</code>, and return zero-length output for zero-length input.</p>
+<p>Everything above has a <a href="https://CRAN.R-project.org/package=stringr" class="external-link">stringr</a>-style counterpart on plain character vectors: <code><a href="reference/has_cjk.html">has_cjk()</a></code>, <code><a href="reference/cjk_script.html">cjk_script()</a></code>, <code><a href="reference/cjk_detect_language.html">cjk_detect_language()</a></code>, <code><a href="reference/cjk_ratio.html">cjk_ratio()</a></code>, <code><a href="reference/cjk_width.html">cjk_width()</a></code>, <code><a href="reference/cjk_pad.html">cjk_pad()</a></code>, <code><a href="reference/cjk_truncate.html">cjk_truncate()</a></code>, <code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> and <code><a href="reference/to_halfwidth.html">to_fullwidth()</a></code>. All are vectorised, propagate <code>NA</code>, and return zero-length output for zero-length input.</p>
 <p><code><a href="reference/cjk_blocks.html">cjk_blocks()</a></code> exports the block table the whole package is built on, so the definition of “CJK” can be read rather than guessed at.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/cjk_blocks.html">cjk_blocks</a></span><span class="op">(</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 8 × 5</span></span>
 <span><span class="co">#&gt;   block                        script      start   end n_codepoints</span></span>
@@ -197,27 +230,28 @@
 <tr>
 <td>Display width, width-aware padding</td>
 <td>
-<code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code>, <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code> — <code><a href="reference/cjk_width.html">cjk_width()</a></code> and <code><a href="reference/cjk_pad.html">cjk_pad()</a></code> wrap these</td>
+<a href="https://CRAN.R-project.org/package=stringi" class="external-link">stringi</a> — <code>stri_width()</code> and <code>stri_pad()</code>, which <code><a href="reference/cjk_width.html">cjk_width()</a></code> and <code><a href="reference/cjk_pad.html">cjk_pad()</a></code> wrap</td>
 </tr>
 <tr>
 <td>Chinese segmentation</td>
-<td><code>jiebaR</code></td>
+<td>
+<a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a> — archived from CRAN 2025-05-01; register it as a <code>tidycjk</code> engine</td>
 </tr>
 <tr>
 <td>Pinyin</td>
 <td>
-<code>pinyin</code>, <code>hanyupinyin</code>
+<a href="https://CRAN.R-project.org/package=pinyin" class="external-link">pinyin</a>, <a href="https://CRAN.R-project.org/package=hanyupinyin" class="external-link">hanyupinyin</a>
 </td>
 </tr>
 <tr>
 <td>Traditional/simplified conversion</td>
 <td>
-<code>tmcn</code>; <code>OpenCC</code> outside R for phrase-level accuracy</td>
+<a href="https://CRAN.R-project.org/package=tmcn" class="external-link">tmcn</a>; <a href="https://github.com/BYVoid/OpenCC" class="external-link">OpenCC</a> outside R for phrase-level accuracy</td>
 </tr>
 <tr>
 <td>Japanese utilities</td>
 <td>
-<code>zipangu</code>, <code>Nippon</code>
+<a href="https://CRAN.R-project.org/package=zipangu" class="external-link">zipangu</a>, <a href="https://CRAN.R-project.org/package=Nippon" class="external-link">Nippon</a>
 </td>
 </tr>
 </tbody>
