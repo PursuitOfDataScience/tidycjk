@@ -55,7 +55,9 @@ produces columns that actually line up when the text is CJK.</p>
 
 
 <dt id="arg-width">width<a class="anchor" aria-label="anchor" href="#arg-width"></a></dt>
-<dd><p>Target display width in columns. Recycled against <code>x</code>.</p></dd>
+<dd><p>Target display width in columns. Recycled against <code>x</code>; a pair
+of lengths that does not recycle cleanly is an error rather than a
+warning and a short result.</p></dd>
 
 
 <dt id="arg-side">side<a class="anchor" aria-label="anchor" href="#arg-side"></a></dt>
@@ -71,7 +73,7 @@ left-aligns the text), <code>"left"</code> or <code>"both"</code>.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A character vector the same length as the recycled inputs. Strings
 already at least <code>width</code> columns wide are returned unchanged –
-<code>cjk_pad()</code> never truncates. <code>NA</code> input gives <code>NA</code>.</p>
+<code>cjk_pad()</code> never truncates. <code>NA</code> input, and an <code>NA</code> width, give <code>NA</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

@@ -58,7 +58,8 @@ the available space by up to a factor of two.</p>
 
 
 <dt id="arg-width">width<a class="anchor" aria-label="anchor" href="#arg-width"></a></dt>
-<dd><p>Maximum display width in columns. Recycled against <code>x</code>.</p></dd>
+<dd><p>Maximum display width in columns. Recycled against <code>x</code>; a pair
+of lengths that does not recycle cleanly is an error.</p></dd>
 
 
 <dt id="arg-ellipsis">ellipsis<a class="anchor" aria-label="anchor" href="#arg-ellipsis"></a></dt>
@@ -70,7 +71,8 @@ three, so more of the text survives.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A character vector the same length as the recycled inputs. Strings
-that already fit are returned unchanged. <code>NA</code> input gives <code>NA</code>.</p>
+that already fit are returned unchanged. <code>NA</code> input, and an <code>NA</code> width,
+give <code>NA</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

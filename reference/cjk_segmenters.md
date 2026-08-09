@@ -53,10 +53,14 @@ will not find it; install it from source with
 `remotes::install_github("qinwf/jiebaR")`. Once you have it, four lines
 make it an engine:
 
-“\` register_cjk_segmenter("jiebar", function(x, ...) worker \<-
-jiebaR::worker(...) lapply(x, function(s) if (is.na(s))
-return(NA_character\_) if (!nzchar(s)) return(character(0))
-as.character(jiebaR::segment(s, worker)) ) ) “\`
+    register_cjk_segmenter("jiebar", function(x, ...) {
+      worker <- jiebaR::worker(...)
+      lapply(x, function(s) {
+        if (is.na(s)) return(NA_character_)
+        if (!nzchar(s)) return(character(0))
+        as.character(jiebaR::segment(s, worker))
+      })
+    })
 
 The same shape works for any segmenter you can call from R.
 

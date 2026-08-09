@@ -33,6 +33,11 @@ Script property; use
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
 if you need to see exactly which code points a text contains.
 
+All nine blocks of unified ideographs are covered, through Extension I.
+They are not in alphabetical order, because Unicode allocated Extension
+I (U+2EBF0) below Extension G (U+30000) rather than after Extension H,
+and this table is in code point order.
+
 The `script` column takes one of eight values. Six of them name a
 writing system – `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`,
 `"bopomofo"`, `"kanbun"` – and two are ancillary: `"punctuation"` for
@@ -51,7 +56,7 @@ for a per-character breakdown.
 
 ``` r
 cjk_blocks()
-#> # A tibble: 22 × 5
+#> # A tibble: 26 × 5
 #>    block                              script      start   end n_codepoints
 #>    <chr>                              <chr>       <int> <int>        <int>
 #>  1 Hangul Jamo                        hangul       4352  4607          256
@@ -64,19 +69,23 @@ cjk_blocks()
 #>  8 Katakana Phonetic Extensions       katakana    12784 12799           16
 #>  9 CJK Unified Ideographs Extension A han         13312 19903         6592
 #> 10 CJK Unified Ideographs             han         19968 40959        20992
-#> # ℹ 12 more rows
+#> # ℹ 16 more rows
 
 # the blocks that make up "han"
 subset(cjk_blocks(), script == "han")
-#> # A tibble: 8 × 5
-#>   block                              script  start    end n_codepoints
-#>   <chr>                              <chr>   <int>  <int>        <int>
-#> 1 CJK Unified Ideographs Extension A han     13312  19903         6592
-#> 2 CJK Unified Ideographs             han     19968  40959        20992
-#> 3 CJK Compatibility Ideographs       han     63744  64255          512
-#> 4 CJK Unified Ideographs Extension B han    131072 173791        42720
-#> 5 CJK Unified Ideographs Extension C han    173824 177983         4160
-#> 6 CJK Unified Ideographs Extension D han    177984 178207          224
-#> 7 CJK Unified Ideographs Extension E han    178208 183983         5776
-#> 8 CJK Unified Ideographs Extension F han    183984 191471         7488
+#> # A tibble: 12 × 5
+#>    block                                   script  start    end n_codepoints
+#>    <chr>                                   <chr>   <int>  <int>        <int>
+#>  1 CJK Unified Ideographs Extension A      han     13312  19903         6592
+#>  2 CJK Unified Ideographs                  han     19968  40959        20992
+#>  3 CJK Compatibility Ideographs            han     63744  64255          512
+#>  4 CJK Unified Ideographs Extension B      han    131072 173791        42720
+#>  5 CJK Unified Ideographs Extension C      han    173824 177983         4160
+#>  6 CJK Unified Ideographs Extension D      han    177984 178207          224
+#>  7 CJK Unified Ideographs Extension E      han    178208 183983         5776
+#>  8 CJK Unified Ideographs Extension F      han    183984 191471         7488
+#>  9 CJK Unified Ideographs Extension I      han    191472 192095          624
+#> 10 CJK Compatibility Ideographs Supplement han    194560 195103          544
+#> 11 CJK Unified Ideographs Extension G      han    196608 201551         4944
+#> 12 CJK Unified Ideographs Extension H      han    201552 205743         4192
 ```

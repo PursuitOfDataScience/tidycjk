@@ -20,7 +20,8 @@ cjk_truncate(x, width, ellipsis = "...")
 
 - width:
 
-  Maximum display width in columns. Recycled against `x`.
+  Maximum display width in columns. Recycled against `x`; a pair of
+  lengths that does not recycle cleanly is an error.
 
 - ellipsis:
 
@@ -31,7 +32,8 @@ cjk_truncate(x, width, ellipsis = "...")
 ## Value
 
 A character vector the same length as the recycled inputs. Strings that
-already fit are returned unchanged. `NA` input gives `NA`.
+already fit are returned unchanged. `NA` input, and an `NA` width, give
+`NA`.
 
 ## Details
 

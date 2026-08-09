@@ -62,8 +62,8 @@ each entry's characters that are CJK.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A one-row tibble with columns <code>n_docs</code> (all entries), <code>n_with_cjk</code>
 (entries holding at least one CJK character), <code>prop_with_cjk</code> and
-<code>mean_ratio</code>. The two proportions are <code>NA</code> when there is nothing to
-average.</p>
+<code>mean_ratio</code>. <code>prop_with_cjk</code> is <code>NA</code> for a zero-row column, and
+<code>mean_ratio</code> is <code>NA</code> when no entry has a ratio to contribute.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -72,8 +72,11 @@ answers "how many of these documents are CJK at all". <code>mean_ratio</code> av
 <code><a href="cjk_ratio.html">cjk_ratio()</a></code> over the entries that have one, so it answers "how CJK are
 they". A corpus of English with one ideograph per row scores high on the
 first and near zero on the second.</p>
-<p><code>NA</code> entries count towards <code>n_docs</code> but are excluded from every other
-figure. Empty strings likewise have no ratio to contribute.</p>
+<p><code>NA</code> entries never count as containing CJK, and they do count towards
+<code>n_docs</code> – so they are in the denominator of <code>prop_with_cjk</code> and dilute it:
+a column that is half missing cannot score above 0.5. <code>mean_ratio</code> is the
+one figure they are dropped from, along with empty strings, because neither
+has a ratio to contribute.</p>
 <p>Grouping is ignored: the result is always one row for the whole column. Use
 <code><a href="https://dplyr.tidyverse.org/reference/group_map.html" class="external-link">dplyr::group_modify()</a></code> if you need it per group.</p>
     </div>

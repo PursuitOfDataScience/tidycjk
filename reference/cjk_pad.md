@@ -19,7 +19,9 @@ cjk_pad(x, width, side = "right", pad = " ")
 
 - width:
 
-  Target display width in columns. Recycled against `x`.
+  Target display width in columns. Recycled against `x`; a pair of
+  lengths that does not recycle cleanly is an error rather than a
+  warning and a short result.
 
 - side:
 
@@ -34,7 +36,7 @@ cjk_pad(x, width, side = "right", pad = " ")
 
 A character vector the same length as the recycled inputs. Strings
 already at least `width` columns wide are returned unchanged –
-`cjk_pad()` never truncates. `NA` input gives `NA`.
+`cjk_pad()` never truncates. `NA` input, and an `NA` width, give `NA`.
 
 ## See also
 

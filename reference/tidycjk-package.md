@@ -59,6 +59,35 @@ method carries those too.
 tells you which of them you actually have, so the wide definition never
 hides the detail.
 
+## Related packages
+
+tidycjk deliberately stops where another package already does the job:
+
+- Chinese word segmentation –
+  [jiebaR](https://CRAN.R-project.org/package=jiebaR), which
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  shows how to register as an engine. It was archived from CRAN on
+  2025-05-01, which is why it is not a dependency.
+
+- Romanisation – [pinyin](https://CRAN.R-project.org/package=pinyin) and
+  [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin).
+
+- Traditional/simplified conversion –
+  [tmcn](https://CRAN.R-project.org/package=tmcn) at the character
+  level. Character-level conversion is context-blind and often wrong, so
+  this package ships none; [OpenCC](https://github.com/BYVoid/OpenCC) is
+  the phrase-level answer outside R.
+
+- Japanese-specific utilities –
+  [zipangu](https://CRAN.R-project.org/package=zipangu) and
+  [Nippon](https://CRAN.R-project.org/package=Nippon).
+
+- Tokenising whitespace-delimited text –
+  [tidytext](https://CRAN.R-project.org/package=tidytext), whose
+  `unnest_tokens()`
+  [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+  mirrors for text that has no spaces between words.
+
 ## Relationship to stringi
 
 tidycjk does not re-implement Unicode. Display width comes from

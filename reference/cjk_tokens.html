@@ -88,6 +88,9 @@ vanish from the output.</p>
 <p>The token column is called <code>token</code> and is added to <code>data</code>; an existing
 column of that name is replaced. As with <code><a href="cjk_segment.html">cjk_segment()</a></code>, <code>engine</code> is
 required.</p>
+<p>Grouping is dropped, as it is by <code><a href="cjk_summary.html">cjk_summary()</a></code>: the result is a plain
+tibble even when <code>data</code> is a <code>grouped_df</code>. Regroup it afterwards if you need
+the groups back.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

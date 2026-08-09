@@ -70,9 +70,7 @@ the empty string gives the empty string.</p>
     </div>
     <div class="section level2">
     <h2 id="why-not-nfkc">Why not NFKC<a class="anchor" aria-label="anchor" href="#why-not-nfkc"></a></h2>
-
-
-<p><code>NFKC</code> normalisation does fix character width, and it is what most advice
+    <p><code>NFKC</code> normalisation does fix character width, and it is what most advice
 recommends. It also rewrites ligatures, superscripts and subscripts, Roman
 numerals, circled and parenthesised numbers, the no-break space, and the CJK
 compatibility ideographs. A user who wants fullwidth digits narrowed before
@@ -81,7 +79,6 @@ is silent. These functions change width and nothing else.</p>
     </div>
     <div class="section level2">
     <h2 id="what-is-mapped">What is mapped<a class="anchor" aria-label="anchor" href="#what-is-mapped"></a></h2>
-
 
 <ul><li><p>Fullwidth ASCII U+FF01-U+FF5E and ASCII U+0021-U+007E, which differ by a
 constant offset of <code>0xFEE0</code>.</p></li>
@@ -94,9 +91,7 @@ only representation that survives a round trip.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="voiced-marks">Voiced marks<a class="anchor" aria-label="anchor" href="#voiced-marks"></a></h2>
-
-
-<p>Halfwidth katakana writes a voiced syllable as two code points, a bare
+    <p>Halfwidth katakana writes a voiced syllable as two code points, a bare
 syllable followed by a voiced sound mark. Mapping those to fullwidth
 one-for-one leaves the pair intact, so the text still has two code points
 where a reader sees one character, and it will not match a literal written
@@ -119,9 +114,7 @@ uncomposed voiced mark is not a form anyone wants.</p>
     </div>
     <div class="section level2">
     <h2 id="one-deliberate-difference-from-nfkc">One deliberate difference from NFKC<a class="anchor" aria-label="anchor" href="#one-deliberate-difference-from-nfkc"></a></h2>
-
-
-<p>The Unicode compatibility decomposition of U+FF9E is the <em>combining</em> mark
+    <p>The Unicode compatibility decomposition of U+FF9E is the <em>combining</em> mark
 U+3099, so <code>NFKC</code> maps the halfwidth voiced mark onto a combining
 character. These functions map it to the <em>spacing</em> mark U+309B instead
 (and U+FF9F to U+309C), which is what <a href="https://icu.unicode.org" class="external-link">ICU</a>'s own

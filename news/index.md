@@ -60,7 +60,9 @@ has no compiled code, bundles no data, and makes no network requests.
   [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
   normalise width variants.
 - [`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md)
-  exports the Unicode block table the package is built on.
+  exports the Unicode block table the package is built on, covering
+  every unified ideograph block through Extension I as well as the
+  phonetic scripts, CJK punctuation and the width variants.
 
 ### Notes on the design
 

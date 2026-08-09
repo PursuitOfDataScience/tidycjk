@@ -24,8 +24,8 @@ cjk_summary(data, col)
 
 A one-row tibble with columns `n_docs` (all entries), `n_with_cjk`
 (entries holding at least one CJK character), `prop_with_cjk` and
-`mean_ratio`. The two proportions are `NA` when there is nothing to
-average.
+`mean_ratio`. `prop_with_cjk` is `NA` for a zero-row column, and
+`mean_ratio` is `NA` when no entry has a ratio to contribute.
 
 ## Details
 
@@ -37,8 +37,11 @@ over the entries that have one, so it answers "how CJK are they". A
 corpus of English with one ideograph per row scores high on the first
 and near zero on the second.
 
-`NA` entries count towards `n_docs` but are excluded from every other
-figure. Empty strings likewise have no ratio to contribute.
+`NA` entries never count as containing CJK, and they do count towards
+`n_docs` – so they are in the denominator of `prop_with_cjk` and dilute
+it: a column that is half missing cannot score above 0.5. `mean_ratio`
+is the one figure they are dropped from, along with empty strings,
+because neither has a ratio to contribute.
 
 Grouping is ignored: the result is always one row for the whole column.
 Use

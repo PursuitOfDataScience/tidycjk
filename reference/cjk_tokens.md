@@ -49,6 +49,11 @@ column of that name is replaced. As with
 [`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md),
 `engine` is required.
 
+Grouping is dropped, as it is by
+[`cjk_summary()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_summary.md):
+the result is a plain tibble even when `data` is a `grouped_df`. Regroup
+it afterwards if you need the groups back.
+
 ## See also
 
 [`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)

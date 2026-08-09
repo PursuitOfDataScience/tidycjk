@@ -63,6 +63,29 @@ CJK input method carries those too. <code><a href="cjk_script.html">cjk_script()
 you actually have, so the wide definition never hides the detail.</p>
     </div>
     <div class="section level2">
+    <h2 id="related-packages">Related packages<a class="anchor" aria-label="anchor" href="#related-packages"></a></h2>
+
+
+<p><span class="pkg">tidycjk</span> deliberately stops where another package already does the job:</p><ul><li><p>Chinese word segmentation –
+<a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a>, which
+<code><a href="cjk_segmenters.html">cjk_segmenters()</a></code> shows how to register as an engine. It was archived
+from CRAN on 2025-05-01, which is why it is not a dependency.</p></li>
+<li><p>Romanisation – <a href="https://CRAN.R-project.org/package=pinyin" class="external-link">pinyin</a> and
+<a href="https://CRAN.R-project.org/package=hanyupinyin" class="external-link">hanyupinyin</a>.</p></li>
+<li><p>Traditional/simplified conversion –
+<a href="https://CRAN.R-project.org/package=tmcn" class="external-link">tmcn</a> at the character level.
+Character-level conversion is context-blind and often wrong, so this
+package ships none; <a href="https://github.com/BYVoid/OpenCC" class="external-link">OpenCC</a> is the
+phrase-level answer outside R.</p></li>
+<li><p>Japanese-specific utilities –
+<a href="https://CRAN.R-project.org/package=zipangu" class="external-link">zipangu</a> and
+<a href="https://CRAN.R-project.org/package=Nippon" class="external-link">Nippon</a>.</p></li>
+<li><p>Tokenising whitespace-delimited text –
+<a href="https://CRAN.R-project.org/package=tidytext" class="external-link">tidytext</a>, whose
+<code>unnest_tokens()</code> <code><a href="cjk_tokens.html">cjk_tokens()</a></code> mirrors for text that has no spaces
+between words.</p></li>
+</ul></div>
+    <div class="section level2">
     <h2 id="relationship-to-stringi">Relationship to stringi<a class="anchor" aria-label="anchor" href="#relationship-to-stringi"></a></h2>
 
 
