@@ -7,7 +7,7 @@
 cjk_width(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 }
 \value{
 An integer vector the same length as \code{x}. \code{NA} input gives \code{NA}; the
@@ -25,7 +25,7 @@ characters (general categories \code{Mn}, \code{Me}, \code{Cf}), C0 and C1 contr
 and Hangul Jamo medial vowels and final consonants are zero; everything else
 is one.
 
-The computation is \code{stringi::stri_width()}, which reads the Unicode tables
+The computation is \code{\link[stringi:stri_width]{stringi::stri_width()}}, which reads the Unicode tables
 shipped with \href{https://icu.unicode.org}{ICU}, the Unicode Consortium's C
 library. \code{cjk_width()} exists so that the width, the padding and the
 truncation in a CJK pipeline all read the same way; if width is all you
@@ -49,5 +49,5 @@ cjk_width(c("\u4e2d\u6587", "abcd"))
 }
 \seealso{
 \code{\link[=cjk_pad]{cjk_pad()}} and \code{\link[=cjk_truncate]{cjk_truncate()}}, which lay text out by width;
-\code{stringi::stri_width()} for the underlying computation.
+\code{\link[stringi:stri_width]{stringi::stri_width()}} for the underlying computation.
 }

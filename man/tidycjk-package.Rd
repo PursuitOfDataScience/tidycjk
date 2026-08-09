@@ -33,10 +33,35 @@ CJK input method carries those too. \code{\link[=cjk_script]{cjk_script()}} tell
 you actually have, so the wide definition never hides the detail.
 }
 
+\section{Related packages}{
+
+\pkg{tidycjk} deliberately stops where another package already does the job:
+\itemize{
+\item Chinese word segmentation --
+\href{https://CRAN.R-project.org/package=jiebaR}{jiebaR}, which
+\code{\link[=cjk_segmenters]{cjk_segmenters()}} shows how to register as an engine. It was archived
+from CRAN on 2025-05-01, which is why it is not a dependency.
+\item Romanisation -- \href{https://CRAN.R-project.org/package=pinyin}{pinyin} and
+\href{https://CRAN.R-project.org/package=hanyupinyin}{hanyupinyin}.
+\item Traditional/simplified conversion --
+\href{https://CRAN.R-project.org/package=tmcn}{tmcn} at the character level.
+Character-level conversion is context-blind and often wrong, so this
+package ships none; \href{https://github.com/BYVoid/OpenCC}{OpenCC} is the
+phrase-level answer outside R.
+\item Japanese-specific utilities --
+\href{https://CRAN.R-project.org/package=zipangu}{zipangu} and
+\href{https://CRAN.R-project.org/package=Nippon}{Nippon}.
+\item Tokenising whitespace-delimited text --
+\href{https://CRAN.R-project.org/package=tidytext}{tidytext}, whose
+\code{unnest_tokens()} \code{\link[=cjk_tokens]{cjk_tokens()}} mirrors for text that has no spaces
+between words.
+}
+}
+
 \section{Relationship to stringi}{
 
 \pkg{tidycjk} does not re-implement Unicode. Display width comes from
-\code{stringi::stri_width()} and padding from \code{stringi::stri_pad()} --
+\code{\link[stringi:stri_width]{stringi::stri_width()}} and padding from \code{\link[stringi:stri_pad]{stringi::stri_pad()}} --
 \href{https://CRAN.R-project.org/package=stringi}{stringi} -- both of which
 read the live Unicode tables in \href{https://icu.unicode.org}{ICU}, the
 Unicode Consortium's C library. \pkg{tidycjk} adds the CJK-specific

@@ -7,9 +7,10 @@
 cjk_truncate(x, width, ellipsis = "...")
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 
-\item{width}{Maximum display width in columns. Recycled against \code{x}.}
+\item{width}{Maximum display width in columns. Recycled against \code{x}; a pair
+of lengths that does not recycle cleanly is an error.}
 
 \item{ellipsis}{String to append when the text was shortened. Defaults to
 \code{"..."}. The single-character ellipsis U+2026 is one column rather than
@@ -17,7 +18,8 @@ three, so more of the text survives.}
 }
 \value{
 A character vector the same length as the recycled inputs. Strings
-that already fit are returned unchanged. \code{NA} input gives \code{NA}.
+that already fit are returned unchanged. \code{NA} input, and an \code{NA} width,
+give \code{NA}.
 }
 \description{
 \code{cjk_truncate()} shortens each string so that it fits in \code{width} terminal

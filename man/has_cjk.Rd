@@ -7,7 +7,7 @@
 has_cjk(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 }
 \value{
 A logical vector the same length as \code{x}. \code{NA} input gives \code{NA}; the

@@ -76,7 +76,29 @@ test_that("cjk_pad() validates the pad character", {
 
 test_that("cjk_pad() handles NA and zero-length input", {
   expect_true(is.na(cjk_pad(NA_character_, 5)))
+  expect_true(is.na(cjk_pad("ab", NA)))
   expect_equal(cjk_pad(character(0), 5), character(0))
+})
+
+test_that("cjk_pad() refuses a width it cannot recycle", {
+  # stringi recycles a ragged pair with a warning and hands back a partial
+  # result; for a layout function that is worse than refusing, and it left
+  # cjk_pad() and cjk_truncate() disagreeing about the same mistake
+  expect_error(cjk_pad(c("a", "b"), c(3, 4, 5)), "recyclable")
+  expect_error(cjk_pad(c("a", "b", "c"), c(3, 4)), "recyclable")
+  expect_error(cjk_pad("a", integer(0)), "at least one element")
+  # ...and a clean recycle still works, in both directions
+  expect_equal(cjk_width(cjk_pad(c("a", "b"), 4)), c(4L, 4L))
+  expect_equal(cjk_width(cjk_pad("a", c(3, 5))), c(3L, 5L))
+})
+
+test_that("both layout verbs reject a width that is not a number", {
+  # as.integer("abc") is a warning and an NA, so a typo used to come back as
+  # missing output rather than as an error
+  expect_error(cjk_pad("abc", "5"), "numeric")
+  expect_error(cjk_truncate("abcdef", "abc"), "numeric")
+  expect_error(cjk_truncate("abcdef", list(3)), "numeric")
+  expect_error(cjk_truncate("abcdef", TRUE), "numeric")
 })
 
 test_that("cjk_truncate() fits the result inside the budget", {
@@ -118,6 +140,20 @@ test_that("cjk_truncate() never orphans a combining mark", {
   out <- cjk_truncate(x, 4, ellipsis = "")
   expect_equal(out, paste0(COMBINING, "xxx"))
   expect_equal(cjk_width(out), 4L)
+})
+
+test_that("the truncated result never exceeds the budget", {
+  # a width-aware truncate that can overshoot is no better than substr()
+  pool <- c(ZH, "ab", EXT_B, COMBINING, ZWSP, IDEOGRAPHIC_SPACE, FW_DIGITS,
+            JA_KANA, HW_KA, " ")
+  set.seed(20240609)
+  for (i in seq_len(200)) {
+    s <- paste0(sample(pool, sample(1:5, 1), replace = TRUE), collapse = "")
+    w <- sample(0:14, 1)
+    for (e in c("...", "…", "")) {
+      expect_lte(cjk_width(cjk_truncate(s, w, ellipsis = e)), w)
+    }
+  }
 })
 
 test_that("cjk_truncate() is vectorised over x and width", {

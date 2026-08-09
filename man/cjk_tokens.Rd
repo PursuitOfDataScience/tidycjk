@@ -37,6 +37,10 @@ vanish from the output.
 The token column is called \code{token} and is added to \code{data}; an existing
 column of that name is replaced. As with \code{\link[=cjk_segment]{cjk_segment()}}, \code{engine} is
 required.
+
+Grouping is dropped, as it is by \code{\link[=cjk_summary]{cjk_summary()}}: the result is a plain
+tibble even when \code{data} is a \code{grouped_df}. Regroup it afterwards if you need
+the groups back.
 }
 \examples{
 df <- data.frame(

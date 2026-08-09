@@ -22,10 +22,11 @@ The genuinely new material is the tidy layer (`cjk_summary()`,
 `cjk_char_counts()`), the script and language classification, and the surgical
 width normaliser with halfwidth-katakana voiced-mark composition.
 
-Related CRAN packages are named in the README and in `?to_halfwidth`: `jiebaR`
-for Chinese segmentation, `pinyin` and `hanyupinyin` for romanisation, `tmcn`
-for character-level traditional/simplified conversion, and `zipangu` and
-`Nippon` for Japanese utilities.
+Related CRAN packages are named in the README and in `?tidycjk`, under
+"Related packages": `jiebaR` for Chinese segmentation, `pinyin` and
+`hanyupinyin` for romanisation, `tmcn` for character-level
+traditional/simplified conversion, `zipangu` and `Nippon` for Japanese
+utilities, and `tidytext`, whose `unnest_tokens()` `cjk_tokens()` mirrors.
 
 ## Test environments
 

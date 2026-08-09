@@ -166,6 +166,15 @@ test_that("cjk_tokens() accepts tibbles and unquoted columns", {
   expect_equal(nrow(cjk_tokens(tb, body, engine = "character")), 2L)
 })
 
+test_that("cjk_tokens() accepts a grouped data frame and drops the grouping", {
+  df <- dplyr::group_by(data.frame(g = c("a", "b"), text = c(ZH, "x y")), g)
+  out <- cjk_tokens(df, text, engine = "character")
+  expect_equal(nrow(out), 4L)
+  expect_equal(out$g, c("a", "a", "b", "b"))
+  # documented: a plain tibble, as cjk_summary() also returns
+  expect_false(inherits(out, "grouped_df"))
+})
+
 test_that("cjk_tokens() composes with the rest of the package", {
   df <- data.frame(text = c(ZH, JA_MIXED))
   out <- cjk_tokens(df, text, engine = "character")

@@ -41,7 +41,9 @@ compiled code, bundles no data, and makes no network requests.
 * `cjk_width()`, `cjk_pad()` and `cjk_truncate()` work in terminal columns
   rather than characters.
 * `to_halfwidth()` and `to_fullwidth()` normalise width variants.
-* `cjk_blocks()` exports the Unicode block table the package is built on.
+* `cjk_blocks()` exports the Unicode block table the package is built on,
+  covering every unified ideograph block through Extension I as well as the
+  phonetic scripts, CJK punctuation and the width variants.
 
 ## Notes on the design
 

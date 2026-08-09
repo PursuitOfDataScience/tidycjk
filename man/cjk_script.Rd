@@ -7,7 +7,7 @@
 cjk_script(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 }
 \value{
 A character vector the same length as \code{x}. Strings with no CJK

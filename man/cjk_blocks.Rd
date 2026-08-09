@@ -19,7 +19,7 @@ exported so that it can be inspected rather than guessed at.
 \details{
 The table is sorted by \code{start} and contains no overlapping ranges, which is
 what allows a whole corpus of code points to be classified with a single
-\code{findInterval()} call rather than a per-character regular expression.
+\code{\link[=findInterval]{findInterval()}} call rather than a per-character regular expression.
 
 Two of the rows deserve comment. Halfwidth Katakana (U+FF65-U+FF9F) is a
 sub-range of the Halfwidth and Fullwidth Forms block; because the katakana
@@ -28,6 +28,11 @@ side of it. And the halfwidth Hangul jamo at U+FFA0-U+FFDC are reported as
 \code{"fullwidth"} rather than \code{"hangul"}, because this table follows the block
 boundaries rather than the Unicode Script property; use \code{\link[=cjk_char_counts]{cjk_char_counts()}}
 if you need to see exactly which code points a text contains.
+
+All nine blocks of unified ideographs are covered, through Extension I. They
+are not in alphabetical order, because Unicode allocated Extension I
+(U+2EBF0) below Extension G (U+30000) rather than after Extension H, and
+this table is in code point order.
 
 The \code{script} column takes one of eight values. Six of them name a writing
 system -- \code{"han"}, \code{"hiragana"}, \code{"katakana"}, \code{"hangul"}, \code{"bopomofo"},

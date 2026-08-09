@@ -7,7 +7,7 @@
 cjk_segment(x, engine, ...)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 
 \item{engine}{Name of a segmentation engine, or a function implementing
 one. Required; see \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}

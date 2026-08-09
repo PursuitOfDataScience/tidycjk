@@ -12,7 +12,7 @@ register_cjk_segmenter(name, fn)
 \arguments{
 \item{name}{Name of the engine, a single string.}
 
-\item{fn}{A function of \code{(x, ...)} returning a list of character vectors.}
+\item{fn}{A function of \verb{(x, ...)} returning a list of character vectors.}
 }
 \value{
 \code{cjk_segmenters()} returns a character vector of engine names.
@@ -37,7 +37,6 @@ segmentation, and for Chinese it will cut two-character words in half. It
 is a baseline, not an answer.
 }
 \section{Registering a word segmenter}{
-
 \href{https://CRAN.R-project.org/package=jiebaR}{jiebaR}, which binds
 \href{https://github.com/yanyiwu/cppjieba}{cppjieba}, is the usual choice for
 Chinese. It was archived from CRAN on 2025-05-01, so it cannot be a
@@ -46,23 +45,21 @@ install it from source with
 \code{remotes::install_github("qinwf/jiebaR")}. Once you have it, four lines
 make it an engine:
 
-```
-register_cjk_segmenter("jiebar", function(x, ...) {
-worker <- jiebaR::worker(...)
-lapply(x, function(s) {
-if (is.na(s)) return(NA_character_)
-if (!nzchar(s)) return(character(0))
-as.character(jiebaR::segment(s, worker))
-})
-})
-```
+\if{html}{\out{<div class="sourceCode">}}\preformatted{register_cjk_segmenter("jiebar", function(x, ...) \{
+  worker <- jiebaR::worker(...)
+  lapply(x, function(s) \{
+    if (is.na(s)) return(NA_character_)
+    if (!nzchar(s)) return(character(0))
+    as.character(jiebaR::segment(s, worker))
+  \})
+\})
+}\if{html}{\out{</div>}}
 
 The same shape works for any segmenter you can call from R.
 }
 
 \section{The engine contract}{
-
-An engine is any function taking \code{(x, ...)} -- a character vector and the
+An engine is any function taking \verb{(x, ...)} -- a character vector and the
 dots from \code{\link[=cjk_segment]{cjk_segment()}} -- and returning a list the same length as \code{x},
 each element a character vector of tokens. \code{NA} input should give
 \code{NA_character_} and the empty string should give \code{character(0)};

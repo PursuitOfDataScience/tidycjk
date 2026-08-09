@@ -11,6 +11,11 @@
 # Two ranges in the specification overlap: Halfwidth Katakana (U+FF65-U+FF9F)
 # sits inside Halfwidth and Fullwidth Forms (U+FF00-U+FFEF). The katakana is
 # the more informative label, so the enclosing block is split around it.
+#
+# The ideographic extensions are NOT in alphabetical order and must not be put
+# into it: Unicode allocated Extension I (U+2EBF0) in the gap left below
+# Extension G (U+30000), so code point order puts I before G and H. Sorting the
+# table by name would break the findInterval() invariant above.
 
 # The table is a constant, but .cjk_block_index() is called once per element of
 # the input vector, so rebuilding it there means rebuilding it for every string
@@ -46,7 +51,11 @@
     c(0x2A700, 0x2B73F),
     c(0x2B740, 0x2B81F),
     c(0x2B820, 0x2CEAF),
-    c(0x2CEB0, 0x2EBEF)
+    c(0x2CEB0, 0x2EBEF),
+    c(0x2EBF0, 0x2EE5F),
+    c(0x2F800, 0x2FA1F),
+    c(0x30000, 0x3134F),
+    c(0x31350, 0x323AF)
   )
   tab <- list(
     start = m[, 1],
@@ -73,7 +82,11 @@
       "CJK Unified Ideographs Extension C",
       "CJK Unified Ideographs Extension D",
       "CJK Unified Ideographs Extension E",
-      "CJK Unified Ideographs Extension F"
+      "CJK Unified Ideographs Extension F",
+      "CJK Unified Ideographs Extension I",
+      "CJK Compatibility Ideographs Supplement",
+      "CJK Unified Ideographs Extension G",
+      "CJK Unified Ideographs Extension H"
     ),
     script = c(
       "hangul",
@@ -97,18 +110,15 @@
       "han",
       "han",
       "han",
+      "han",
+      "han",
+      "han",
+      "han",
       "han"
     )
   )
   .cjk_cache$ranges <- tab
   tab
-}
-
-# Scripts that identify a writing system, as opposed to the two ancillary
-# scripts ("punctuation" and "fullwidth") that a CJK input method leaves behind
-# but that say nothing about which language was typed.
-.cjk_substantive_scripts <- function() {
-  c("han", "hiragana", "katakana", "hangul", "bopomofo", "kanbun")
 }
 
 # Vectorised code point -> row of .cjk_ranges(). NA where the code point is
@@ -169,6 +179,11 @@
 #' `"fullwidth"` rather than `"hangul"`, because this table follows the block
 #' boundaries rather than the Unicode Script property; use [cjk_char_counts()]
 #' if you need to see exactly which code points a text contains.
+#'
+#' All nine blocks of unified ideographs are covered, through Extension I. They
+#' are not in alphabetical order, because Unicode allocated Extension I
+#' (U+2EBF0) below Extension G (U+30000) rather than after Extension H, and
+#' this table is in code point order.
 #'
 #' The `script` column takes one of eight values. Six of them name a writing
 #' system -- `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`, `"bopomofo"`,

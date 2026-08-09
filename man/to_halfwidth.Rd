@@ -10,7 +10,7 @@ to_halfwidth(x, compose = TRUE)
 to_fullwidth(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 
 \item{compose}{Fold a syllable and a following voiced mark into the single
 precomposed code point. Defaults to \code{TRUE}. \code{FALSE} leaves the pair as
@@ -27,7 +27,6 @@ widens ASCII to fullwidth. Both widen halfwidth katakana to its fullwidth
 form. Nothing else in the string is touched.
 }
 \section{Why not NFKC}{
-
 \code{NFKC} normalisation does fix character width, and it is what most advice
 recommends. It also rewrites ligatures, superscripts and subscripts, Roman
 numerals, circled and parenthesised numbers, the no-break space, and the CJK
@@ -37,7 +36,6 @@ is silent. These functions change width and nothing else.
 }
 
 \section{What is mapped}{
-
 \itemize{
 \item Fullwidth ASCII U+FF01-U+FF5E and ASCII U+0021-U+007E, which differ by a
 constant offset of \code{0xFEE0}.
@@ -51,7 +49,6 @@ only representation that survives a round trip.
 }
 
 \section{Voiced marks}{
-
 Halfwidth katakana writes a voiced syllable as two code points, a bare
 syllable followed by a voiced sound mark. Mapping those to fullwidth
 one-for-one leaves the pair intact, so the text still has two code points
@@ -78,7 +75,6 @@ uncomposed voiced mark is not a form anyone wants.
 }
 
 \section{One deliberate difference from NFKC}{
-
 The Unicode compatibility decomposition of U+FF9E is the \emph{combining} mark
 U+3099, so \code{NFKC} maps the halfwidth voiced mark onto a combining
 character. These functions map it to the \emph{spacing} mark U+309B instead

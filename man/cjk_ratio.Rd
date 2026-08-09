@@ -7,7 +7,7 @@
 cjk_ratio(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 }
 \value{
 A numeric vector the same length as \code{x}, between 0 and 1. \code{NA} input

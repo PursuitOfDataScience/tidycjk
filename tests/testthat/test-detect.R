@@ -23,6 +23,26 @@ test_that("has_cjk() counts punctuation and fullwidth forms, as documented", {
   expect_true(has_cjk(FW_DIGITS))
 })
 
+test_that("ideographs from the newer extensions count as CJK", {
+  # regression: the block table stopped at Extension F, so an ideograph from
+  # Extension G, H or I -- or from the compatibility supplement -- came back as
+  # not CJK at all, silently, in every verb in the package
+  modern <- c(EXT_I, EXT_G, EXT_H, COMPAT_SUP)
+  expect_equal(has_cjk(modern), rep(TRUE, 4L))
+  expect_equal(cjk_script(modern), rep("han", 4L))
+  expect_equal(cjk_ratio(modern), rep(1, 4L))
+  expect_equal(cjk_ratio(paste0("a", modern)), rep(0.5, 4L))
+  # ...and they still do not settle the language, being Han
+  expect_true(all(is.na(cjk_detect_language(modern))))
+  expect_equal(
+    cjk_char_counts(data.frame(text = modern), text)$block,
+    c("CJK Unified Ideographs Extension I",
+      "CJK Unified Ideographs Extension G",
+      "CJK Unified Ideographs Extension H",
+      "CJK Compatibility Ideographs Supplement")
+  )
+})
+
 test_that("has_cjk() handles NA, empty strings and zero-length input", {
   expect_true(is.na(has_cjk(NA_character_)))
   expect_equal(has_cjk(c(ZH, NA, "x")), c(TRUE, NA, FALSE))

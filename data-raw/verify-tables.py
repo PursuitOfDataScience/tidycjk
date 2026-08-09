@@ -62,6 +62,12 @@ RANGES = [
     (0x2B740, 0x2B81F, "CJK Unified Ideographs Extension D", "han"),
     (0x2B820, 0x2CEAF, "CJK Unified Ideographs Extension E", "han"),
     (0x2CEB0, 0x2EBEF, "CJK Unified Ideographs Extension F", "han"),
+    # Not alphabetical, and must not be sorted into alphabetical order:
+    # Unicode put Extension I below Extension G in code point order.
+    (0x2EBF0, 0x2EE5F, "CJK Unified Ideographs Extension I", "han"),
+    (0x2F800, 0x2FA1F, "CJK Compatibility Ideographs Supplement", "han"),
+    (0x30000, 0x3134F, "CJK Unified Ideographs Extension G", "han"),
+    (0x31350, 0x323AF, "CJK Unified Ideographs Extension H", "han"),
 ]
 
 # invariants findInterval() depends on
@@ -90,6 +96,21 @@ for cp, want in SAMPLES.items():
         ud.name(chr(cp))
     except ValueError:
         fail.append(f"U+{cp:04X} is unassigned")
+
+# The referee is only as current as the Python build. Extensions G, H and I
+# arrived in Unicode 13.0, 15.0 and 15.1, so an older `unicodedata` cannot
+# confirm them and says so rather than staying silent about the gap.
+print(f"referee: Python unicodedata, UCD {ud.unidata_version}")
+def any_assigned(start, end):
+    # A block whose start is unassigned is normal (U+3040 opens Hiragana and
+    # is a reserved code point); a block with nothing assigned anywhere is one
+    # this Python has never heard of.
+    return any(ud.name(chr(cp), "") for cp in range(start, end + 1))
+unknown = sorted({name for start, end, name, _ in RANGES
+                  if not any_assigned(start, end)})
+if unknown:
+    print("  block newer than the referee, not verifiable here: "
+          + ", ".join(unknown))
 
 # ------------------------------------------------------ halfwidth katakana map
 KATA = [

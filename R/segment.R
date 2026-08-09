@@ -248,6 +248,10 @@ cjk_segment <- function(x, engine, ...) {
 #' column of that name is replaced. As with [cjk_segment()], `engine` is
 #' required.
 #'
+#' Grouping is dropped, as it is by [cjk_summary()]: the result is a plain
+#' tibble even when `data` is a `grouped_df`. Regroup it afterwards if you need
+#' the groups back.
+#'
 #' @inheritParams cjk_summary
 #' @inheritParams cjk_segment
 #'

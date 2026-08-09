@@ -7,9 +7,11 @@
 cjk_pad(x, width, side = "right", pad = " ")
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 
-\item{width}{Target display width in columns. Recycled against \code{x}.}
+\item{width}{Target display width in columns. Recycled against \code{x}; a pair
+of lengths that does not recycle cleanly is an error rather than a
+warning and a short result.}
 
 \item{side}{Which side to add padding to: \code{"right"} (the default, which
 left-aligns the text), \code{"left"} or \code{"both"}.}
@@ -19,7 +21,7 @@ left-aligns the text), \code{"left"} or \code{"both"}.}
 \value{
 A character vector the same length as the recycled inputs. Strings
 already at least \code{width} columns wide are returned unchanged --
-\code{cjk_pad()} never truncates. \code{NA} input gives \code{NA}.
+\code{cjk_pad()} never truncates. \code{NA} input, and an \code{NA} width, give \code{NA}.
 }
 \description{
 \code{cjk_pad()} pads each string with a fill character until it occupies at
@@ -40,6 +42,6 @@ cat(paste0("|", cjk_pad(c("\u4e2d\u6587", "abcd"), 6), "|"),
     sep = "\n")
 }
 \seealso{
-\code{\link[=cjk_truncate]{cjk_truncate()}} for the other direction; \code{stringi::stri_pad()},
+\code{\link[=cjk_truncate]{cjk_truncate()}} for the other direction; \code{\link[stringi:stri_pad]{stringi::stri_pad()}},
 which this wraps.
 }

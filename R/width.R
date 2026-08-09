@@ -14,6 +14,36 @@
 # API: consistent naming, and a width-aware truncate, which stringi does not
 # have.
 
+# `width` validation, shared by cjk_pad() and cjk_truncate().
+#
+# as.integer() alone is too permissive: as.integer("abc") is a warning and an
+# NA, so a typo would come back as missing output rather than as an error. A
+# genuinely missing width still propagates as NA, which is what every other
+# function in the package does with NA.
+.cjk_as_width <- function(width) {
+  if (length(width) == 0L) {
+    stop("`width` must have at least one element.", call. = FALSE)
+  }
+  if (!is.numeric(width) && !all(is.na(width))) {
+    stop("`width` must be numeric.", call. = FALSE)
+  }
+  as.integer(width)
+}
+
+# Length of `x` and `width` recycled together, or an error. stringi recycles a
+# ragged pair with a warning and returns a partial result; for a layout
+# function that is worse than refusing, because the caller gets a plausible
+# vector of the wrong length.
+.cjk_recycled_length <- function(x, width) {
+  n <- max(length(x), length(width))
+  if (n %% length(x) != 0L || n %% length(width) != 0L) {
+    stop("`x` and `width` must be recyclable to a common length.",
+         call. = FALSE)
+  }
+  n
+}
+
+
 #' Display width in terminal columns
 #'
 #' `cjk_width()` returns the number of columns each string occupies in a
@@ -73,14 +103,16 @@ cjk_width <- function(x) {
 #' produces columns that actually line up when the text is CJK.
 #'
 #' @inheritParams cjk_width
-#' @param width Target display width in columns. Recycled against `x`.
+#' @param width Target display width in columns. Recycled against `x`; a pair
+#'   of lengths that does not recycle cleanly is an error rather than a
+#'   warning and a short result.
 #' @param side Which side to add padding to: `"right"` (the default, which
 #'   left-aligns the text), `"left"` or `"both"`.
 #' @param pad A single character to pad with. Must be one column wide.
 #'
 #' @return A character vector the same length as the recycled inputs. Strings
 #'   already at least `width` columns wide are returned unchanged --
-#'   `cjk_pad()` never truncates. `NA` input gives `NA`.
+#'   `cjk_pad()` never truncates. `NA` input, and an `NA` width, give `NA`.
 #' @seealso [cjk_truncate()] for the other direction; [stringi::stri_pad()],
 #'   which this wraps.
 #' @examples
@@ -109,9 +141,13 @@ cjk_pad <- function(x, width, side = "right", pad = " ") {
   if (length(x) == 0L) {
     return(character(0))
   }
+  width <- .cjk_as_width(width)
+  n <- .cjk_recycled_length(x, width)
   # stri_pad()'s `side` names the side the padding goes on, which is the same
-  # convention as ours.
-  stringi::stri_pad(x, width = width, side = side, pad = pad)
+  # convention as ours. Recycle here rather than leaving it to stringi, so that
+  # a ragged pair is the error above rather than a warning and a short result.
+  stringi::stri_pad(rep_len(x, n), width = rep_len(width, n), side = side,
+                    pad = pad)
 }
 
 
@@ -133,13 +169,15 @@ cjk_pad <- function(x, width, side = "right", pad = " ") {
 #' it.
 #'
 #' @inheritParams cjk_width
-#' @param width Maximum display width in columns. Recycled against `x`.
+#' @param width Maximum display width in columns. Recycled against `x`; a pair
+#'   of lengths that does not recycle cleanly is an error.
 #' @param ellipsis String to append when the text was shortened. Defaults to
 #'   `"..."`. The single-character ellipsis U+2026 is one column rather than
 #'   three, so more of the text survives.
 #'
 #' @return A character vector the same length as the recycled inputs. Strings
-#'   that already fit are returned unchanged. `NA` input gives `NA`.
+#'   that already fit are returned unchanged. `NA` input, and an `NA` width,
+#'   give `NA`.
 #' @seealso [cjk_pad()] for the other direction; [cjk_width()] for the measure
 #'   both use.
 #' @examples
@@ -160,15 +198,8 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
   if (length(x) == 0L) {
     return(character(0))
   }
-  width <- as.integer(width)
-  if (length(width) == 0L) {
-    stop("`width` must have at least one element.", call. = FALSE)
-  }
-  n <- max(length(x), length(width))
-  if (n %% length(x) != 0L || n %% length(width) != 0L) {
-    stop("`x` and `width` must be recyclable to a common length.",
-         call. = FALSE)
-  }
+  width <- .cjk_as_width(width)
+  n <- .cjk_recycled_length(x, width)
   x <- rep_len(x, n)
   width <- rep_len(width, n)
 
@@ -201,17 +232,23 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 # within budget gives the prefix length directly. That also means a combining
 # mark can never be orphaned: it adds nothing to the running total, so if its
 # base character fit then so does the mark.
+#
+# The split is by code point, via the same UTF-32 round trip the rest of the
+# package uses. strsplit(s, "") would be the obvious way to do it and is wrong
+# here: on a string R has not marked as UTF-8 it splits bytes rather than
+# characters, so the same call gives a different answer in a non-UTF-8 locale.
 .cjk_take_width <- function(s, w) {
   if (w <= 0L) {
     return("")
   }
-  chars <- unlist(strsplit(s, "", fixed = TRUE), use.names = FALSE)
-  if (length(chars) == 0L) {
+  cp <- .cjk_codepoints(s)[[1L]]
+  if (is.null(cp) || length(cp) == 0L) {
     return("")
   }
+  chars <- stringi::stri_enc_fromutf32(as.list(cp))
   keep <- sum(cumsum(as.integer(stringi::stri_width(chars))) <= w)
   if (keep == 0L) {
     return("")
   }
-  paste0(chars[seq_len(keep)], collapse = "")
+  stringi::stri_enc_fromutf32(list(cp[seq_len(keep)]))
 }

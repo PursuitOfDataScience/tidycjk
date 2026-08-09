@@ -14,8 +14,8 @@ cjk_summary(data, col)
 \value{
 A one-row tibble with columns \code{n_docs} (all entries), \code{n_with_cjk}
 (entries holding at least one CJK character), \code{prop_with_cjk} and
-\code{mean_ratio}. The two proportions are \code{NA} when there is nothing to
-average.
+\code{mean_ratio}. \code{prop_with_cjk} is \code{NA} for a zero-row column, and
+\code{mean_ratio} is \code{NA} when no entry has a ratio to contribute.
 }
 \description{
 \code{cjk_summary()} reports how much of a text column is CJK: how many entries
@@ -29,11 +29,14 @@ answers "how many of these documents are CJK at all". \code{mean_ratio} averages
 they". A corpus of English with one ideograph per row scores high on the
 first and near zero on the second.
 
-\code{NA} entries count towards \code{n_docs} but are excluded from every other
-figure. Empty strings likewise have no ratio to contribute.
+\code{NA} entries never count as containing CJK, and they do count towards
+\code{n_docs} -- so they are in the denominator of \code{prop_with_cjk} and dilute it:
+a column that is half missing cannot score above 0.5. \code{mean_ratio} is the
+one figure they are dropped from, along with empty strings, because neither
+has a ratio to contribute.
 
 Grouping is ignored: the result is always one row for the whole column. Use
-\code{dplyr::group_modify()} if you need it per group.
+\code{\link[dplyr:group_map]{dplyr::group_modify()}} if you need it per group.
 }
 \examples{
 df <- data.frame(

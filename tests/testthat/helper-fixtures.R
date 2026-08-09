@@ -24,6 +24,10 @@ FW_DIGITS <- "\uff11\uff12\uff13"            # U+FF11 U+FF12 U+FF13
 IDEOGRAPHIC_SPACE <- "\u3000"       # U+3000
 IDEOGRAPHIC_STOP <- "\u3002"        # U+3002
 EXT_B <- "\U00020000"           # first CJK Extension B ideograph
+EXT_I <- "\U0002EBF0"           # first CJK Extension I ideograph (Unicode 15.1)
+EXT_G <- "\U00030000"           # first CJK Extension G ideograph (Unicode 13.0)
+EXT_H <- "\U00031350"           # first CJK Extension H ideograph (Unicode 15.0)
+COMPAT_SUP <- "\U0002F800"      # first CJK Compatibility Ideograph Supplement
 
 # Non-CJK fixtures that the width rules turn on
 COMBINING <- "e\u0301"          # "e" + COMBINING ACUTE ACCENT (Mn)

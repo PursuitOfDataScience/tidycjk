@@ -7,7 +7,7 @@
 cjk_detect_language(x, han_only = NA_character_)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{as.character()}.}
+\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
 
 \item{han_only}{What to return for a string written in Han characters only.
 Defaults to \code{NA_character_}, meaning "undecidable". Set it to \code{"chinese"}
@@ -23,7 +23,6 @@ it contains, and returns \code{NA} when the scripts do not settle the question.
 }
 \details{
 The rules are applied in order:
-
 \enumerate{
 \item Hiragana or katakana present: \code{"japanese"}. Only Japanese uses kana.
 \item Kanbun annotation marks present: \code{"japanese"}. They exist to make

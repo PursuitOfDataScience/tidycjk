@@ -54,6 +54,16 @@ test_that("cjk_summary() handles all-NA and all-empty columns", {
   expect_true(is.na(all_empty$mean_ratio))
 })
 
+test_that("cjk_summary() keeps NA rows in the prop_with_cjk denominator", {
+  # the help page used to say NA entries were "excluded from every other
+  # figure", which is true of mean_ratio and false of prop_with_cjk
+  out <- cjk_summary(data.frame(text = c(ZH, NA)), text)
+  expect_equal(out$n_docs, 2L)
+  expect_equal(out$n_with_cjk, 1L)
+  expect_equal(out$prop_with_cjk, 0.5)
+  expect_equal(out$mean_ratio, 1)
+})
+
 test_that("cjk_char_counts() returns one row per distinct character", {
   df <- data.frame(text = c(paste0(ZH, ZH), JA_MIXED, "ascii only"))
   out <- cjk_char_counts(df, text)

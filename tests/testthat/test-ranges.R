@@ -21,7 +21,12 @@ test_that("every required Unicode block is present with the right bounds", {
   expect_equal(bounds("CJK Unified Ideographs Extension D"), c(0x2B740, 0x2B81F))
   expect_equal(bounds("CJK Unified Ideographs Extension E"), c(0x2B820, 0x2CEAF))
   expect_equal(bounds("CJK Unified Ideographs Extension F"), c(0x2CEB0, 0x2EBEF))
+  expect_equal(bounds("CJK Unified Ideographs Extension G"), c(0x30000, 0x3134F))
+  expect_equal(bounds("CJK Unified Ideographs Extension H"), c(0x31350, 0x323AF))
+  expect_equal(bounds("CJK Unified Ideographs Extension I"), c(0x2EBF0, 0x2EE5F))
   expect_equal(bounds("CJK Compatibility Ideographs"), c(0xF900, 0xFAFF))
+  expect_equal(bounds("CJK Compatibility Ideographs Supplement"),
+               c(0x2F800, 0x2FA1F))
   expect_equal(bounds("Hiragana"), c(0x3040, 0x309F))
   expect_equal(bounds("Katakana"), c(0x30A0, 0x30FF))
   expect_equal(bounds("Katakana Phonetic Extensions"), c(0x31F0, 0x31FF))
@@ -36,6 +41,26 @@ test_that("every required Unicode block is present with the right bounds", {
   expect_equal(bounds("CJK Symbols and Punctuation"), c(0x3000, 0x303F))
   # split around Halfwidth Katakana, so it spans FF00-FFEF in two rows
   expect_equal(bounds("Halfwidth and Fullwidth Forms"), c(0xFF00, 0xFFEF))
+})
+
+test_that("every unified ideograph extension is covered, A through I", {
+  # The table was written when Extension F was the last one. G, H and I are
+  # ordinary ideographs, so leaving them out made has_cjk() answer FALSE for a
+  # real Chinese character -- and Extension I sits at U+2EBF0, *below* G and H,
+  # so the rows are in code point order rather than alphabetical order.
+  tab <- cjk_blocks()
+  ext <- grep("^CJK Unified Ideographs Extension ", tab$block, value = TRUE)
+  expect_setequal(
+    ext,
+    paste("CJK Unified Ideographs Extension", c("A", "B", "C", "D", "E", "F",
+                                                "G", "H", "I"))
+  )
+  expect_true(all(tab$script[tab$block %in% ext] == "han"))
+  expect_equal(
+    which(tab$block == "CJK Unified Ideographs Extension I") <
+      which(tab$block == "CJK Unified Ideographs Extension G"),
+    TRUE
+  )
 })
 
 test_that("the halfwidth katakana carve-out leaves no gap", {
@@ -59,6 +84,10 @@ test_that("code point lookup resolves to the right block", {
   expect_equal(.cjk_scripts_of(0x3002), "punctuation")
   expect_equal(.cjk_scripts_of(0xFF01), "fullwidth")
   expect_equal(.cjk_scripts_of(0x20000), "han")
+  expect_equal(.cjk_scripts_of(0x2EBF0), "han")  # Extension I
+  expect_equal(.cjk_scripts_of(0x2F800), "han")  # Compatibility Supplement
+  expect_equal(.cjk_scripts_of(0x30000), "han")  # Extension G
+  expect_equal(.cjk_scripts_of(0x31350), "han")  # Extension H
 })
 
 test_that("code points outside every block give NA", {
