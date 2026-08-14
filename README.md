@@ -11,13 +11,12 @@
 Text tooling in R assumes that words are separated by whitespace, and
 Chinese, Japanese and Korean writing does not oblige.
 
-[tidytext](https://CRAN.R-project.org/package=tidytext) splits on whitespace. Chinese
-and Japanese don’t use whitespace. Give `tidytext` an English sentence
-and you get words; give it
-我今天很開心 and you get either one undifferentiated blob or six isolated
-characters. Neither is right — 開心 (“happy”) is one word of two
-characters, and splitting it destroys the signal you were trying to
-measure.
+[tidytext](https://CRAN.R-project.org/package=tidytext) splits on
+whitespace. Chinese and Japanese don’t use whitespace. Give `tidytext`
+an English sentence and you get words; give it 我今天很開心 and you get
+either one undifferentiated blob or six isolated characters. Neither is
+right — 開心 (“happy”) is one word of two characters, and splitting it
+destroys the signal you were trying to measure.
 
 **tidycjk** tells you what script and language a text column is in, how
 much of it is CJK, which characters it contains, how wide it will print,
@@ -33,8 +32,8 @@ pak::pak("PursuitOfDataScience/tidyckj")
 
 ## The tidy layer
 
-Two verbs take `(data, column)` and return a tibble, so they drop into
-a [dplyr](https://CRAN.R-project.org/package=dplyr) pipeline.
+Two verbs take `(data, column)` and return a tibble, so they drop into a
+[dplyr](https://CRAN.R-project.org/package=dplyr) pipeline.
 
 ``` r
 library(tidycjk)
@@ -83,27 +82,34 @@ cjk_char_counts(posts, text)
 ## Segmentation
 
 `cjk_tokens()` is the CJK-aware counterpart of
-[tidytext](https://CRAN.R-project.org/package=tidytext)'s `unnest_tokens()`. Where a word
-ends is a fact about a language rather than about Unicode, so no segmenter is
-bundled and `engine` is required — quietly handing back character tokens to
-someone who asked for words is the mistake this package exists to avoid.
+[tidytext](https://CRAN.R-project.org/package=tidytext)’s
+`unnest_tokens()`. Where a word ends is a fact about a language rather
+than about Unicode, so no segmenter is bundled and `engine` is required
+— quietly handing back character tokens to someone who asked for words
+is the mistake this package exists to avoid.
 
 ``` r
 cjk_tokens(posts[1:2, ], text, engine = "character")
 #> # A tibble: 17 × 3
-#>       id text         token
-#>    <int> <chr>        <chr>
-#>  1     1 我今天很開心 我
-#>  2     1 我今天很開心 今
-#>  3     1 我今天很開心 天
-#>  4     1 我今天很開心 很
-#>  5     1 我今天很開心 開
-#>  6     1 我今天很開心 心
-#>  7     2 こんにちは、元気ですか こ
-#>  8     2 こんにちは、元気ですか ん
-#>  9     2 こんにちは、元気ですか に
-#> 10     2 こんにちは、元気ですか ち
-#> # ℹ 7 more rows
+#>       id text                   token
+#>    <int> <chr>                  <chr>
+#>  1     1 我今天很開心           我   
+#>  2     1 我今天很開心           今   
+#>  3     1 我今天很開心           天   
+#>  4     1 我今天很開心           很   
+#>  5     1 我今天很開心           開   
+#>  6     1 我今天很開心           心   
+#>  7     2 こんにちは、元気ですか こ   
+#>  8     2 こんにちは、元気ですか ん   
+#>  9     2 こんにちは、元気ですか に   
+#> 10     2 こんにちは、元気ですか ち   
+#> 11     2 こんにちは、元気ですか は   
+#> 12     2 こんにちは、元気ですか 、   
+#> 13     2 こんにちは、元気ですか 元   
+#> 14     2 こんにちは、元気ですか 気   
+#> 15     2 こんにちは、元気ですか で   
+#> 16     2 こんにちは、元気ですか す   
+#> 17     2 こんにちは、元気ですか か
 ```
 
 ``` r
@@ -112,16 +118,16 @@ cjk_segment("hello 中文 world", engine = "character")
 #> [1] "hello" "中"    "文"    "world"
 ```
 
-`"character"` is the one engine that needs no dictionary: one token per CJK
-character, non-CJK runs split on whitespace. It is character tokenisation, not
-word segmentation.
+`"character"` is the one engine that needs no dictionary: one token per
+CJK character, non-CJK runs split on whitespace. It is character
+tokenisation, not word segmentation.
 
 For real Chinese word segmentation, register
-[jiebaR](https://CRAN.R-project.org/package=jiebaR). It was archived from CRAN on
-2025-05-01, so install it with
+[jiebaR](https://CRAN.R-project.org/package=jiebaR). It was archived
+from CRAN on 2025-05-01, so install it with
 `remotes::install_github("qinwf/jiebaR")`, then:
 
-```r
+``` r
 register_cjk_segmenter("jiebar", function(x, ...) {
   worker <- jiebaR::worker(...)
   lapply(x, function(s) {
@@ -221,11 +227,12 @@ to_halfwidth(x) == "ガ"
 ## The vector layer
 
 Everything above has a
-[stringr](https://CRAN.R-project.org/package=stringr)-style counterpart on
-plain character vectors: `has_cjk()`, `cjk_script()`, `cjk_detect_language()`,
-`cjk_ratio()`, `cjk_width()`, `cjk_pad()`, `cjk_truncate()`,
-`to_halfwidth()` and `to_fullwidth()`. All are vectorised, propagate
-`NA`, and return zero-length output for zero-length input.
+[stringr](https://CRAN.R-project.org/package=stringr)-style counterpart
+on plain character vectors: `has_cjk()`, `cjk_script()`,
+`cjk_detect_language()`, `cjk_ratio()`, `cjk_width()`, `cjk_pad()`,
+`cjk_truncate()`, `to_halfwidth()` and `to_fullwidth()`. All are
+vectorised, propagate `NA`, and return zero-length output for
+zero-length input.
 
 `cjk_blocks()` exports the block table the whole package is built on, so
 the definition of “CJK” can be read rather than guessed at.
@@ -233,16 +240,16 @@ the definition of “CJK” can be read rather than guessed at.
 ``` r
 head(cjk_blocks(), 8)
 #> # A tibble: 8 × 5
-#>   block                        script      start   end n_codepoints
-#>   <chr>                        <chr>       <int> <int>        <int>
-#> 1 Hangul Jamo                  hangul       4352  4607          256
-#> 2 CJK Symbols and Punctuation  punctuation 12288 12351           64
-#> 3 Hiragana                     hiragana    12352 12447           96
-#> 4 Katakana                     katakana    12448 12543           96
-#> 5 Bopomofo                     bopomofo    12544 12591           48
-#> 6 Hangul Compatibility Jamo    hangul      12592 12687           96
-#> 7 Kanbun                       kanbun      12688 12703           16
-#> 8 Katakana Phonetic Extensions katakana    12784 12799           16
+#>   block                       script      start   end n_codepoints
+#>   <chr>                       <chr>       <int> <int>        <int>
+#> 1 Hangul Jamo                 hangul       4352  4607          256
+#> 2 CJK Symbols and Punctuation punctuation 12288 12351           64
+#> 3 Hiragana                    hiragana    12352 12447           96
+#> 4 Katakana                    katakana    12448 12543           96
+#> 5 Bopomofo                    bopomofo    12544 12591           48
+#> 6 Hangul Compatibility Jamo   hangul      12592 12687           96
+#> 7 Kanbun                      kanbun      12688 12703           16
+#> 8 Bopomofo Extended           bopomofo    12704 12735           32
 ```
 
 ## Related work

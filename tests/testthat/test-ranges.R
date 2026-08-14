@@ -37,6 +37,7 @@ test_that("every required Unicode block is present with the right bounds", {
   expect_equal(bounds("Hangul Jamo Extended-A"), c(0xA960, 0xA97F))
   expect_equal(bounds("Hangul Jamo Extended-B"), c(0xD7B0, 0xD7FF))
   expect_equal(bounds("Bopomofo"), c(0x3100, 0x312F))
+  expect_equal(bounds("Bopomofo Extended"), c(0x31A0, 0x31BF))
   expect_equal(bounds("Kanbun"), c(0x3190, 0x319F))
   expect_equal(bounds("CJK Symbols and Punctuation"), c(0x3000, 0x303F))
   # split around Halfwidth Katakana, so it spans FF00-FFEF in two rows
@@ -91,11 +92,42 @@ test_that("code point lookup resolves to the right block", {
 })
 
 test_that("code points outside every block give NA", {
-  # ASCII, Latin-1, Cyrillic, and the gaps between CJK blocks
+  # ASCII, Latin-1, Cyrillic, and code points this table deliberately omits
   expect_true(all(is.na(.cjk_block_index(c(0x41, 0xE9, 0x0416)))))
-  expect_true(is.na(.cjk_block_index(0x31E0)))  # between Kanbun and Katakana Ext
+  # U+31E0 is in CJK Strokes (U+31C0-U+31EF), and U+2F00 opens the Kangxi
+  # radicals. Both are Script=Han in Unicode and both are out of scope here:
+  # they are presentation forms for radicals and strokes rather than text, and
+  # counting them would inflate cjk_ratio() on a column with no CJK writing in
+  # it. Do not "fix" these by widening the table -- see ?cjk_blocks.
+  expect_true(is.na(.cjk_block_index(0x31E0)))
+  expect_true(is.na(.cjk_block_index(0x2F00)))
+  expect_true(is.na(.cjk_block_index(0x3251)))  # CIRCLED NUMBER TWENTY ONE
   expect_true(is.na(.cjk_block_index(0xD7A4)))  # just past Hangul Syllables
   expect_true(is.na(.cjk_block_index(0x2A6E0))) # just past Extension B
+})
+
+test_that("every phonetic script is covered including its extension block", {
+  # Bopomofo Extended holds 32 of the 77 assigned bopomofo letters -- the
+  # Minnan and Hakka ones. Omitting it made has_cjk() answer FALSE, and
+  # cjk_script() NA, for an ordinary letter of a script the package claims to
+  # cover: the same bug the ideograph extensions had.
+  tab <- cjk_blocks()
+  expect_equal(
+    as.numeric(unlist(tab[tab$block == "Bopomofo Extended", c("start", "end")])),
+    c(0x31A0, 0x31BF)
+  )
+  expect_equal(.cjk_scripts_of(0x31A0), "bopomofo")   # BOPOMOFO LETTER BU
+  expect_equal(.cjk_scripts_of(0x31BF), "bopomofo")
+  # U+31A0 U+31A1, Minnan letters BU and ZI
+  expect_true(has_cjk("\u31a0\u31a1"))
+  expect_equal(cjk_script("\u31a0\u31a1"), "bopomofo")
+  expect_equal(cjk_ratio("\u31a0\u31a1"), 1)
+  # bopomofo annotates Mandarin, so it settles the language either way
+  expect_equal(cjk_detect_language("\u31a0\u31a1"), "chinese")
+  expect_equal(
+    cjk_char_counts(data.frame(text = "\u31a0"), text)$block,
+    "Bopomofo Extended"
+  )
 })
 
 test_that("boundary code points are inside their block, neighbours are out", {

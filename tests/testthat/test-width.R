@@ -150,7 +150,9 @@ test_that("the truncated result never exceeds the budget", {
   for (i in seq_len(200)) {
     s <- paste0(sample(pool, sample(1:5, 1), replace = TRUE), collapse = "")
     w <- sample(0:14, 1)
-    for (e in c("...", "…", "")) {
+    # a literal U+2026 here would be mojibake in a non-UTF-8 locale, and the
+    # assertion would silently stop testing a one-column ellipsis
+    for (e in c("...", "\u2026", "")) {
       expect_lte(cjk_width(cjk_truncate(s, w, ellipsis = e)), w)
     }
   }

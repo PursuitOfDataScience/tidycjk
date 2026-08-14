@@ -12,6 +12,10 @@ so it makes an independent referee. It checks that
 
   * the block table is sorted and non-overlapping, which .cjk_block_index()
     relies on for its findInterval() lookup to be correct;
+  * no block of letters is MISSING from the block table -- the one check a test
+    written against the table cannot make, since what is absent from the table
+    is invisible to it. Every assigned code point the referee names as a letter
+    of a script tidycjk covers must be in the table or in OUT_OF_SCOPE;
   * every halfwidth katakana mapping agrees with NFKC;
   * every voiced and semi-voiced pair agrees with NFC, and that no katakana
     that NFC can compose is missing from the table;
@@ -21,7 +25,9 @@ so it makes an independent referee. It checks that
 
 Written for this package on the first pass, it found five genuine errors: the
 four wa-row voiced compositions and the katakana iteration mark were all
-missing from the composition table.
+missing from the composition table. The coverage check added afterwards found a
+sixth: Bopomofo Extended (U+31A0-U+31BF) was absent from the block table, so
+has_cjk() answered FALSE for the Minnan and Hakka bopomofo letters.
 
 It also reports how many assigned code points a hand-written East Asian Width
 range table would get wrong. That number is why cjk_width() delegates to
@@ -47,6 +53,7 @@ RANGES = [
     (0x3100, 0x312F, "Bopomofo", "bopomofo"),
     (0x3130, 0x318F, "Hangul Compatibility Jamo", "hangul"),
     (0x3190, 0x319F, "Kanbun", "kanbun"),
+    (0x31A0, 0x31BF, "Bopomofo Extended", "bopomofo"),
     (0x31F0, 0x31FF, "Katakana Phonetic Extensions", "katakana"),
     (0x3400, 0x4DBF, "CJK Unified Ideographs Extension A", "han"),
     (0x4E00, 0x9FFF, "CJK Unified Ideographs", "han"),
@@ -111,6 +118,49 @@ unknown = sorted({name for start, end, name, _ in RANGES
 if unknown:
     print("  block newer than the referee, not verifiable here: "
           + ", ".join(unknown))
+
+# ------------------------------------------------------------ block coverage
+# The check the sortedness assertions above cannot make: is a whole block of
+# letters missing? Bopomofo Extended (U+31A0-U+31BF) was, for the first release
+# -- 32 of the 77 assigned bopomofo letters -- and nothing here noticed, because
+# what is absent from the table is invisible to a test written against the
+# table. So work the other way round: enumerate every assigned code point the
+# referee names as a LETTER of a script tidycjk claims to cover, and require it
+# to be either in RANGES or in the explicit out-of-scope list below.
+#
+# Each entry in OUT_OF_SCOPE is a deliberate omission with its reason. Adding to
+# it is a scope decision; a NEW block of letters showing up as a failure here is
+# a bug. ?cjk_blocks documents the same boundary for users.
+LETTER_PREFIXES = (
+    "CJK UNIFIED IDEOGRAPH", "CJK COMPATIBILITY IDEOGRAPH",
+    "HIRAGANA LETTER", "KATAKANA LETTER", "BOPOMOFO LETTER",
+    "HANGUL SYLLABLE", "HANGUL LETTER", "HANGUL CHOSEONG",
+    "HANGUL JUNGSEONG", "HANGUL JONGSEONG",
+)
+OUT_OF_SCOPE = [
+    (0x1AFF0, 0x1AFFE, "Kana Extended-B: Minnan tone letters"),
+    (0x1B000, 0x1B0FF, "Kana Supplement: archaic kana and hentaigana"),
+    (0x1B100, 0x1B12F, "Kana Extended-A: hentaigana"),
+    (0x1B130, 0x1B16F, "Small Kana Extension"),
+]
+def in_scope_ranges(cp):
+    return any(s <= cp <= e for s, e, _, _ in RANGES)
+def excused(cp):
+    return any(s <= cp <= e for s, e, _ in OUT_OF_SCOPE)
+
+uncovered = {}
+for cp in range(0x0, 0x40000):
+    name = ud.name(chr(cp), "")
+    if not name or not name.startswith(LETTER_PREFIXES):
+        continue
+    if in_scope_ranges(cp) or excused(cp):
+        continue
+    uncovered.setdefault(name.rsplit(" ", 1)[0], []).append(cp)
+for kind, cps in sorted(uncovered.items()):
+    fail.append(f"{len(cps)} assigned '{kind}' code point(s) are in no block "
+                f"of .cjk_ranges() and not excused, from U+{cps[0]:04X} to "
+                f"U+{cps[-1]:04X}")
+print(f"letters of covered scripts left uncovered: {sum(map(len, uncovered.values()))}")
 
 # ------------------------------------------------------ halfwidth katakana map
 KATA = [

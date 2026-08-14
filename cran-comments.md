@@ -38,7 +38,9 @@ utilities, and `tidytext`, whose `unnest_tokens()` `cjk_tokens()` mirrors.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+The one note is "New submission", from the CRAN incoming feasibility check.
 
 ## Encoding
 

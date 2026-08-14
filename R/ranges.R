@@ -8,9 +8,16 @@
 # if the table is ever left unsorted or allowed to overlap. There is a test
 # that asserts both.
 #
-# Two ranges in the specification overlap: Halfwidth Katakana (U+FF65-U+FF9F)
-# sits inside Halfwidth and Fullwidth Forms (U+FF00-U+FFEF). The katakana is
-# the more informative label, so the enclosing block is split around it.
+# Two of the ranges overlap: the halfwidth katakana (U+FF65-U+FF9F) sit inside
+# the Halfwidth and Fullwidth Forms block (U+FF00-U+FFEF). The katakana is the
+# more informative label, so the enclosing block is split around it.
+#
+# A script that has an extension block needs both halves, or the verbs answer
+# FALSE for a real character: Bopomofo Extended (U+31A0-U+31BF) holds 32 of the
+# 77 assigned bopomofo letters, so omitting it made has_cjk() wrong for the
+# Minnan and Hakka letters. Blocks holding radicals, strokes or circled and
+# squared compatibility symbols are deliberately out of scope -- see
+# ?cjk_blocks.
 #
 # The ideographic extensions are NOT in alphabetical order and must not be put
 # into it: Unicode allocated Extension I (U+2EBF0) in the gap left below
@@ -37,6 +44,7 @@
     c(0x3100,  0x312F),
     c(0x3130,  0x318F),
     c(0x3190,  0x319F),
+    c(0x31A0,  0x31BF),
     c(0x31F0,  0x31FF),
     c(0x3400,  0x4DBF),
     c(0x4E00,  0x9FFF),
@@ -68,6 +76,7 @@
       "Bopomofo",
       "Hangul Compatibility Jamo",
       "Kanbun",
+      "Bopomofo Extended",
       "Katakana Phonetic Extensions",
       "CJK Unified Ideographs Extension A",
       "CJK Unified Ideographs",
@@ -96,6 +105,7 @@
       "bopomofo",
       "hangul",
       "kanbun",
+      "bopomofo",
       "katakana",
       "han",
       "han",
@@ -180,10 +190,20 @@
 #' boundaries rather than the Unicode Script property; use [cjk_char_counts()]
 #' if you need to see exactly which code points a text contains.
 #'
-#' All nine blocks of unified ideographs are covered, through Extension I. They
-#' are not in alphabetical order, because Unicode allocated Extension I
-#' (U+2EBF0) below Extension G (U+30000) rather than after Extension H, and
-#' this table is in code point order.
+#' All ten blocks of unified ideographs are covered -- the base block and
+#' Extensions A through I. They are not in alphabetical order, because Unicode
+#' allocated Extension I (U+2EBF0) below Extension G (U+30000) rather than after
+#' Extension H, and this table is in code point order.
+#'
+#' Each phonetic script is covered in full, extension blocks included, so
+#' Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
+#' deliberately absent is everything that is neither a letter, an ideograph, CJK
+#' punctuation nor a width variant: the radical blocks (U+2E80-U+2EF3 and the
+#' Kangxi radicals at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF), and the
+#' parenthesised, circled and squared compatibility symbols in Enclosed CJK
+#' Letters and Months and CJK Compatibility. Those are typographic presentation
+#' forms rather than text, and counting them as CJK would inflate
+#' [cjk_ratio()] on a column that contains no CJK writing at all.
 #'
 #' The `script` column takes one of eight values. Six of them name a writing
 #' system -- `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`, `"bopomofo"`,

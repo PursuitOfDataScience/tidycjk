@@ -162,6 +162,13 @@ register_cjk_segmenter <- function(name, fn) {
   if (!is.character(engine) || length(engine) != 1L || is.na(engine)) {
     stop("`engine` must be a single string or a function.", call. = FALSE)
   }
+  # exists("") is an error rather than FALSE, so the empty name has to be
+  # rejected here or it surfaces as R's "invalid first argument".
+  if (!nzchar(engine)) {
+    stop("`engine` must be a non-empty string. Available: ",
+         paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
+         call. = FALSE)
+  }
   if (exists(engine, envir = .cjk_engine_registry, inherits = FALSE)) {
     return(get(engine, envir = .cjk_engine_registry, inherits = FALSE))
   }
@@ -277,10 +284,10 @@ cjk_tokens <- function(data, col, engine, ...) {
   }
   v <- as.character(dplyr::pull(data, {{ col }}))
   toks <- cjk_segment(v, engine = engine, ...)
-  # keep NA rows as a single NA token so a missing document stays visible
-  toks <- lapply(toks, function(tok) if (length(tok) == 0L) NULL else tok)
-  n <- vapply(toks, function(tok) if (is.null(tok)) 0L else length(tok),
-              integer(1))
+  # A row is repeated once per token, so a row that tokenised to nothing is
+  # dropped by having its index repeated zero times. An NA document is not one
+  # of those: the engine contract gives it a single NA token, so it keeps a row.
+  n <- lengths(toks)
 
   out <- tibble::as_tibble(data)
   out <- out[rep(seq_len(nrow(out)), times = n), , drop = FALSE]

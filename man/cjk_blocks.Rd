@@ -29,10 +29,20 @@ side of it. And the halfwidth Hangul jamo at U+FFA0-U+FFDC are reported as
 boundaries rather than the Unicode Script property; use \code{\link[=cjk_char_counts]{cjk_char_counts()}}
 if you need to see exactly which code points a text contains.
 
-All nine blocks of unified ideographs are covered, through Extension I. They
-are not in alphabetical order, because Unicode allocated Extension I
-(U+2EBF0) below Extension G (U+30000) rather than after Extension H, and
-this table is in code point order.
+All ten blocks of unified ideographs are covered -- the base block and
+Extensions A through I. They are not in alphabetical order, because Unicode
+allocated Extension I (U+2EBF0) below Extension G (U+30000) rather than after
+Extension H, and this table is in code point order.
+
+Each phonetic script is covered in full, extension blocks included, so
+Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
+deliberately absent is everything that is neither a letter, an ideograph, CJK
+punctuation nor a width variant: the radical blocks (U+2E80-U+2EF3 and the
+Kangxi radicals at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF), and the
+parenthesised, circled and squared compatibility symbols in Enclosed CJK
+Letters and Months and CJK Compatibility. Those are typographic presentation
+forms rather than text, and counting them as CJK would inflate
+\code{\link[=cjk_ratio]{cjk_ratio()}} on a column that contains no CJK writing at all.
 
 The \code{script} column takes one of eight values. Six of them name a writing
 system -- \code{"han"}, \code{"hiragana"}, \code{"katakana"}, \code{"hangul"}, \code{"bopomofo"},

@@ -91,6 +91,12 @@ test_that("an unknown engine is a clear error", {
   expect_error(cjk_segment(ZH, engine = "nope"), "character")  # lists options
   expect_error(cjk_segment(ZH, engine = 1), "single string or a function")
   expect_error(cjk_segment(ZH, engine = c("a", "b")), "single string")
+  # the empty name has to be rejected before the registry lookup: exists("")
+  # is an error, so this used to surface as R's "invalid first argument"
+  expect_error(cjk_segment(ZH, engine = ""), "non-empty string")
+  expect_error(cjk_segment(ZH, engine = ""), "character")  # still lists options
+  expect_error(cjk_tokens(data.frame(text = ZH), text, engine = ""),
+               "non-empty string")
 })
 
 test_that("an engine can be supplied as a bare function", {
