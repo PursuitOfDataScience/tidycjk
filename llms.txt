@@ -88,19 +88,25 @@ is the mistake this package exists to avoid.
 
 cjk_tokens(posts[1:2, ], text, engine = "character")
 #> # A tibble: 17 × 3
-#>       id text         token
-#>    <int> <chr>        <chr>
-#>  1     1 我今天很開心 我
-#>  2     1 我今天很開心 今
-#>  3     1 我今天很開心 天
-#>  4     1 我今天很開心 很
-#>  5     1 我今天很開心 開
-#>  6     1 我今天很開心 心
-#>  7     2 こんにちは、元気ですか こ
-#>  8     2 こんにちは、元気ですか ん
-#>  9     2 こんにちは、元気ですか に
-#> 10     2 こんにちは、元気ですか ち
-#> # ℹ 7 more rows
+#>       id text                   token
+#>    <int> <chr>                  <chr>
+#>  1     1 我今天很開心           我   
+#>  2     1 我今天很開心           今   
+#>  3     1 我今天很開心           天   
+#>  4     1 我今天很開心           很   
+#>  5     1 我今天很開心           開   
+#>  6     1 我今天很開心           心   
+#>  7     2 こんにちは、元気ですか こ   
+#>  8     2 こんにちは、元気ですか ん   
+#>  9     2 こんにちは、元気ですか に   
+#> 10     2 こんにちは、元気ですか ち   
+#> 11     2 こんにちは、元気ですか は   
+#> 12     2 こんにちは、元気ですか 、   
+#> 13     2 こんにちは、元気ですか 元   
+#> 14     2 こんにちは、元気ですか 気   
+#> 15     2 こんにちは、元気ですか で   
+#> 16     2 こんにちは、元気ですか す   
+#> 17     2 こんにちは、元気ですか か
 ```
 
 ``` r
@@ -251,16 +257,16 @@ of “CJK” can be read rather than guessed at.
 
 head(cjk_blocks(), 8)
 #> # A tibble: 8 × 5
-#>   block                        script      start   end n_codepoints
-#>   <chr>                        <chr>       <int> <int>        <int>
-#> 1 Hangul Jamo                  hangul       4352  4607          256
-#> 2 CJK Symbols and Punctuation  punctuation 12288 12351           64
-#> 3 Hiragana                     hiragana    12352 12447           96
-#> 4 Katakana                     katakana    12448 12543           96
-#> 5 Bopomofo                     bopomofo    12544 12591           48
-#> 6 Hangul Compatibility Jamo    hangul      12592 12687           96
-#> 7 Kanbun                       kanbun      12688 12703           16
-#> 8 Katakana Phonetic Extensions katakana    12784 12799           16
+#>   block                       script      start   end n_codepoints
+#>   <chr>                       <chr>       <int> <int>        <int>
+#> 1 Hangul Jamo                 hangul       4352  4607          256
+#> 2 CJK Symbols and Punctuation punctuation 12288 12351           64
+#> 3 Hiragana                    hiragana    12352 12447           96
+#> 4 Katakana                    katakana    12448 12543           96
+#> 5 Bopomofo                    bopomofo    12544 12591           48
+#> 6 Hangul Compatibility Jamo   hangul      12592 12687           96
+#> 7 Kanbun                      kanbun      12688 12703           16
+#> 8 Bopomofo Extended           bopomofo    12704 12735           32
 ```
 
 ## Related work

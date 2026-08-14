@@ -106,19 +106,25 @@
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_tokens.html">cjk_tokens</a></span><span class="op">(</span><span class="va">posts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="op">]</span>, <span class="va">text</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 17 × 3</span></span>
-<span><span class="co">#&gt;       id text         token</span></span>
-<span><span class="co">#&gt;    &lt;int&gt; &lt;chr&gt;        &lt;chr&gt;</span></span>
-<span><span class="co">#&gt;  1     1 我今天很開心 我</span></span>
-<span><span class="co">#&gt;  2     1 我今天很開心 今</span></span>
-<span><span class="co">#&gt;  3     1 我今天很開心 天</span></span>
-<span><span class="co">#&gt;  4     1 我今天很開心 很</span></span>
-<span><span class="co">#&gt;  5     1 我今天很開心 開</span></span>
-<span><span class="co">#&gt;  6     1 我今天很開心 心</span></span>
-<span><span class="co">#&gt;  7     2 こんにちは、元気ですか こ</span></span>
-<span><span class="co">#&gt;  8     2 こんにちは、元気ですか ん</span></span>
-<span><span class="co">#&gt;  9     2 こんにちは、元気ですか に</span></span>
-<span><span class="co">#&gt; 10     2 こんにちは、元気ですか ち</span></span>
-<span><span class="co">#&gt; # ℹ 7 more rows</span></span></code></pre></div>
+<span><span class="co">#&gt;       id text                   token</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;chr&gt;                  &lt;chr&gt;</span></span>
+<span><span class="co">#&gt;  1     1 我今天很開心           我   </span></span>
+<span><span class="co">#&gt;  2     1 我今天很開心           今   </span></span>
+<span><span class="co">#&gt;  3     1 我今天很開心           天   </span></span>
+<span><span class="co">#&gt;  4     1 我今天很開心           很   </span></span>
+<span><span class="co">#&gt;  5     1 我今天很開心           開   </span></span>
+<span><span class="co">#&gt;  6     1 我今天很開心           心   </span></span>
+<span><span class="co">#&gt;  7     2 こんにちは、元気ですか こ   </span></span>
+<span><span class="co">#&gt;  8     2 こんにちは、元気ですか ん   </span></span>
+<span><span class="co">#&gt;  9     2 こんにちは、元気ですか に   </span></span>
+<span><span class="co">#&gt; 10     2 こんにちは、元気ですか ち   </span></span>
+<span><span class="co">#&gt; 11     2 こんにちは、元気ですか は   </span></span>
+<span><span class="co">#&gt; 12     2 こんにちは、元気ですか 、   </span></span>
+<span><span class="co">#&gt; 13     2 こんにちは、元気ですか 元   </span></span>
+<span><span class="co">#&gt; 14     2 こんにちは、元気ですか 気   </span></span>
+<span><span class="co">#&gt; 15     2 こんにちは、元気ですか で   </span></span>
+<span><span class="co">#&gt; 16     2 こんにちは、元気ですか す   </span></span>
+<span><span class="co">#&gt; 17     2 こんにちは、元気ですか か</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"hello 中文 world"</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
@@ -203,16 +209,16 @@
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/cjk_blocks.html">cjk_blocks</a></span><span class="op">(</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 8 × 5</span></span>
-<span><span class="co">#&gt;   block                        script      start   end n_codepoints</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;                        &lt;chr&gt;       &lt;int&gt; &lt;int&gt;        &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 Hangul Jamo                  hangul       4352  4607          256</span></span>
-<span><span class="co">#&gt; 2 CJK Symbols and Punctuation  punctuation 12288 12351           64</span></span>
-<span><span class="co">#&gt; 3 Hiragana                     hiragana    12352 12447           96</span></span>
-<span><span class="co">#&gt; 4 Katakana                     katakana    12448 12543           96</span></span>
-<span><span class="co">#&gt; 5 Bopomofo                     bopomofo    12544 12591           48</span></span>
-<span><span class="co">#&gt; 6 Hangul Compatibility Jamo    hangul      12592 12687           96</span></span>
-<span><span class="co">#&gt; 7 Kanbun                       kanbun      12688 12703           16</span></span>
-<span><span class="co">#&gt; 8 Katakana Phonetic Extensions katakana    12784 12799           16</span></span></code></pre></div>
+<span><span class="co">#&gt;   block                       script      start   end n_codepoints</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                       &lt;chr&gt;       &lt;int&gt; &lt;int&gt;        &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1 Hangul Jamo                 hangul       4352  4607          256</span></span>
+<span><span class="co">#&gt; 2 CJK Symbols and Punctuation punctuation 12288 12351           64</span></span>
+<span><span class="co">#&gt; 3 Hiragana                    hiragana    12352 12447           96</span></span>
+<span><span class="co">#&gt; 4 Katakana                    katakana    12448 12543           96</span></span>
+<span><span class="co">#&gt; 5 Bopomofo                    bopomofo    12544 12591           48</span></span>
+<span><span class="co">#&gt; 6 Hangul Compatibility Jamo   hangul      12592 12687           96</span></span>
+<span><span class="co">#&gt; 7 Kanbun                      kanbun      12688 12703           16</span></span>
+<span><span class="co">#&gt; 8 Bopomofo Extended           bopomofo    12704 12735           32</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="related-work">Related work<a class="anchor" aria-label="anchor" href="#related-work"></a>

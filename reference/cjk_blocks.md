@@ -33,10 +33,22 @@ Script property; use
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
 if you need to see exactly which code points a text contains.
 
-All nine blocks of unified ideographs are covered, through Extension I.
-They are not in alphabetical order, because Unicode allocated Extension
-I (U+2EBF0) below Extension G (U+30000) rather than after Extension H,
-and this table is in code point order.
+All ten blocks of unified ideographs are covered – the base block and
+Extensions A through I. They are not in alphabetical order, because
+Unicode allocated Extension I (U+2EBF0) below Extension G (U+30000)
+rather than after Extension H, and this table is in code point order.
+
+Each phonetic script is covered in full, extension blocks included, so
+Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
+deliberately absent is everything that is neither a letter, an
+ideograph, CJK punctuation nor a width variant: the radical blocks
+(U+2E80-U+2EF3 and the Kangxi radicals at U+2F00-U+2FDF), CJK Strokes
+(U+31C0-U+31EF), and the parenthesised, circled and squared
+compatibility symbols in Enclosed CJK Letters and Months and CJK
+Compatibility. Those are typographic presentation forms rather than
+text, and counting them as CJK would inflate
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md)
+on a column that contains no CJK writing at all.
 
 The `script` column takes one of eight values. Six of them name a
 writing system – `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`,
@@ -56,7 +68,7 @@ for a per-character breakdown.
 
 ``` r
 cjk_blocks()
-#> # A tibble: 26 × 5
+#> # A tibble: 27 × 5
 #>    block                              script      start   end n_codepoints
 #>    <chr>                              <chr>       <int> <int>        <int>
 #>  1 Hangul Jamo                        hangul       4352  4607          256
@@ -66,10 +78,10 @@ cjk_blocks()
 #>  5 Bopomofo                           bopomofo    12544 12591           48
 #>  6 Hangul Compatibility Jamo          hangul      12592 12687           96
 #>  7 Kanbun                             kanbun      12688 12703           16
-#>  8 Katakana Phonetic Extensions       katakana    12784 12799           16
-#>  9 CJK Unified Ideographs Extension A han         13312 19903         6592
-#> 10 CJK Unified Ideographs             han         19968 40959        20992
-#> # ℹ 16 more rows
+#>  8 Bopomofo Extended                  bopomofo    12704 12735           32
+#>  9 Katakana Phonetic Extensions       katakana    12784 12799           16
+#> 10 CJK Unified Ideographs Extension A han         13312 19903         6592
+#> # ℹ 17 more rows
 
 # the blocks that make up "han"
 subset(cjk_blocks(), script == "han")

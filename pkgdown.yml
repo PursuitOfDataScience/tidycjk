@@ -2,7 +2,7 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles: {}
-last_built: 2026-08-09T16:45Z
+last_built: 2026-08-14T12:55Z
 urls:
   reference: https://pursuitofdatascience.github.io/tidyckj/reference
   article: https://pursuitofdatascience.github.io/tidyckj/articles

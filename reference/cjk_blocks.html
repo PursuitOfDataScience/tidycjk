@@ -64,10 +64,19 @@ side of it. And the halfwidth Hangul jamo at U+FFA0-U+FFDC are reported as
 <code>"fullwidth"</code> rather than <code>"hangul"</code>, because this table follows the block
 boundaries rather than the Unicode Script property; use <code><a href="cjk_char_counts.html">cjk_char_counts()</a></code>
 if you need to see exactly which code points a text contains.</p>
-<p>All nine blocks of unified ideographs are covered, through Extension I. They
-are not in alphabetical order, because Unicode allocated Extension I
-(U+2EBF0) below Extension G (U+30000) rather than after Extension H, and
-this table is in code point order.</p>
+<p>All ten blocks of unified ideographs are covered – the base block and
+Extensions A through I. They are not in alphabetical order, because Unicode
+allocated Extension I (U+2EBF0) below Extension G (U+30000) rather than after
+Extension H, and this table is in code point order.</p>
+<p>Each phonetic script is covered in full, extension blocks included, so
+Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
+deliberately absent is everything that is neither a letter, an ideograph, CJK
+punctuation nor a width variant: the radical blocks (U+2E80-U+2EF3 and the
+Kangxi radicals at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF), and the
+parenthesised, circled and squared compatibility symbols in Enclosed CJK
+Letters and Months and CJK Compatibility. Those are typographic presentation
+forms rather than text, and counting them as CJK would inflate
+<code><a href="cjk_ratio.html">cjk_ratio()</a></code> on a column that contains no CJK writing at all.</p>
 <p>The <code>script</code> column takes one of eight values. Six of them name a writing
 system – <code>"han"</code>, <code>"hiragana"</code>, <code>"katakana"</code>, <code>"hangul"</code>, <code>"bopomofo"</code>,
 <code>"kanbun"</code> – and two are ancillary: <code>"punctuation"</code> for the CJK Symbols and
@@ -83,7 +92,7 @@ six writing systems are consulted by <code><a href="cjk_detect_language.html">cj
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">cjk_blocks</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 26 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 27 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    block                              script      start   end n_codepoints</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> Hangul Jamo                        hangul       <span style="text-decoration: underline;">4</span>352  <span style="text-decoration: underline;">4</span>607          256</span>
@@ -93,10 +102,10 @@ six writing systems are consulted by <code><a href="cjk_detect_language.html">cj
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> Bopomofo                           bopomofo    <span style="text-decoration: underline;">12</span>544 <span style="text-decoration: underline;">12</span>591           48</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> Hangul Compatibility Jamo          hangul      <span style="text-decoration: underline;">12</span>592 <span style="text-decoration: underline;">12</span>687           96</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> Kanbun                             kanbun      <span style="text-decoration: underline;">12</span>688 <span style="text-decoration: underline;">12</span>703           16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> Katakana Phonetic Extensions       katakana    <span style="text-decoration: underline;">12</span>784 <span style="text-decoration: underline;">12</span>799           16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> CJK Unified Ideographs Extension A han         <span style="text-decoration: underline;">13</span>312 <span style="text-decoration: underline;">19</span>903         <span style="text-decoration: underline;">6</span>592</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> CJK Unified Ideographs             han         <span style="text-decoration: underline;">19</span>968 <span style="text-decoration: underline;">40</span>959        <span style="text-decoration: underline;">20</span>992</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 16 more rows</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> Bopomofo Extended                  bopomofo    <span style="text-decoration: underline;">12</span>704 <span style="text-decoration: underline;">12</span>735           32</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> Katakana Phonetic Extensions       katakana    <span style="text-decoration: underline;">12</span>784 <span style="text-decoration: underline;">12</span>799           16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> CJK Unified Ideographs Extension A han         <span style="text-decoration: underline;">13</span>312 <span style="text-decoration: underline;">19</span>903         <span style="text-decoration: underline;">6</span>592</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 17 more rows</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the blocks that make up "han"</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu">cjk_blocks</span><span class="op">(</span><span class="op">)</span>, <span class="va">script</span> <span class="op">==</span> <span class="st">"han"</span><span class="op">)</span></span></span>
