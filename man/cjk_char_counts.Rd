@@ -9,7 +9,9 @@ cjk_char_counts(data, col)
 \arguments{
 \item{data}{A data frame or tibble containing a text column.}
 
-\item{col}{The text column to scan, supplied unquoted.}
+\item{col}{The text column to scan, supplied unquoted. A non-character
+column is coerced with \code{\link[=as.character]{as.character()}}; see \code{\link[=has_cjk]{has_cjk()}} for why
+that makes a numeric column a poor thing to measure.}
 }
 \value{
 A tibble with one row per distinct character and columns \code{char},
@@ -35,7 +37,9 @@ output does not change with the locale.
 }
 \examples{
 df <- data.frame(
-  text = c("\u4e2d\u6587\u4e2d\u6587", "\u65e5\u672c\u306e\u3053\u3068\u3070", "ascii only")
+  text = c("\u4e2d\u6587\u4e2d\u6587",
+           "\u65e5\u672c\u306e\u3053\u3068\u3070",
+           "ascii only")
 )
 cjk_char_counts(df, text)
 }

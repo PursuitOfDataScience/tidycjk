@@ -28,8 +28,9 @@
 # --- built-in engines -------------------------------------------------------
 
 # The dictionary-free baseline: every CJK character is its own token, and each
-# run of non-CJK text is split on whitespace. It needs nothing and it is
-# honest about what it is -- character tokenisation, not word segmentation.
+# run of non-CJK text is split on whitespace; whitespace itself never survives
+# as a token. It needs nothing and it is honest about what it is -- character
+# tokenisation, not word segmentation.
 # For Chinese it will split a two-character word in half, which is the very
 # thing a real segmenter exists to prevent; for Japanese and Korean it is
 # further off still. Use it as a baseline, or when a per-character unit is
@@ -42,20 +43,45 @@
     if (length(cp) == 0L) {
       return(character(0))
     }
-    is_cjk <- !is.na(.cjk_block_index(cp))
+    # U+3000, the ideographic space, sits in the CJK Symbols and Punctuation
+    # block, so on the plain block test it became a token of its own: a space
+    # counted as a word, while the ASCII space next to it was dropped. It is
+    # the only whitespace code point in any block cjk_blocks() lists, so
+    # excluding it here is enough to send it down the non-CJK branch, where
+    # the whitespace split below removes it like any other space.
+    is_cjk <- !is.na(.cjk_block_index(cp)) & cp != 0x3000L
     # group into maximal runs: each CJK character alone, each non-CJK run whole
     run <- cumsum(c(TRUE, is_cjk[-1] | is_cjk[-length(is_cjk)]))
-    pieces <- vapply(split(cp, run), function(g) {
-      stringi::stri_enc_fromutf32(list(g))
-    }, character(1), USE.NAMES = FALSE)
-    cjk_piece <- vapply(split(is_cjk, run), function(g) g[[1]], logical(1),
-                        USE.NAMES = FALSE)
+    # One stringi call for the whole set of runs rather than one per run:
+    # stri_enc_fromutf32() already maps a list of code point vectors to a
+    # character vector, which is exactly what the vapply was assembling.
+    pieces <- stringi::stri_enc_fromutf32(split(cp, run))
+    # And the run's CJK-ness is is_cjk at the run's first position, which
+    # !duplicated() picks out directly -- `run` is non-decreasing, so first
+    # occurrences come out in run order. Which position is read does not
+    # actually matter: a run is either one CJK character alone or a maximal
+    # non-CJK stretch, so is_cjk is constant within it. The grouping above is
+    # what guarantees that, and it is what this line depends on.
+    #
+    # Dropping the second split() is the point: split() coerces the run ids to
+    # a factor, which sorts and stringifies them once per string, and profiling
+    # a corpus of 30,000 put split()/as.factor() at about a third of the total.
+    cjk_piece <- is_cjk[!duplicated(run)]
     out <- unlist(lapply(seq_along(pieces), function(i) {
       if (cjk_piece[[i]]) {
         pieces[[i]]
       } else {
-        w <- unlist(strsplit(pieces[[i]], "[[:space:]]+"), use.names = FALSE)
-        w[nzchar(w)]
+        # stringi rather than strsplit(x, "[[:space:]]+"): TRE resolves
+        # [[:space:]] through the C library's iswspace(), which calls U+3000
+        # a space in a UTF-8 locale and not in a C one, so the same input
+        # tokenised differently on two machines. ICU's WHITE_SPACE is the same
+        # set everywhere, which is the property the rest of the package holds
+        # to -- see the note on strsplit() in .cjk_take_width().
+        unlist(
+          stringi::stri_split_charclass(pieces[[i]], "\\p{WHITE_SPACE}",
+                                        omit_empty = TRUE),
+          use.names = FALSE
+        )
       }
     }), use.names = FALSE)
     if (is.null(out)) character(0) else out
@@ -81,9 +107,10 @@
 #'
 #' One engine ships with the package. `"character"` needs nothing at all:
 #' every CJK character becomes its own token and runs of non-CJK text are
-#' split on whitespace. It is character tokenisation rather than word
-#' segmentation, and for Chinese it will cut two-character words in half. It
-#' is a baseline, not an answer.
+#' split on whitespace. Whitespace is never a token, the ideographic space
+#' U+3000 included, even though [has_cjk()] counts it as CJK. It is character
+#' tokenisation rather than word segmentation, and for Chinese it will cut
+#' two-character words in half. It is a baseline, not an answer.
 #'
 #' # Registering a word segmenter
 #'
@@ -115,7 +142,42 @@
 #' each element a character vector of tokens. `NA` input should give
 #' `NA_character_` and the empty string should give `character(0)`;
 #' [cjk_segment()] checks the shape and complains if an engine breaks the
-#' contract.
+#' contract. A plain list is required: a data frame is a list too, but
+#' `length()` on one counts columns rather than elements, so it is refused
+#' rather than quietly mistaken for a list of tokens.
+#'
+#' # Passing arguments to an engine
+#'
+#' Anything in `...` goes to the engine, which is how you configure one. Name
+#' those arguments so that they are not a prefix of an argument of the verb
+#' itself: `...` comes after `engine` in [cjk_segment()], and after `data` and
+#' `col` in [cjk_tokens()], so R's partial matching claims a prefix of one of
+#' those before the dots ever see it.
+#'
+#' It is worth knowing because the result does not look like an
+#' argument-matching problem. `cjk_tokens(df, text, "mine", c = 1)` matches `c`
+#' to `col`, which pushes the bare `text` into `engine`, where it resolves to
+#' [graphics::text()] -- a function, so it is accepted as an engine -- and the
+#' error you get is about plotting. Single letters and short prefixes are the
+#' risk: `c`, `co`, `d`, `da`, `e`, `en`, `eng`. A longer name, or a closure
+#' that captures the setting instead of passing it, avoids the question:
+#'
+#' ```
+#' register_cjk_segmenter("mine", function(x, ...) my_segmenter(x, cutoff = 1))
+#' ```
+#'
+#' # What registering does, and does not, undo
+#'
+#' A registration lasts for the rest of the session and there is no function
+#' to remove one. Registering the same name again replaces it, which is the
+#' way to correct an engine you got wrong.
+#'
+#' A name that matches a built-in shadows it. That is deliberate -- it is how
+#' you substitute your own tokeniser for `"character"` without this package
+#' getting a say -- but it is worth knowing that `"character"` is a natural
+#' name for an engine and taking it hides the built-in for the session, with
+#' nothing in [cjk_segmenters()] to show that anything changed. Pick a
+#' distinct name unless shadowing is what you meant.
 #'
 #' @param name Name of the engine, a single string.
 #' @param fn A function of `(x, ...)` returning a list of character vectors.
@@ -199,7 +261,9 @@ register_cjk_segmenter <- function(name, fn) {
 #' @inheritParams has_cjk
 #' @param engine Name of a segmentation engine, or a function implementing
 #'   one. Required; see [cjk_segmenters()].
-#' @param ... Passed to the engine.
+#' @param ... Passed to the engine. Name these so they are not a prefix of
+#'   `engine` (or of `data`/`col` in [cjk_tokens()]); see "Passing arguments to
+#'   an engine" in [cjk_segmenters()].
 #'
 #' @return A list the same length as `x`, each element a character vector of
 #'   tokens. `NA` input gives `NA_character_`; the empty string gives
@@ -227,8 +291,26 @@ cjk_segment <- function(x, engine, ...) {
   }
   fn <- .cjk_get_engine(engine)
   out <- fn(x, ...)
-  if (!is.list(out) || length(out) != length(x)) {
-    stop("The segmentation engine must return a list as long as `x`.",
+  # Three failures rather than one. ?cjk_segmenters invites callers to write
+  # their own engine, so this is the error they are most likely to meet, and
+  # one message for every way of breaking the contract diagnosed none of them.
+  #
+  # The data frame case is not hypothetical: a data frame IS a list, and
+  # length() on one is its column count, so an engine handing back a one-column
+  # frame of tokens for one input satisfied both halves of the old check and
+  # produced a bogus token instead of an error.
+  if (!is.list(out)) {
+    stop("The segmentation engine must return a list, not ", class(out)[[1L]],
+         ".", call. = FALSE)
+  }
+  if (inherits(out, "data.frame")) {
+    stop("The segmentation engine must return a list, not a data frame: ",
+         "length() of a data frame is its column count, so a frame can pass ",
+         "a length check while holding the wrong thing.", call. = FALSE)
+  }
+  if (length(out) != length(x)) {
+    stop("The segmentation engine must return a list as long as `x`: `x` has ",
+         length(x), " element(s), the engine returned ", length(out), ".",
          call. = FALSE)
   }
   lapply(out, function(tok) {
@@ -282,7 +364,7 @@ cjk_tokens <- function(data, col, engine, ...) {
          paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
          call. = FALSE)
   }
-  v <- as.character(dplyr::pull(data, {{ col }}))
+  v <- as.character(.cjk_pull(dplyr::pull(data, {{ col }}), data))
   toks <- cjk_segment(v, engine = engine, ...)
   # A row is repeated once per token, so a row that tokenised to nothing is
   # dropped by having its index repeated zero times. An NA document is not one

@@ -7,7 +7,12 @@
 cjk_width(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text.}
 }
 \value{
 An integer vector the same length as \code{x}. \code{NA} input gives \code{NA}; the
@@ -22,8 +27,12 @@ the reason \code{nchar()} misaligns every console table containing CJK text.
 Width follows Unicode Annex #11 (East Asian Width). Characters whose East
 Asian Width is Wide or Fullwidth are two columns; combining marks and format
 characters (general categories \code{Mn}, \code{Me}, \code{Cf}), C0 and C1 control codes,
-and Hangul Jamo medial vowels and final consonants are zero; everything else
-is one.
+and Hangul Jamo medial vowels and final consonants are zero; the rest are
+one. Treat that as the shape of the answer rather than the whole of it:
+recent ICU also gives two columns to several thousand symbols and
+pictographs that Annex #11 itself calls neutral or ambiguous. Where a layout
+turns on one particular character, measure it rather than deriving it from
+this list.
 
 The computation is \code{\link[stringi:stri_width]{stringi::stri_width()}}, which reads the Unicode tables
 shipped with \href{https://icu.unicode.org}{ICU}, the Unicode Consortium's C
@@ -31,10 +40,19 @@ library. \code{cjk_width()} exists so that the width, the padding and the
 truncation in a CJK pipeline all read the same way; if width is all you
 need, \code{stri_width()} is the more direct call.
 
-East Asian Ambiguous characters -- Greek letters, some box-drawing, the
-degree sign -- are one column. They render as two in a CJK-configured
+East Asian Ambiguous characters render as two columns in a CJK-configured
 terminal and one everywhere else, and no library can resolve that without
-knowing the terminal.
+being told which terminal it is writing to. \code{cjk_width()} reports whatever
+the ICU build behind your \pkg{stringi} decided, and that answer has moved:
+ICU once called the whole class one column, and now gives two to several
+hundred of them, the box-drawing characters and the degree sign among them.
+Greek and Cyrillic letters have stayed at one throughout.
+
+So which side a given ambiguous character falls on is a property of the
+\pkg{stringi} build in front of you, not of this package, and not something
+this page can usefully enumerate. Measure it with \code{cjk_width()} if it
+matters, and keep ambiguous-width characters out of any table that has to
+line up on someone else's machine.
 }
 \examples{
 # two characters, four columns

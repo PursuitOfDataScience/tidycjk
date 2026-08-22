@@ -42,6 +42,26 @@ test_that("cjk_summary() handles an empty column", {
   expect_true(is.na(out$mean_ratio))
 })
 
+test_that("the undefined figures are NA, not NaN", {
+  # Both guards exist to turn an undefined division into NA: without them
+  # prop_with_cjk is 0/0 and mean_ratio is mean(numeric(0)), and both are NaN.
+  # is.na(NaN) is TRUE, so the assertions above pass either way -- the point of
+  # the guards is invisible to them. The help page says NA, and NaN prints as
+  # NaN in a tibble and survives a round trip through a file as NaN, so the
+  # difference is one a caller sees.
+  empty <- cjk_summary(data.frame(text = character(0)), text)
+  expect_identical(empty$prop_with_cjk, NA_real_)
+  expect_false(is.nan(empty$prop_with_cjk))
+  expect_identical(empty$mean_ratio, NA_real_)
+  expect_false(is.nan(empty$mean_ratio))
+  # mean_ratio is also undefined when every row is NA or empty
+  for (txt in list(c(NA_character_, NA_character_), c("", ""))) {
+    out <- cjk_summary(data.frame(text = txt), text)
+    expect_identical(out$mean_ratio, NA_real_)
+    expect_false(is.nan(out$mean_ratio))
+  }
+})
+
 test_that("cjk_summary() handles all-NA and all-empty columns", {
   all_na <- cjk_summary(data.frame(text = c(NA_character_, NA)), text)
   expect_equal(all_na$n_docs, 2L)
@@ -83,6 +103,37 @@ test_that("cjk_char_counts() sorts by count, then by first appearance", {
   # tied at 2, so the character that appeared first comes first
   expect_equal(out$char, c("\u4e2d", "\u6587"))
   expect_equal(out$codepoint, c(0x4E2DL, 0x6587L))
+})
+
+test_that("cjk_char_counts() sorts by DESCENDING count", {
+  # Every count above is tied, so ascending and descending order agree and the
+  # test could not tell them apart. Unequal counts are what pin the direction
+  # the help page promises.
+  df <- data.frame(text = "\u6587\u4e2d\u4e2d\u4e2d\u65e5\u65e5")
+  out <- cjk_char_counts(df, text)
+  expect_equal(out$n, c(3L, 2L, 1L))
+  expect_equal(out$char, c("\u4e2d", "\u65e5", "\u6587"))
+  # the rarest character appeared first in the text, so this is the direction
+  # of the sort and not an accident of input order
+  expect_equal(out$char[[1]], "\u4e2d")
+  expect_true(!is.unsorted(rev(out$n)))
+})
+
+test_that("cjk_char_counts() labels a character that first appeared late", {
+  # The block and script come from idx[match(lv, cp)] -- the block of each
+  # character's FIRST occurrence. Replacing that with idx[seq_along(lv)] broke
+  # no test, because every fixture either had no repeats before a new character
+  # or drew every character from one block. It takes a repeat followed by a
+  # character from a different block to tell the two apart.
+  out <- cjk_char_counts(data.frame(text = "\u4e2d\u4e2d\u3042"), text)
+  expect_equal(out$char, c("\u4e2d", "\u3042"))
+  expect_equal(out$n, c(2L, 1L))
+  expect_equal(out$script, c("han", "hiragana"))
+  expect_equal(out$block, c("CJK Unified Ideographs", "Hiragana"))
+  # a longer run of repeats before two more blocks, to be sure it is general
+  out2 <- cjk_char_counts(
+    data.frame(text = "\u4e2d\u4e2d\u4e2d\u3042\uc548\uff11"), text)
+  expect_equal(out2$script, c("han", "hiragana", "hangul", "fullwidth"))
 })
 
 test_that("cjk_char_counts() labels the script and block", {
@@ -149,6 +200,75 @@ test_that("both verbs accept a column selected by string or by position", {
   df <- data.frame(text = c(ZH, "plain"))
   expect_equal(cjk_summary(df, "text")$n_with_cjk, 1L)
   expect_equal(cjk_summary(df, 1)$n_with_cjk, 1L)
+  # "both verbs" has to mean both: cjk_char_counts() takes the column the same
+  # way, and cjk_tokens() is the third caller of the same dplyr::pull()
+  expect_equal(nrow(cjk_char_counts(df, "text")), 2L)
+  expect_equal(nrow(cjk_char_counts(df, 1)), 2L)
+  expect_equal(nrow(cjk_tokens(df, "text", engine = "character")), 3L)
+  expect_equal(nrow(cjk_tokens(df, 1, engine = "character")), 3L)
+})
+
+test_that("a `data` that is not a data frame is reported in tidycjk's terms", {
+  # dplyr reports it as "no applicable method for 'pull' applied to an object
+  # of class matrix" -- naming a function the caller never called, in a package
+  # they may not know they are using. That is the complaint .cjk_stri() exists
+  # to answer for stringi, so the same standard applies to the tidy layer.
+  for (bad in list(matrix(c("a", "b"), 2), list(text = "a"), 1:3, "abc",
+                   NULL, factor("a"))) {
+    expect_error(cjk_summary(bad, 1), "must be a data frame or tibble")
+    expect_error(cjk_char_counts(bad, 1), "must be a data frame or tibble")
+    expect_error(cjk_tokens(bad, 1, engine = "character"),
+                 "must be a data frame or tibble")
+  }
+  # the message must not name pull(), which is the whole point
+  msg <- tryCatch(cjk_summary(1:3, 1), error = function(e) conditionMessage(e))
+  expect_false(grepl("pull", msg, fixed = TRUE))
+})
+
+test_that("the pull handler decides on the object, not on the message", {
+  # R translates its "no applicable method" text and the translations share no
+  # phrase with the English -- German "nicht anwendbare Methode", French "pas
+  # de methode ... applicable", Italian reorders the placeholders. Matching the
+  # English wording relabelled nothing outside an English session, silently.
+  # Testing the mechanism rather than a locale is not a stylistic choice: it is
+  # the only thing that can work here. testthat sets LANGUAGE=C inside a test
+  # block, the same way it sets LC_COLLATE=C, so R's messages are English no
+  # matter what locale the suite is run in. A test that drove cjk_summary() and
+  # looked at the resulting text would therefore pass under every locale even
+  # with the English-only matcher restored -- which is exactly how that bug
+  # survived. Do not "improve" this into a locale-based test; it would prove
+  # nothing. Pass an arbitrary message and assert the decision instead.
+  expect_true(.cjk_has_pull_method(data.frame(a = 1)))
+  expect_true(.cjk_has_pull_method(tibble::tibble(a = 1)))
+  expect_true(.cjk_has_pull_method(dplyr::group_by(data.frame(a = 1, b = 2), a)))
+  for (bad in list(matrix(1:4, 2), list(a = 1), 1:3, "abc", NULL, factor("a"))) {
+    expect_false(.cjk_has_pull_method(bad))
+  }
+  # so an error is relabelled for an unpullable `data` whatever it says...
+  expect_error(.cjk_pull(stop("nicht anwendbare Methode"), matrix(1:4, 2)),
+               "must be a data frame or tibble")
+  expect_error(.cjk_pull(stop("any wording at all"), 1:3),
+               "must be a data frame or tibble")
+  # ...and passed through untouched for a `data` that can be pulled from
+  expect_error(.cjk_pull(stop("object 'nope' not found"), data.frame(a = 1)),
+               "object 'nope' not found")
+})
+
+test_that("the pull handler relabels only the missing-method error", {
+  # Narrow, like .cjk_stri(): anything else dplyr raises has to come through
+  # untouched, or a real mistake gets reported as the wrong mistake.
+  df <- data.frame(text = ZH, stringsAsFactors = FALSE)
+  expect_error(cjk_summary(df, nope), "nope")
+  expect_error(cjk_char_counts(df, nope), "nope")
+  expect_error(.cjk_pull(stop("something else entirely"), data.frame(a = 1)),
+               "something else")
+  # and a working pull is left alone -- data frames, tibbles and grouped_dfs
+  expect_equal(cjk_summary(df, text)$n_docs, 1L)
+  expect_equal(cjk_summary(tibble::tibble(text = ZH), text)$n_docs, 1L)
+  expect_equal(
+    cjk_summary(dplyr::group_by(data.frame(g = 1, text = ZH), g), text)$n_docs,
+    1L
+  )
 })
 
 test_that("a misspelled column is an error, not a silent empty result", {
@@ -175,4 +295,7 @@ test_that("grouped input is accepted and summarised globally", {
   out <- cjk_summary(df, text)
   expect_equal(nrow(out), 1L)
   expect_equal(out$n_docs, 3L)
+  # the help page promises a plain tibble, as cjk_tokens() does
+  expect_false(inherits(out, "grouped_df"))
+  expect_false(inherits(cjk_char_counts(df, text), "grouped_df"))
 })

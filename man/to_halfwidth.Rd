@@ -10,7 +10,12 @@ to_halfwidth(x, compose = TRUE)
 to_fullwidth(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text.}
 
 \item{compose}{Fold a syllable and a following voiced mark into the single
 precomposed code point. Defaults to \code{TRUE}. \code{FALSE} leaves the pair as
@@ -46,6 +51,17 @@ form -- in both directions. This is the ordinary Japanese convention
 voiced syllables have no halfwidth form of their own, so fullwidth is the
 only representation that survives a round trip.
 }
+
+That is the whole of it, and the rest of the Halfwidth and Fullwidth Forms
+block is left alone -- which is worth naming, because those code points sit
+immediately beside the ones above. The fullwidth currency and sign forms
+U+FFE0-U+FFE6 (cent, pound, not, macron, broken bar, yen, won) keep their
+width, so \code{to_halfwidth()} narrows the digits of a price and leaves the
+currency symbol fullwidth. So do the halfwidth Hangul jamo U+FFA0-U+FFDC,
+the halfwidth symbol forms U+FFE8-U+FFEE, and the fullwidth white
+parentheses U+FF5F and U+FF60. None of them is ASCII on either side, and
+fullwidth ASCII is what these functions promise; \code{NFKC} maps all of them,
+along with everything else named under "Why not NFKC" above.
 }
 
 \section{Voiced marks}{
@@ -74,15 +90,20 @@ composed too.
 uncomposed voiced mark is not a form anyone wants.
 }
 
-\section{One deliberate difference from NFKC}{
+\section{One deliberate difference from NFKC and from ICU}{
 The Unicode compatibility decomposition of U+FF9E is the \emph{combining} mark
 U+3099, so \code{NFKC} maps the halfwidth voiced mark onto a combining
-character. These functions map it to the \emph{spacing} mark U+309B instead
-(and U+FF9F to U+309C), which is what \href{https://icu.unicode.org}{ICU}'s own
-halfwidth-to-fullwidth transform does. The difference is only visible with
-\code{compose = FALSE}, and
-the spacing mark is the safer of the two there: a stray combining mark would
-silently attach itself to whatever character happened to precede it.
+character, and so does \href{https://icu.unicode.org}{ICU}'s
+\code{Halfwidth-Fullwidth} transform. These functions map it to the \emph{spacing}
+mark U+309B instead, and U+FF9F to U+309C.
+
+The difference is only visible with \code{compose = FALSE}, and the spacing mark
+is the safer of the two there: a combining mark left loose attaches itself
+to whatever character happens to precede it. ICU shows the hazard on its own
+transform -- \code{"a"} followed by U+FF9E comes back as U+FF41 U+3099, a
+fullwidth \code{a} wearing a voiced sound mark. With \code{compose = TRUE}, the
+default, the question does not arise: the mark is folded into the syllable
+and no bare mark survives either way.
 }
 
 \examples{

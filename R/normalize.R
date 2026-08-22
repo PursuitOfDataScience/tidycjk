@@ -68,6 +68,15 @@
   if (n < 2L) {
     return(cp)
   }
+  # The scan below walks the string one code point at a time in R, and
+  # to_fullwidth() always composes, so without this guard a column of plain
+  # ASCII pays that cost on every character it holds -- measurably, about ten
+  # times the rest of the width mapping put together. Nothing can compose
+  # unless a mark is actually present, and testing for one is a single
+  # vectorised pass.
+  if (!any(cp %in% c(.CJK_VOICED_MARKS, .CJK_SEMIVOICED_MARKS))) {
+    return(cp)
+  }
   voiced <- .cjk_voiced_map()
   semi <- .cjk_semivoiced_map()
   out <- integer(n)
@@ -126,6 +135,10 @@
     if (compose) as.integer(.cjk_compose_voiced(cp)) else as.integer(cp)
   })
   out <- stringi::stri_enc_fromutf32(mapped)
+  # As in cjk_width(): stri_enc_fromutf32() already maps a NULL element to NA,
+  # so this restores nothing on the current stringi. Kept for the same reason
+  # -- the version is unpinned and the NA contract is ours -- and pinned by a
+  # test so a change in stringi surfaces as a failure.
   out[vapply(mapped, is.null, logical(1))] <- NA_character_
   out
 }
@@ -158,6 +171,17 @@
 #'   voiced syllables have no halfwidth form of their own, so fullwidth is the
 #'   only representation that survives a round trip.
 #'
+#' That is the whole of it, and the rest of the Halfwidth and Fullwidth Forms
+#' block is left alone -- which is worth naming, because those code points sit
+#' immediately beside the ones above. The fullwidth currency and sign forms
+#' U+FFE0-U+FFE6 (cent, pound, not, macron, broken bar, yen, won) keep their
+#' width, so `to_halfwidth()` narrows the digits of a price and leaves the
+#' currency symbol fullwidth. So do the halfwidth Hangul jamo U+FFA0-U+FFDC,
+#' the halfwidth symbol forms U+FFE8-U+FFEE, and the fullwidth white
+#' parentheses U+FF5F and U+FF60. None of them is ASCII on either side, and
+#' fullwidth ASCII is what these functions promise; `NFKC` maps all of them,
+#' along with everything else named under "Why not NFKC" above.
+#'
 #' # Voiced marks
 #'
 #' Halfwidth katakana writes a voiced syllable as two code points, a bare
@@ -184,16 +208,21 @@
 #' `to_fullwidth()` always composes, because a fullwidth string carrying an
 #' uncomposed voiced mark is not a form anyone wants.
 #'
-#' # One deliberate difference from NFKC
+#' # One deliberate difference from NFKC and from ICU
 #'
 #' The Unicode compatibility decomposition of U+FF9E is the *combining* mark
 #' U+3099, so `NFKC` maps the halfwidth voiced mark onto a combining
-#' character. These functions map it to the *spacing* mark U+309B instead
-#' (and U+FF9F to U+309C), which is what [ICU](https://icu.unicode.org)'s own
-#' halfwidth-to-fullwidth transform does. The difference is only visible with
-#' `compose = FALSE`, and
-#' the spacing mark is the safer of the two there: a stray combining mark would
-#' silently attach itself to whatever character happened to precede it.
+#' character, and so does [ICU](https://icu.unicode.org)'s
+#' `Halfwidth-Fullwidth` transform. These functions map it to the *spacing*
+#' mark U+309B instead, and U+FF9F to U+309C.
+#'
+#' The difference is only visible with `compose = FALSE`, and the spacing mark
+#' is the safer of the two there: a combining mark left loose attaches itself
+#' to whatever character happens to precede it. ICU shows the hazard on its own
+#' transform -- `"a"` followed by U+FF9E comes back as U+FF41 U+3099, a
+#' fullwidth `a` wearing a voiced sound mark. With `compose = TRUE`, the
+#' default, the question does not arise: the mark is folded into the syllable
+#' and no bare mark survives either way.
 #'
 #' @inheritParams has_cjk
 #' @param compose Fold a syllable and a following voiced mark into the single

@@ -34,10 +34,23 @@ Extensions A through I. They are not in alphabetical order, because Unicode
 allocated Extension I (U+2EBF0) below Extension G (U+30000) rather than after
 Extension H, and this table is in code point order.
 
+Ten is every block there was as of Unicode 16.0, which is what this table is
+current to. Unicode 17.0 added Extension J at U+323B0-U+3347F, and it is not
+here, so \code{\link[=has_cjk]{has_cjk()}} answers \code{FALSE} for an Extension J ideograph. That is a
+known limit of this version of the table rather than a judgement about the
+block, and it is the same gap the table once had at Extensions G, H and I.
+
+Ranges are Unicode block bounds, with one exception. Hangul Syllables stops
+at U+D7A3, the last assigned syllable, rather than at U+D7AF where the block
+ends; the twelve code points in between are unassigned, and calling them
+hangul would be reporting text that cannot exist. Elsewhere the block bound
+is used as-is, so a handful of unassigned code points inside a covered block
+-- U+3100 to U+3104 at the head of Bopomofo, for instance -- do count.
+
 Each phonetic script is covered in full, extension blocks included, so
 Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
 deliberately absent is everything that is neither a letter, an ideograph, CJK
-punctuation nor a width variant: the radical blocks (U+2E80-U+2EF3 and the
+punctuation nor a width variant: the radical blocks (U+2E80-U+2EFF and the
 Kangxi radicals at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF), and the
 parenthesised, circled and squared compatibility symbols in Enclosed CJK
 Letters and Months and CJK Compatibility. Those are typographic presentation

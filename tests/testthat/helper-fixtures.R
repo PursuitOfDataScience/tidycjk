@@ -4,7 +4,6 @@
 
 ZH <- "\u4e2d\u6587"                    # U+4E2D U+6587, "Chinese writing"
 ZH_SENTENCE <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3"    # "I am very happy today"
-ZH_HAPPY <- "\u958b\u5fc3"              # "happy" -- one word, two characters
 JA_KANA <- "\u3053\u3093\u306b\u3061\u306f"          # "konnichiwa", hiragana only
 JA_MIXED <- "\u65e5\u672c\u306e\u3053\u3068\u3070"        # "the Japanese language", 2 kanji + 4 kana
 JA_KANJI_ONLY <- "\u6771\u4eac\u90fd"        # "Tokyo Metropolis" -- Japanese, no kana

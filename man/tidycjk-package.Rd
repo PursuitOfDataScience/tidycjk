@@ -6,7 +6,7 @@
 \alias{tidycjk-package}
 \title{tidycjk: Tidy Tools for Chinese, Japanese and Korean Text}
 \description{
-A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. 'tidycjk' classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a 'tidyverse' workflow. It also measures display width in terminal columns, pads and truncates to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- without the collateral damage of a full 'NFKC' pass. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.
+A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is therefore a pluggable engine that the caller names explicitly rather than a bundled dictionary, because where a word ends is a fact about a language and not about Unicode. 'tidycjk' classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a 'tidyverse' workflow. It also measures display width in terminal columns, pads and truncates to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- without the collateral damage of a full 'NFKC' pass. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.
 }
 \section{Output and naming contract}{
 
@@ -80,6 +80,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Youzhi Yu \email{yuyouzhi666@icloud.com}
+
+Authors:
+\itemize{
+  \item Youzhi Yu \email{yuyouzhi666@icloud.com}
+}
 
 }
 \keyword{internal}

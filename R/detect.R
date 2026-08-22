@@ -19,7 +19,12 @@
 #' of nothing but ideographic full stops (U+3002) is `TRUE`. Use [cjk_script()]
 #' when you need to know *which* kind of CJK you have.
 #'
-#' @param x A character vector. Anything else is coerced with [as.character()].
+#' @param x A character vector. Anything else is coerced with
+#'   [as.character()]. That coercion is R's, not this package's, so a
+#'   numeric vector is measured as R chooses to write it -- which moves
+#'   with `options(scipen)` and `options(OutDec)`, and can therefore
+#'   differ between sessions. Convert deliberately if you mean to
+#'   measure numbers; these verbs are for text.
 #'
 #' @return A logical vector the same length as `x`. `NA` input gives `NA`; the
 #'   empty string gives `FALSE`.
@@ -144,7 +149,12 @@ cjk_script <- function(x) {
 #' cjk_detect_language("\u6771\u4eac\u90fd", han_only = "chinese")
 #' @export
 cjk_detect_language <- function(x, han_only = NA_character_) {
-  if (length(han_only) != 1L) {
+  # as.character() on its own is too permissive: han_only = 1 came back as the
+  # language "1" and han_only = TRUE as "TRUE", so a typo was returned as an
+  # answer rather than reported. NA of any type still passes -- it is the
+  # default, and it is what "undecidable" is written as.
+  if (length(han_only) != 1L ||
+      !(is.character(han_only) || is.na(han_only))) {
     stop("`han_only` must be a single string or NA.", call. = FALSE)
   }
   han_only <- as.character(han_only)

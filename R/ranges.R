@@ -14,15 +14,23 @@
 #
 # A script that has an extension block needs both halves, or the verbs answer
 # FALSE for a real character: Bopomofo Extended (U+31A0-U+31BF) holds 32 of the
-# 77 assigned bopomofo letters, so omitting it made has_cjk() wrong for the
-# Minnan and Hakka letters. Blocks holding radicals, strokes or circled and
-# squared compatibility symbols are deliberately out of scope -- see
-# ?cjk_blocks.
+# 75 bopomofo letters Unicode has assigned so far, so omitting it made has_cjk()
+# wrong for the Minnan and Hakka letters. Blocks holding radicals, strokes or
+# circled and squared compatibility symbols are deliberately out of scope --
+# see ?cjk_blocks.
 #
 # The ideographic extensions are NOT in alphabetical order and must not be put
 # into it: Unicode allocated Extension I (U+2EBF0) in the gap left below
 # Extension G (U+30000), so code point order puts I before G and H. Sorting the
 # table by name would break the findInterval() invariant above.
+#
+# The table is current to Unicode 16.0. Unicode 17.0 added Extension J at
+# U+323B0-U+3347F; adding it is a coverage change rather than a fix, so it is
+# documented as a known limit in ?cjk_blocks and left for a later version.
+#
+# Every range is a Unicode block bound except Hangul Syllables, which stops at
+# U+D7A3 rather than U+D7AF because U+D7A4-U+D7AF are unassigned. Do not
+# "correct" that to the block bound -- see ?cjk_blocks.
 
 # The table is a constant, but .cjk_block_index() is called once per element of
 # the input vector, so rebuilding it there means rebuilding it for every string
@@ -141,9 +149,37 @@
   }
   idx <- findInterval(cp, tab$start)
   hit <- !is.na(idx) & idx > 0L
+  # findInterval() maps NA and NaN to NA, so !is.na(idx) has already excluded
+  # every missing code point and the is.na() below cannot fire. It stays as a
+  # guard on the subscripted assignment rather than on the lookup: an NA
+  # reaching `hit` would make the out[hit] assignment error rather than return
+  # NA, and NA in, NA out is what every verb in the package promises.
   hit[hit] <- !is.na(cp[hit]) & cp[hit] <= tab$end[idx[hit]]
   out[hit] <- idx[hit]
   out
+}
+
+# Run a stringi call on user text and translate the one error it is likely to
+# raise.
+#
+# stringi reports mis-encoded input as "invalid UTF-8 byte sequence detected;
+# try calling stri_enc_toutf8()" -- naming a function the caller never called,
+# in a package they may not know they are using. Every exported function here
+# reaches stringi eventually, so every one of them surfaced that. A column read
+# out of a file written in a legacy CJK encoding, without that encoding being
+# named, is much the likeliest way to arrive here, and saying so states the fix
+# as well as the fault. Anything else stringi raises is re-thrown untouched,
+# so this cannot relabel an unrelated failure.
+.cjk_stri <- function(expr) {
+  tryCatch(expr, error = function(e) {
+    if (!grepl("UTF-8", conditionMessage(e), fixed = TRUE)) {
+      stop(e)
+    }
+    stop("`x` must be valid UTF-8. Text read from a file written in a legacy ",
+         "CJK encoding -- GBK, Big5, Shift_JIS, EUC-KR -- needs that encoding ",
+         "named when the file is read, or converting afterwards with ",
+         "stringi::stri_encode().", call. = FALSE)
+  })
 }
 
 # Split a character vector into code points. Returns a list parallel to `x`;
@@ -154,7 +190,33 @@
   if (length(x) == 0L) {
     return(list())
   }
-  cps <- stringi::stri_enc_toutf32(x)
+  cps <- .cjk_stri(stringi::stri_enc_toutf32(x))
+  # stri_enc_toutf32() reads a *leading* U+FEFF as a byte-order mark and drops
+  # it, so the character never reaches anything downstream. That is not a
+  # hypothetical input: Excel on Windows writes UTF-8 CSVs with a BOM, and
+  # read.csv() hands the mark back on the first field of the first row. The
+  # consequences were a wrong number and a silent edit -- cjk_ratio() answered
+  # 1 for "\uFEFF\u4E2D", a two-character string only half of which is CJK, and
+  # to_halfwidth() deleted the mark outright, against a documented promise to
+  # change width and nothing else.
+  #
+  # A U+FEFF anywhere but the front is kept, so prefixing one character makes
+  # stringi keep this one too; the placeholder is then dropped again. The
+  # detection is one vectorised pass and only the affected elements are
+  # re-converted, so an ordinary corpus pays almost nothing. Testing after the
+  # conversion above means the string is already known to be valid UTF-8.
+  #
+  # The test has to be base startsWith(), not stri_startswith_fixed(): stringi
+  # strips the leading BOM from the *pattern* as well, so a pattern of U+FEFF
+  # alone arrives empty, which stringi rejects with a warning and an NA. That
+  # NA then reaches the if() below as `any(NA)` and errors out. The trap is the
+  # very behaviour this block exists to work around, so the detector must not
+  # be built out of the thing doing it.
+  lead_bom <- !is.na(x) & startsWith(x, "\uFEFF")
+  if (any(lead_bom)) {
+    kept <- .cjk_stri(stringi::stri_enc_toutf32(paste0(" ", x[lead_bom])))
+    cps[lead_bom] <- lapply(kept, function(v) v[-1L])
+  }
   # stri_enc_toutf32() maps NA to NULL; normalise anything else that is not a
   # plain integer vector to NULL as well, so callers only handle one shape.
   lapply(seq_along(cps), function(i) {
@@ -195,10 +257,23 @@
 #' allocated Extension I (U+2EBF0) below Extension G (U+30000) rather than after
 #' Extension H, and this table is in code point order.
 #'
+#' Ten is every block there was as of Unicode 16.0, which is what this table is
+#' current to. Unicode 17.0 added Extension J at U+323B0-U+3347F, and it is not
+#' here, so [has_cjk()] answers `FALSE` for an Extension J ideograph. That is a
+#' known limit of this version of the table rather than a judgement about the
+#' block, and it is the same gap the table once had at Extensions G, H and I.
+#'
+#' Ranges are Unicode block bounds, with one exception. Hangul Syllables stops
+#' at U+D7A3, the last assigned syllable, rather than at U+D7AF where the block
+#' ends; the twelve code points in between are unassigned, and calling them
+#' hangul would be reporting text that cannot exist. Elsewhere the block bound
+#' is used as-is, so a handful of unassigned code points inside a covered block
+#' -- U+3100 to U+3104 at the head of Bopomofo, for instance -- do count.
+#'
 #' Each phonetic script is covered in full, extension blocks included, so
 #' Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
 #' deliberately absent is everything that is neither a letter, an ideograph, CJK
-#' punctuation nor a width variant: the radical blocks (U+2E80-U+2EF3 and the
+#' punctuation nor a width variant: the radical blocks (U+2E80-U+2EFF and the
 #' Kangxi radicals at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF), and the
 #' parenthesised, circled and squared compatibility symbols in Enclosed CJK
 #' Letters and Months and CJK Compatibility. Those are typographic presentation

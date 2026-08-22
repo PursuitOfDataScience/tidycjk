@@ -2,10 +2,11 @@
 
 First release.
 
-`tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text: word
-segmentation, script and language classification, display width, and width
-normalisation, as verbs that return tibbles. The package itself has no
-compiled code, bundles no data, and makes no network requests.
+`tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text: script and
+language classification, display width, width normalisation, and a pluggable
+word-segmentation engine that the caller names, as verbs that return tibbles.
+The package itself has no compiled code, bundles no data, and makes no network
+requests.
 
 ## Tidy layer
 
@@ -55,8 +56,11 @@ compiled code, bundles no data, and makes no network requests.
 * **Width is delegated to [stringi](https://CRAN.R-project.org/package=stringi).**
   `cjk_width()` and `cjk_pad()` wrap `stringi::stri_width()` and
   `stringi::stri_pad()`, which read the live Unicode tables in
-  [ICU](https://icu.unicode.org), the Unicode Consortium's C library. A hand-maintained range table would go stale at every Unicode
-  release and would already be wrong for a few hundred assigned code points.
+  [ICU](https://icu.unicode.org), the Unicode Consortium's C library. A
+  hand-maintained range table would go stale at every Unicode release, and the
+  version commonly copied around is already wrong for tens of thousands of
+  assigned code points: it stops below the supplementary planes, so every
+  ideograph in Extensions B through I comes out one column instead of two.
   `cjk_truncate()` has no `stringi` equivalent and is implemented here.
 
 * **Normalisation is surgical.** `to_halfwidth()` maps fullwidth ASCII, the

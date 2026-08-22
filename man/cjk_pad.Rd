@@ -7,7 +7,12 @@
 cjk_pad(x, width, side = "right", pad = " ")
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text.}
 
 \item{width}{Target display width in columns. Recycled against \code{x}; a pair
 of lengths that does not recycle cleanly is an error rather than a
@@ -35,11 +40,13 @@ cjk_pad(c("\u4e2d\u6587", "abcd"), 6)
 # right-align instead
 cjk_pad(c("\u4e2d\u6587", "abcd"), 6, side = "left")
 
-# what nchar()-based padding does to the same input
-cat(paste0("|", formatC(c("\u4e2d\u6587", "abcd"), width = -6), "|"),
-    sep = "\n")
-cat(paste0("|", cjk_pad(c("\u4e2d\u6587", "abcd"), 6), "|"),
-    sep = "\n")
+# a pad that counts characters rather than columns: nchar() calls the two
+# strings 2 and 4 long, so the CJK cell is handed four spaces and comes out
+# eight columns wide. (formatC() and format() are column-aware and get this
+# right; sprintf("\%-6s") counts bytes and under-fills instead.)
+pad_by_char <- function(x, n) paste0(x, strrep(" ", pmax(n - nchar(x), 0)))
+cat(paste0("|", pad_by_char(c("\u4e2d\u6587", "abcd"), 6), "|"), sep = "\n")
+cat(paste0("|", cjk_pad(c("\u4e2d\u6587", "abcd"), 6), "|"), sep = "\n")
 }
 \seealso{
 \code{\link[=cjk_truncate]{cjk_truncate()}} for the other direction; \code{\link[stringi:stri_pad]{stringi::stri_pad()}},

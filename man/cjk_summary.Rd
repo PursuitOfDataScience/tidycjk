@@ -9,7 +9,9 @@ cjk_summary(data, col)
 \arguments{
 \item{data}{A data frame or tibble containing a text column.}
 
-\item{col}{The text column to scan, supplied unquoted.}
+\item{col}{The text column to scan, supplied unquoted. A non-character
+column is coerced with \code{\link[=as.character]{as.character()}}; see \code{\link[=has_cjk]{has_cjk()}} for why
+that makes a numeric column a poor thing to measure.}
 }
 \value{
 A one-row tibble with columns \code{n_docs} (all entries), \code{n_with_cjk}
@@ -36,7 +38,7 @@ one figure they are dropped from, along with empty strings, because neither
 has a ratio to contribute.
 
 Grouping is ignored: the result is always one row for the whole column. Use
-\code{\link[dplyr:group_map]{dplyr::group_modify()}} if you need it per group.
+\code{\link[dplyr:group_modify]{dplyr::group_modify()}} if you need it per group.
 }
 \examples{
 df <- data.frame(

@@ -32,9 +32,10 @@ bundles no word segmenter and dispatches on a name instead.
 
 One engine ships with the package. \code{"character"} needs nothing at all:
 every CJK character becomes its own token and runs of non-CJK text are
-split on whitespace. It is character tokenisation rather than word
-segmentation, and for Chinese it will cut two-character words in half. It
-is a baseline, not an answer.
+split on whitespace. Whitespace is never a token, the ideographic space
+U+3000 included, even though \code{\link[=has_cjk]{has_cjk()}} counts it as CJK. It is character
+tokenisation rather than word segmentation, and for Chinese it will cut
+two-character words in half. It is a baseline, not an answer.
 }
 \section{Registering a word segmenter}{
 \href{https://CRAN.R-project.org/package=jiebaR}{jiebaR}, which binds
@@ -64,7 +65,41 @@ dots from \code{\link[=cjk_segment]{cjk_segment()}} -- and returning a list the 
 each element a character vector of tokens. \code{NA} input should give
 \code{NA_character_} and the empty string should give \code{character(0)};
 \code{\link[=cjk_segment]{cjk_segment()}} checks the shape and complains if an engine breaks the
-contract.
+contract. A plain list is required: a data frame is a list too, but
+\code{length()} on one counts columns rather than elements, so it is refused
+rather than quietly mistaken for a list of tokens.
+}
+
+\section{Passing arguments to an engine}{
+Anything in \code{...} goes to the engine, which is how you configure one. Name
+those arguments so that they are not a prefix of an argument of the verb
+itself: \code{...} comes after \code{engine} in \code{\link[=cjk_segment]{cjk_segment()}}, and after \code{data} and
+\code{col} in \code{\link[=cjk_tokens]{cjk_tokens()}}, so R's partial matching claims a prefix of one of
+those before the dots ever see it.
+
+It is worth knowing because the result does not look like an
+argument-matching problem. \code{cjk_tokens(df, text, "mine", c = 1)} matches \code{c}
+to \code{col}, which pushes the bare \code{text} into \code{engine}, where it resolves to
+\code{\link[graphics:text]{graphics::text()}} -- a function, so it is accepted as an engine -- and the
+error you get is about plotting. Single letters and short prefixes are the
+risk: \code{c}, \code{co}, \code{d}, \code{da}, \code{e}, \code{en}, \code{eng}. A longer name, or a closure
+that captures the setting instead of passing it, avoids the question:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{register_cjk_segmenter("mine", function(x, ...) my_segmenter(x, cutoff = 1))
+}\if{html}{\out{</div>}}
+}
+
+\section{What registering does, and does not, undo}{
+A registration lasts for the rest of the session and there is no function
+to remove one. Registering the same name again replaces it, which is the
+way to correct an engine you got wrong.
+
+A name that matches a built-in shadows it. That is deliberate -- it is how
+you substitute your own tokeniser for \code{"character"} without this package
+getting a say -- but it is worth knowing that \code{"character"} is a natural
+name for an engine and taking it hides the built-in for the session, with
+nothing in \code{\link[=cjk_segmenters]{cjk_segmenters()}} to show that anything changed. Pick a
+distinct name unless shadowing is what you meant.
 }
 
 \examples{

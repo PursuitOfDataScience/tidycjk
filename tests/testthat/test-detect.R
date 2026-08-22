@@ -120,6 +120,19 @@ test_that("the Han-only guess is available but has to be asked for", {
   expect_error(cjk_detect_language(ZH, han_only = c("a", "b")), "single string")
 })
 
+test_that("han_only is not silently coerced from another type", {
+  # as.character() on its own answered "1" for han_only = 1 and "TRUE" for
+  # han_only = TRUE, returning a typo as a language rather than reporting it
+  expect_error(cjk_detect_language(ZH, han_only = 1), "single string or NA")
+  expect_error(cjk_detect_language(ZH, han_only = TRUE), "single string or NA")
+  expect_error(cjk_detect_language(ZH, han_only = list("chinese")),
+               "single string or NA")
+  expect_error(cjk_detect_language(ZH, han_only = NULL), "single string or NA")
+  # NA of any type is still the documented way to say "undecidable"
+  expect_true(is.na(cjk_detect_language(ZH, han_only = NA)))
+  expect_true(is.na(cjk_detect_language(ZH, han_only = NA_character_)))
+})
+
 test_that("kana beats Han when both are present", {
   expect_equal(cjk_detect_language(paste0(ZH_SENTENCE, JA_KANA)), "japanese")
 })
@@ -127,6 +140,31 @@ test_that("kana beats Han when both are present", {
 test_that("hangul beats Han when both are present", {
   # Korean written with hanja: the hangul settles it
   expect_equal(cjk_detect_language(paste0(ZH, KO)), "korean")
+})
+
+test_that("the documented rule order decides when two rules both match", {
+  # ?cjk_detect_language applies its rules in a fixed order: kana, then
+  # kanbun, then hangul, then bopomofo. Each rule was tested against Han and
+  # none against another rule, so reordering them broke nothing -- a string
+  # with kana *and* hangul in it could have come back either way.
+  #
+  # Rule 1 (kana) outranks rule 3 (hangul), whichever comes first in the text.
+  expect_equal(cjk_detect_language(paste0(JA_KANA, KO)), "japanese")
+  expect_equal(cjk_detect_language(paste0(KO, JA_KANA)), "japanese")
+  expect_equal(cjk_detect_language(paste0(JA_KATAKANA, KO)), "japanese")
+  # Rule 1 outranks rule 4 (bopomofo), and rule 2 (kanbun) does too.
+  expect_equal(cjk_detect_language(paste0(JA_KANA, BOPOMOFO)), "japanese")
+  expect_equal(cjk_detect_language(paste0(BOPOMOFO, JA_KANA)), "japanese")
+  expect_equal(cjk_detect_language(paste0(KANBUN, BOPOMOFO)), "japanese")
+  # Rule 2 outranks rule 3, and rule 3 outranks rule 4.
+  expect_equal(cjk_detect_language(paste0(KANBUN, KO)), "japanese")
+  expect_equal(cjk_detect_language(paste0(KO, BOPOMOFO)), "korean")
+  expect_equal(cjk_detect_language(paste0(BOPOMOFO, KO)), "korean")
+  # and han_only never overrides a rule that did fire
+  expect_equal(cjk_detect_language(paste0(JA_KANA, KO), han_only = "chinese"),
+               "japanese")
+  expect_equal(cjk_detect_language(paste0(KO, ZH), han_only = "chinese"),
+               "korean")
 })
 
 test_that("cjk_detect_language() returns NA when there is no CJK at all", {

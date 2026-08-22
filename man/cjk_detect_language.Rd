@@ -7,7 +7,12 @@
 cjk_detect_language(x, han_only = NA_character_)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text.}
 
 \item{han_only}{What to return for a string written in Han characters only.
 Defaults to \code{NA_character_}, meaning "undecidable". Set it to \code{"chinese"}

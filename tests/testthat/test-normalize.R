@@ -89,6 +89,28 @@ test_that("already-decomposed katakana is composed too", {
   expect_equal(to_halfwidth(paste0(FW_KA, VOICED_MARK)), FW_GA)
 })
 
+test_that("the bare voiced marks map to the spacing forms, not the combining ones", {
+  # The documented, deliberate divergence from both NFKC and ICU: their
+  # halfwidth-to-fullwidth mapping for U+FF9E and U+FF9F is the *combining*
+  # mark (U+3099, U+309A), which attaches itself to whatever precedes it.
+  # These map to the *spacing* marks instead. Pin all three, so the help page's
+  # claim about what the other two do cannot quietly go stale.
+  expect_equal(utf8ToInt(to_halfwidth("\uff9e", compose = FALSE)), 0x309BL)
+  expect_equal(utf8ToInt(to_halfwidth("\uff9f", compose = FALSE)), 0x309CL)
+  expect_equal(utf8ToInt(stringi::stri_trans_nfkc("\uff9e")), 0x3099L)
+  expect_equal(
+    utf8ToInt(stringi::stri_trans_general("\uff9e", "Halfwidth-Fullwidth")),
+    0x3099L
+  )
+  # the hazard itself: ICU hangs the loose mark on the preceding letter
+  expect_equal(
+    utf8ToInt(stringi::stri_trans_general("a\uff9e", "Halfwidth-Fullwidth")),
+    c(0xFF41L, 0x3099L)
+  )
+  expect_equal(utf8ToInt(to_halfwidth("a\uff9e", compose = FALSE)),
+               c(0x61L, 0x309BL))
+})
+
 test_that("a voiced mark after something that cannot take one is left alone", {
   # "a" does not voice; the mark must survive rather than be swallowed
   out <- to_halfwidth(paste0("\uff71", "\uff9e"))
@@ -114,6 +136,32 @@ test_that("normalisation is surgical where NFKC is not", {
   expect_equal(to_halfwidth(untouched), untouched)
   # ...and NFKC really would have changed every one of them
   expect_true(all(stringi::stri_trans_nfkc(untouched) != untouched))
+})
+
+test_that("the rest of the Halfwidth and Fullwidth Forms block is left alone", {
+  # The mapped ranges are FF01-FF5E and FF61-FF9F, and ?to_halfwidth names what
+  # sits either side of them so that nobody reads "narrows fullwidth forms" as
+  # covering the whole block. None of these is ASCII on either side, which is
+  # the reason they are out; NFKC maps every one of them, so the difference is
+  # a choice and needs pinning rather than assuming.
+  block <- c(
+    "\uffe0", "\uffe1", "\uffe2",           # fullwidth cent, pound, not
+    "\uffe3", "\uffe4", "\uffe5", "\uffe6", # macron, broken bar, yen, won
+    "\uffa0", "\uffa1", "\uffdc",           # halfwidth Hangul jamo
+    "\uffe8", "\uffee",                     # halfwidth symbol forms
+    "\uff5f", "\uff60"                      # fullwidth white parentheses
+  )
+  expect_equal(to_halfwidth(block), block)
+  expect_equal(to_fullwidth(block), block)
+  expect_true(all(stringi::stri_trans_nfkc(block) != block))
+  # the practical consequence the help page states: the digits of a price
+  # narrow and the currency sign does not
+  expect_equal(to_halfwidth(paste0("\uffe5", FW_DIGITS)), "\uffe5123")
+  # and the two mapped ranges really do stop where the table says, so these are
+  # the neighbours of a boundary rather than an arbitrary sample
+  expect_equal(to_halfwidth("\uff5e"), "~")        # last of FF01-FF5E
+  expect_equal(to_halfwidth("\uff61"), "\u3002")   # first of FF61-FF9F
+  expect_equal(to_halfwidth("\uff9f"), "\u309c")   # last of FF61-FF9F
 })
 
 test_that("CJK ideographs and hangul are never rewritten", {
@@ -145,6 +193,32 @@ test_that("normalisation is vectorised", {
     to_halfwidth(c(FW_DIGITS, HW_KA_VOICED, "plain")),
     c("123", FW_GA, "plain")
   )
+})
+
+test_that("the composition fast path changes nothing it skips", {
+  # The composition scan is a per-character R loop, so it is skipped outright
+  # when the string holds no voiced or semi-voiced mark. That guard must be
+  # invisible: a string with no mark in it has to come back exactly as the
+  # loop would have left it, and one with a mark still has to compose wherever
+  # the mark sits.
+  no_marks <- c("abc XYZ 123", FW_DIGITS, ZH_SENTENCE, JA_KATAKANA, KO, "",
+                "\uff71\uff72\uff73", EXT_B)
+  expect_equal(to_halfwidth(no_marks, compose = FALSE),
+               to_halfwidth(no_marks, compose = TRUE))
+  # to_fullwidth() has no compose argument -- it always composes -- so the
+  # guard is pinned against a literal instead: width changed, nothing else
+  expect_equal(
+    to_fullwidth("abc XYZ 123"),
+    "\uff41\uff42\uff43\u3000\uff38\uff39\uff3a\u3000\uff11\uff12\uff13"
+  )
+  expect_equal(to_halfwidth(to_fullwidth(no_marks)), to_halfwidth(no_marks))
+  # a mark at the start, in the middle and at the end all still compose
+  expect_equal(to_halfwidth(paste0("a", HW_KA_VOICED)), paste0("a", FW_GA))
+  expect_equal(to_halfwidth(paste0(HW_KA_VOICED, "a")), paste0(FW_GA, "a"))
+  expect_equal(to_halfwidth(paste0("a", HW_KA_VOICED, "b")),
+               paste0("a", FW_GA, "b"))
+  # a two-code-point string that is only marks is still left alone
+  expect_equal(utf8ToInt(to_halfwidth("\uff9e\uff9f")), c(0x309BL, 0x309CL))
 })
 
 test_that("compose is validated", {

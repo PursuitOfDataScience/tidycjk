@@ -6,6 +6,59 @@
 # still means writing the same twenty lines of sapply() every time. These are
 # those twenty lines, named.
 
+# Pull the text column, translating the one error a wrong `data` produces.
+#
+# dplyr reports a `data` it cannot pull from as "no applicable method for
+# 'pull' applied to an object of class matrix" -- naming a function the caller
+# never called, in a package they may not know they are using. That is the
+# same complaint .cjk_stri() answers for stringi, and the same standard ought
+# to apply here.
+#
+# The decision is made on the object, never on the message. R translates its
+# "no applicable method" text, and the translations share no phrase with the
+# English: German has "nicht anwendbare Methode", French "pas de methode ...
+# applicable", and Italian reorders the placeholders entirely. Matching the
+# English wording therefore relabelled nothing outside an English session,
+# silently, which is the failure this handler exists to prevent.
+#
+# Asking whether pull() has a method for this class is the same question in
+# every locale, and it keeps the promise the message match was chosen for:
+# dplyr ships only pull.data.frame, but other packages register their own, so
+# anything that can be pulled from -- a data frame, a tibble, a grouped_df, a
+# database-backed tbl -- has its own error re-thrown untouched. Shared with
+# cjk_tokens() in segment.R, the third verb of the same layer.
+.cjk_pull <- function(expr, data) {
+  tryCatch(expr, error = function(e) {
+    if (.cjk_has_pull_method(data)) {
+      stop(e)
+    }
+    stop("`data` must be a data frame or tibble.", call. = FALSE)
+  })
+}
+
+.cjk_has_pull_method <- function(data) {
+  # The documented contract, and the case that must never be misreported: a
+  # missing column in a data frame has to keep its own error. Answered first
+  # and without a lookup, so no subtlety below can take it away.
+  if (is.data.frame(data)) {
+    return(TRUE)
+  }
+  # Anything else that can be pulled from. A package registering a pull method
+  # -- dbplyr for a database-backed tbl, say -- lands it in dplyr's S3 table,
+  # so one lookup finds them all. It has to name that namespace: inside this
+  # handler dplyr is loaded but not attached, and a plain getS3method() cannot
+  # see the generic and answers FALSE for every class, which relabelled a
+  # missing-column error as a wrong-type one.
+  for (cl in class(data)) {
+    if (!is.null(utils::getS3method("pull", cl, optional = TRUE,
+                                    envir = asNamespace("dplyr")))) {
+      return(TRUE)
+    }
+  }
+  FALSE
+}
+
+
 #' Summarise CJK content in a text column
 #'
 #' `cjk_summary()` reports how much of a text column is CJK: how many entries
@@ -29,7 +82,9 @@
 #' [dplyr::group_modify()] if you need it per group.
 #'
 #' @param data A data frame or tibble containing a text column.
-#' @param col The text column to scan, supplied unquoted.
+#' @param col The text column to scan, supplied unquoted. A non-character
+#'   column is coerced with [as.character()]; see [has_cjk()] for why
+#'   that makes a numeric column a poor thing to measure.
 #'
 #' @return A one-row tibble with columns `n_docs` (all entries), `n_with_cjk`
 #'   (entries holding at least one CJK character), `prop_with_cjk` and
@@ -44,7 +99,7 @@
 #' cjk_summary(df, text)
 #' @export
 cjk_summary <- function(data, col) {
-  v <- as.character(dplyr::pull(data, {{ col }}))
+  v <- as.character(.cjk_pull(dplyr::pull(data, {{ col }}), data))
   has <- has_cjk(v)
   ratio <- cjk_ratio(v)
 
@@ -86,12 +141,14 @@ cjk_summary <- function(data, col) {
 #'   the block table these labels come from.
 #' @examples
 #' df <- data.frame(
-#'   text = c("\u4e2d\u6587\u4e2d\u6587", "\u65e5\u672c\u306e\u3053\u3068\u3070", "ascii only")
+#'   text = c("\u4e2d\u6587\u4e2d\u6587",
+#'            "\u65e5\u672c\u306e\u3053\u3068\u3070",
+#'            "ascii only")
 #' )
 #' cjk_char_counts(df, text)
 #' @export
 cjk_char_counts <- function(data, col) {
-  v <- as.character(dplyr::pull(data, {{ col }}))
+  v <- as.character(.cjk_pull(dplyr::pull(data, {{ col }}), data))
   cps <- .cjk_codepoints(v)
   all_cp <- unlist(cps, use.names = FALSE)
   if (is.null(all_cp)) {

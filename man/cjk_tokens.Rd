@@ -9,12 +9,16 @@ cjk_tokens(data, col, engine, ...)
 \arguments{
 \item{data}{A data frame or tibble containing a text column.}
 
-\item{col}{The text column to scan, supplied unquoted.}
+\item{col}{The text column to scan, supplied unquoted. A non-character
+column is coerced with \code{\link[=as.character]{as.character()}}; see \code{\link[=has_cjk]{has_cjk()}} for why
+that makes a numeric column a poor thing to measure.}
 
 \item{engine}{Name of a segmentation engine, or a function implementing
 one. Required; see \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
 
-\item{...}{Passed to the engine.}
+\item{...}{Passed to the engine. Name these so they are not a prefix of
+\code{engine} (or of \code{data}/\code{col} in \code{\link[=cjk_tokens]{cjk_tokens()}}); see "Passing arguments to
+an engine" in \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
 }
 \value{
 \code{data}, as a tibble, with one row per token and an added \code{token}

@@ -7,7 +7,12 @@
 cjk_ratio(x)
 }
 \arguments{
-\item{x}{A character vector. Anything else is coerced with \code{\link[=as.character]{as.character()}}.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text.}
 }
 \value{
 A numeric vector the same length as \code{x}, between 0 and 1. \code{NA} input

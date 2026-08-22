@@ -12,5 +12,6 @@
 ^data-raw$
 ^\.git$
 ^\.gitignore$
+^\.claude$
 ^tidycjk\.Rcheck$
 ^tidycjk_.*\.tar\.gz$

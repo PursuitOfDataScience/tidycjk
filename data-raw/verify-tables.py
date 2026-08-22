@@ -122,7 +122,7 @@ if unknown:
 # ------------------------------------------------------------ block coverage
 # The check the sortedness assertions above cannot make: is a whole block of
 # letters missing? Bopomofo Extended (U+31A0-U+31BF) was, for the first release
-# -- 32 of the 77 assigned bopomofo letters -- and nothing here noticed, because
+# -- 32 of the 75 assigned bopomofo letters -- and nothing here noticed, because
 # what is absent from the table is invisible to a test written against the
 # table. So work the other way round: enumerate every assigned code point the
 # referee names as a LETTER of a script tidycjk claims to cover, and require it
@@ -131,11 +131,22 @@ if unknown:
 # Each entry in OUT_OF_SCOPE is a deliberate omission with its reason. Adding to
 # it is a scope decision; a NEW block of letters showing up as a failure here is
 # a bug. ?cjk_blocks documents the same boundary for users.
+# Prefix matching is literal, so a name that merely *contains* one of these is
+# not enumerated. Three groups were missed on the first pass and are spelled out
+# here: the halfwidth letter forms are named "HALFWIDTH KATAKANA LETTER ..." and
+# "HALFWIDTH HANGUL LETTER ...", which do not start with the katakana or hangul
+# prefixes, so 106 assigned letters were invisible to the sweep -- including
+# every character in the Halfwidth Katakana row, the one row this table carves
+# out of its neighbour and therefore the likeliest to be disturbed by an edit.
+# "BOPOMOFO FINAL LETTER" likewise does not start with "BOPOMOFO LETTER", which
+# is why removing Bopomofo Extended reports 27 letters uncovered rather than 32.
 LETTER_PREFIXES = (
     "CJK UNIFIED IDEOGRAPH", "CJK COMPATIBILITY IDEOGRAPH",
-    "HIRAGANA LETTER", "KATAKANA LETTER", "BOPOMOFO LETTER",
+    "HIRAGANA LETTER", "KATAKANA LETTER",
+    "BOPOMOFO LETTER", "BOPOMOFO FINAL LETTER",
     "HANGUL SYLLABLE", "HANGUL LETTER", "HANGUL CHOSEONG",
     "HANGUL JUNGSEONG", "HANGUL JONGSEONG",
+    "HALFWIDTH KATAKANA LETTER", "HALFWIDTH HANGUL LETTER",
 )
 OUT_OF_SCOPE = [
     (0x1AFF0, 0x1AFFE, "Kana Extended-B: Minnan tone letters"),
@@ -249,13 +260,31 @@ WIDE_HANDWRITTEN = [(0x1100, 0x115F), (0x2E80, 0x303E), (0x3041, 0x33FF),
              (0xA960, 0xA97F), (0xAC00, 0xD7A3), (0xF900, 0xFAFF),
              (0xFE10, 0xFE19), (0xFE30, 0xFE6F), (0xFF00, 0xFF60),
              (0xFFE0, 0xFFE6), (0x1F300, 0x1F64F), (0x1F900, 0x1F9FF)]
-disagree = sum(
+# Both directions, because either one alone flatters the hand-written table.
+# Counting only the false positives -- code points it calls wide that are not --
+# gave a couple of hundred and was reported as what the table "would get wrong".
+# The false negatives are the real story: the list stops below the
+# supplementary planes, so every ideograph in Extensions B through I is called
+# one column. Those are exactly the blocks this package had to add in a bug fix.
+ASSIGNED = ("Cn", "Co", "Cs")
+too_wide = sum(
     1
     for s, e in WIDE_HANDWRITTEN
     for cp in range(s, e + 1)
-    if ud.category(chr(cp)) not in ("Cn", "Co", "Cs")
+    if ud.category(chr(cp)) not in ASSIGNED
     and ud.east_asian_width(chr(cp)) not in ("W", "F")
 )
+in_range = lambda cp: any(s <= cp <= e for s, e in WIDE_HANDWRITTEN)
+too_narrow = sum(
+    1
+    for cp in range(0x0, 0x40000)
+    if not in_range(cp)
+    and ud.category(chr(cp)) not in ASSIGNED
+    and ud.east_asian_width(chr(cp)) in ("W", "F")
+)
+disagree = too_wide + too_narrow
+print(f"  of which called wide and are not: {too_wide}; "
+      f"wide and missed entirely: {too_narrow}")
 print(f"assigned code points a hand-written width table would get "
       f"wrong: {disagree}")
 
@@ -267,6 +296,101 @@ check(ud.category(chr(0x200B)) == "Cf",
 check(ud.category(chr(0x0301)) == "Mn", "U+0301 should be Mn")
 check(ud.east_asian_width(chr(0x00B0)) == "A",
       "U+00B0 should be East Asian Ambiguous (documented as width 1)")
+
+# --------------------------------- the tables above are only transcriptions
+#
+# Everything up to here checks the literals in THIS file against the referee.
+# That is only worth anything if the literals still match the package. They are
+# hand-copied out of R/, and the moment to copy them is exactly the moment this
+# script tells you to run it -- so a stale transcription would sail through
+# every check above and report success about a table the package no longer has.
+#
+# So parse the R sources and diff them against the literals. No R needed: the
+# tables are plain hex literals in a fixed layout, and a parse that stops
+# finding them is itself a failure rather than a silent pass.
+import io
+import os
+import re
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_R = os.path.join(_HERE, os.pardir, "R")
+
+
+def _read(name):
+    with io.open(os.path.join(_R, name), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _slice(text, start_pat, source):
+    """An R function body, from its opening line to the matching '\n}'."""
+    m = re.search(start_pat, text)
+    if m is None:
+        fail.append(f"cannot find {start_pat!r} in {source} -- parser is stale")
+        return ""
+    rest = text[m.end():]
+    end = rest.find("\n}")
+    if end < 0:
+        fail.append(f"cannot find the end of {start_pat!r} in {source}")
+        return ""
+    return rest[:end]
+
+
+def _hex_all(text):
+    return [int(h, 16) for h in re.findall(r"0x([0-9A-Fa-f]+)", text)]
+
+
+try:
+    ranges_src = _read("ranges.R")
+    normalize_src = _read("normalize.R")
+except OSError as exc:                       # pragma: no cover, dev-only
+    fail.append(f"cannot read R/ sources: {exc}")
+    ranges_src = normalize_src = ""
+
+if ranges_src:
+    # .cjk_ranges(): the rbind() of (start, end) pairs, then the block and
+    # script character vectors, in the same order.
+    body = _slice(ranges_src, r"\.cjk_ranges <- function\(\) \{", "R/ranges.R")
+    rbind = body[body.find("m <- rbind("):body.find("  tab <- list(")]
+    pairs = [(int(a, 16), int(b, 16)) for a, b in
+             re.findall(r"c\(\s*0x([0-9A-Fa-f]+),\s*0x([0-9A-Fa-f]+)\s*\)",
+                        rbind)]
+    blocks = re.findall(r'"([^"]+)"', body[body.find("block = c("):
+                                           body.find("script = c(")])
+    scripts = re.findall(r'"([^"]+)"', body[body.find("script = c("):])
+    r_ranges = [(s_, e_, b_, sc_) for (s_, e_), b_, sc_
+                in zip(pairs, blocks, scripts)]
+    check(len(pairs) == len(blocks) == len(scripts),
+          f"R/ranges.R is internally ragged: {len(pairs)} ranges, "
+          f"{len(blocks)} block names, {len(scripts)} script labels")
+    check(r_ranges == RANGES,
+          "RANGES here no longer matches .cjk_ranges() in R/ranges.R -- "
+          "re-copy it, then re-run; every block check above was against the "
+          "stale copy")
+
+if normalize_src:
+    kata = _hex_all(_slice(normalize_src,
+                           r"\.cjk_halfwidth_katakana <- function\(\) \{",
+                           "R/normalize.R"))
+    check(kata == KATA,
+          "KATA in this file no longer matches .cjk_halfwidth_katakana()")
+
+    vm = _slice(normalize_src, r"\.cjk_voiced_map <- function\(\) \{",
+                "R/normalize.R")
+    v_rows = _hex_all(vm[vm.find("rows <- c("):vm.find("list(")])
+    v_from = _hex_all(vm[vm.find("from = c("):vm.find("to   = c(")])
+    v_to = _hex_all(vm[vm.find("to   = c("):])
+    r_voiced = dict(zip(v_rows + v_from, [c + 1 for c in v_rows] + v_to))
+    check(r_voiced == VOICED,
+          "VOICED in this file no longer matches .cjk_voiced_map()")
+
+    sv = _slice(normalize_src, r"\.cjk_semivoiced_map <- function\(\) \{",
+                "R/normalize.R")
+    s_rows = _hex_all(sv[sv.find("rows <- c("):sv.find("list(")])
+    check(dict(zip(s_rows, [c + 2 for c in s_rows])) == SEMI,
+          "SEMI in this file no longer matches .cjk_semivoiced_map()")
+
+print("transcriptions checked against R/: "
+      f"{'in sync' if not fail else 'SEE FAILURES BELOW'}")
 
 print(f"\n{len(fail)} failure(s)")
 for f in fail:
