@@ -25,8 +25,11 @@ pak::pak("PursuitOfDataScience/tidyckj")
 
 ## The tidy layer
 
-Two verbs take `(data, column)` and return a tibble, so they drop into a
-[dplyr](https://CRAN.R-project.org/package=dplyr) pipeline.
+Three verbs take `(data, column)` and return a tibble, so they drop into
+a [dplyr](https://CRAN.R-project.org/package=dplyr) pipeline. Two of
+them summarise a text column;
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+is under Segmentation below.
 
 ``` r
 

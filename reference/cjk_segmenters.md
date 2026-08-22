@@ -38,7 +38,10 @@ bundles no word segmenter and dispatches on a name instead.
 
 One engine ships with the package. `"character"` needs nothing at all:
 every CJK character becomes its own token and runs of non-CJK text are
-split on whitespace. It is character tokenisation rather than word
+split on whitespace. Whitespace is never a token, the ideographic space
+U+3000 included, even though
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+counts it as CJK. It is character tokenisation rather than word
 segmentation, and for Chinese it will cut two-character words in half.
 It is a baseline, not an answer.
 
@@ -73,7 +76,46 @@ dots from
 vector of tokens. `NA` input should give `NA_character_` and the empty
 string should give `character(0)`;
 [`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
-checks the shape and complains if an engine breaks the contract.
+checks the shape and complains if an engine breaks the contract. A plain
+list is required: a data frame is a list too, but
+[`length()`](https://rdrr.io/r/base/length.html) on one counts columns
+rather than elements, so it is refused rather than quietly mistaken for
+a list of tokens.
+
+## Passing arguments to an engine
+
+Anything in `...` goes to the engine, which is how you configure one.
+Name those arguments so that they are not a prefix of an argument of the
+verb itself: `...` comes after `engine` in
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md),
+and after `data` and `col` in
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md),
+so R's partial matching claims a prefix of one of those before the dots
+ever see it.
+
+It is worth knowing because the result does not look like an
+argument-matching problem. `cjk_tokens(df, text, "mine", c = 1)` matches
+`c` to `col`, which pushes the bare `text` into `engine`, where it
+resolves to [`graphics::text()`](https://rdrr.io/r/graphics/text.html) –
+a function, so it is accepted as an engine – and the error you get is
+about plotting. Single letters and short prefixes are the risk: `c`,
+`co`, `d`, `da`, `e`, `en`, `eng`. A longer name, or a closure that
+captures the setting instead of passing it, avoids the question:
+
+    register_cjk_segmenter("mine", function(x, ...) my_segmenter(x, cutoff = 1))
+
+## What registering does, and does not, undo
+
+A registration lasts for the rest of the session and there is no
+function to remove one. Registering the same name again replaces it,
+which is the way to correct an engine you got wrong.
+
+A name that matches a built-in shadows it. That is deliberate – it is
+how you substitute your own tokeniser for `"character"` without this
+package getting a say – but it is worth knowing that `"character"` is a
+natural name for an engine and taking it hides the built-in for the
+session, with nothing in `cjk_segmenters()` to show that anything
+changed. Pick a distinct name unless shadowing is what you meant.
 
 ## See also
 

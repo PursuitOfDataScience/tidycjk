@@ -17,7 +17,11 @@ to_fullwidth(x)
 - x:
 
   A character vector. Anything else is coerced with
-  [`as.character()`](https://rdrr.io/r/base/character.html).
+  [`as.character()`](https://rdrr.io/r/base/character.html). That
+  coercion is R's, not this package's, so a numeric vector is measured
+  as R chooses to write it – which moves with `options(scipen)` and
+  `options(OutDec)`, and can therefore differ between sessions. Convert
+  deliberately if you mean to measure numbers; these verbs are for text.
 
 - compose:
 
@@ -54,6 +58,18 @@ width and nothing else.
   voiced syllables have no halfwidth form of their own, so fullwidth is
   the only representation that survives a round trip.
 
+That is the whole of it, and the rest of the Halfwidth and Fullwidth
+Forms block is left alone – which is worth naming, because those code
+points sit immediately beside the ones above. The fullwidth currency and
+sign forms U+FFE0-U+FFE6 (cent, pound, not, macron, broken bar, yen,
+won) keep their width, so `to_halfwidth()` narrows the digits of a price
+and leaves the currency symbol fullwidth. So do the halfwidth Hangul
+jamo U+FFA0-U+FFDC, the halfwidth symbol forms U+FFE8-U+FFEE, and the
+fullwidth white parentheses U+FF5F and U+FF60. None of them is ASCII on
+either side, and fullwidth ASCII is what these functions promise; `NFKC`
+maps all of them, along with everything else named under "Why not NFKC"
+above.
+
 ## Voiced marks
 
 Halfwidth katakana writes a voiced syllable as two code points, a bare
@@ -80,16 +96,21 @@ decomposed is composed too.
 `to_fullwidth()` always composes, because a fullwidth string carrying an
 uncomposed voiced mark is not a form anyone wants.
 
-## One deliberate difference from NFKC
+## One deliberate difference from NFKC and from ICU
 
 The Unicode compatibility decomposition of U+FF9E is the *combining*
 mark U+3099, so `NFKC` maps the halfwidth voiced mark onto a combining
-character. These functions map it to the *spacing* mark U+309B instead
-(and U+FF9F to U+309C), which is what [ICU](https://icu.unicode.org)'s
-own halfwidth-to-fullwidth transform does. The difference is only
-visible with `compose = FALSE`, and the spacing mark is the safer of the
-two there: a stray combining mark would silently attach itself to
-whatever character happened to precede it.
+character, and so does [ICU](https://icu.unicode.org)'s
+`Halfwidth-Fullwidth` transform. These functions map it to the *spacing*
+mark U+309B instead, and U+FF9F to U+309C.
+
+The difference is only visible with `compose = FALSE`, and the spacing
+mark is the safer of the two there: a combining mark left loose attaches
+itself to whatever character happens to precede it. ICU shows the hazard
+on its own transform – `"a"` followed by U+FF9E comes back as U+FF41
+U+3099, a fullwidth `a` wearing a voiced sound mark. With
+`compose = TRUE`, the default, the question does not arise: the mark is
+folded into the syllable and no bare mark survives either way.
 
 ## See also
 

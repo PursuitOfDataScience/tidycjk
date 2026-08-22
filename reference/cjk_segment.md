@@ -16,7 +16,11 @@ cjk_segment(x, engine, ...)
 - x:
 
   A character vector. Anything else is coerced with
-  [`as.character()`](https://rdrr.io/r/base/character.html).
+  [`as.character()`](https://rdrr.io/r/base/character.html). That
+  coercion is R's, not this package's, so a numeric vector is measured
+  as R chooses to write it – which moves with `options(scipen)` and
+  `options(OutDec)`, and can therefore differ between sessions. Convert
+  deliberately if you mean to measure numbers; these verbs are for text.
 
 - engine:
 
@@ -26,7 +30,11 @@ cjk_segment(x, engine, ...)
 
 - ...:
 
-  Passed to the engine.
+  Passed to the engine. Name these so they are not a prefix of `engine`
+  (or of `data`/`col` in
+  [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md));
+  see "Passing arguments to an engine" in
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md).
 
 ## Value
 

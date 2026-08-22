@@ -20,7 +20,11 @@ cjk_tokens(data, col, engine, ...)
 
 - col:
 
-  The text column to scan, supplied unquoted.
+  The text column to scan, supplied unquoted. A non-character column is
+  coerced with
+  [`as.character()`](https://rdrr.io/r/base/character.html); see
+  [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+  for why that makes a numeric column a poor thing to measure.
 
 - engine:
 
@@ -30,7 +34,10 @@ cjk_tokens(data, col, engine, ...)
 
 - ...:
 
-  Passed to the engine.
+  Passed to the engine. Name these so they are not a prefix of `engine`
+  (or of `data`/`col` in `cjk_tokens()`); see "Passing arguments to an
+  engine" in
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md).
 
 ## Value
 

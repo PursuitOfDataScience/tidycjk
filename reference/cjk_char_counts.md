@@ -19,7 +19,11 @@ cjk_char_counts(data, col)
 
 - col:
 
-  The text column to scan, supplied unquoted.
+  The text column to scan, supplied unquoted. A non-character column is
+  coerced with
+  [`as.character()`](https://rdrr.io/r/base/character.html); see
+  [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+  for why that makes a numeric column a poor thing to measure.
 
 ## Value
 
@@ -51,7 +55,9 @@ for the block table these labels come from.
 
 ``` r
 df <- data.frame(
-  text = c("\u4e2d\u6587\u4e2d\u6587", "\u65e5\u672c\u306e\u3053\u3068\u3070", "ascii only")
+  text = c("\u4e2d\u6587\u4e2d\u6587",
+           "\u65e5\u672c\u306e\u3053\u3068\u3070",
+           "ascii only")
 )
 cjk_char_counts(df, text)
 #> # A tibble: 8 × 5

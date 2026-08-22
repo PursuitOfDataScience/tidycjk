@@ -15,7 +15,11 @@ cjk_pad(x, width, side = "right", pad = " ")
 - x:
 
   A character vector. Anything else is coerced with
-  [`as.character()`](https://rdrr.io/r/base/character.html).
+  [`as.character()`](https://rdrr.io/r/base/character.html). That
+  coercion is R's, not this package's, so a numeric vector is measured
+  as R chooses to write it – which moves with `options(scipen)` and
+  `options(OutDec)`, and can therefore differ between sessions. Convert
+  deliberately if you mean to measure numbers; these verbs are for text.
 
 - width:
 
@@ -56,13 +60,15 @@ cjk_pad(c("\u4e2d\u6587", "abcd"), 6)
 cjk_pad(c("\u4e2d\u6587", "abcd"), 6, side = "left")
 #> [1] "  中文" "  abcd"
 
-# what nchar()-based padding does to the same input
-cat(paste0("|", formatC(c("\u4e2d\u6587", "abcd"), width = -6), "|"),
-    sep = "\n")
-#> |中文  |
+# a pad that counts characters rather than columns: nchar() calls the two
+# strings 2 and 4 long, so the CJK cell is handed four spaces and comes out
+# eight columns wide. (formatC() and format() are column-aware and get this
+# right; sprintf("%-6s") counts bytes and under-fills instead.)
+pad_by_char <- function(x, n) paste0(x, strrep(" ", pmax(n - nchar(x), 0)))
+cat(paste0("|", pad_by_char(c("\u4e2d\u6587", "abcd"), 6), "|"), sep = "\n")
+#> |中文    |
 #> |abcd  |
-cat(paste0("|", cjk_pad(c("\u4e2d\u6587", "abcd"), 6), "|"),
-    sep = "\n")
+cat(paste0("|", cjk_pad(c("\u4e2d\u6587", "abcd"), 6), "|"), sep = "\n")
 #> |中文  |
 #> |abcd  |
 ```

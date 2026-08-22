@@ -14,7 +14,11 @@ has_cjk(x)
 - x:
 
   A character vector. Anything else is coerced with
-  [`as.character()`](https://rdrr.io/r/base/character.html).
+  [`as.character()`](https://rdrr.io/r/base/character.html). That
+  coercion is R's, not this package's, so a numeric vector is measured
+  as R chooses to write it – which moves with `options(scipen)` and
+  `options(OutDec)`, and can therefore differ between sessions. Convert
+  deliberately if you mean to measure numbers; these verbs are for text.
 
 ## Value
 

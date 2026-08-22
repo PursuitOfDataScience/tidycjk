@@ -18,7 +18,11 @@ cjk_summary(data, col)
 
 - col:
 
-  The text column to scan, supplied unquoted.
+  The text column to scan, supplied unquoted. A non-character column is
+  coerced with
+  [`as.character()`](https://rdrr.io/r/base/character.html); see
+  [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+  for why that makes a numeric column a poor thing to measure.
 
 ## Value
 
