@@ -114,7 +114,7 @@ folded into the syllable and no bare mark survives either way.
 
 ## See also
 
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md)
+[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
 for measuring the result.
 
 ## Examples

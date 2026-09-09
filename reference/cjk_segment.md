@@ -26,15 +26,15 @@ cjk_segment(x, engine, ...)
 
   Name of a segmentation engine, or a function implementing one.
   Required; see
-  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md).
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md).
 
 - ...:
 
   Passed to the engine. Name these so they are not a prefix of `engine`
   (or of `data`/`col` in
-  [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md));
+  [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md));
   see "Passing arguments to an engine" in
-  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md).
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md).
 
 ## Value
 
@@ -49,14 +49,14 @@ ship without a dictionary is `"character"`, which tokenises by character
 rather than by word – a different answer from the one you are asking
 for, and quietly returning it would be the mistake this package exists
 to avoid.
-[`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+[`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
 lists what is available and shows how to register a real word segmenter.
 
 ## See also
 
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
 for the tidy version,
-[`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+[`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
 for the engines and for registering one.
 
 ## Examples

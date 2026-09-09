@@ -20,7 +20,7 @@ tibbles.
 ``` r
 
 # install.packages("pak")
-pak::pak("PursuitOfDataScience/tidyckj")
+pak::pak("PursuitOfDataScience/tidycjk")
 ```
 
 ## The tidy layer
@@ -28,7 +28,7 @@ pak::pak("PursuitOfDataScience/tidyckj")
 Three verbs take `(data, column)` and return a tibble, so they drop into
 a [dplyr](https://CRAN.R-project.org/package=dplyr) pipeline. Two of
 them summarise a text column;
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
 is under Segmentation below.
 
 ``` r
@@ -79,7 +79,7 @@ cjk_char_counts(posts, text)
 
 ## Segmentation
 
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
 is the CJK-aware counterpart of
 [tidytext](https://CRAN.R-project.org/package=tidytext)’s
 `unnest_tokens()`. Where a word ends is a fact about a language rather
@@ -205,7 +205,7 @@ cjk_truncate("我今天很開心", 8)
 The usual advice is to run `NFKC`. `NFKC` does fix width, and it also
 rewrites ligatures, Roman numerals, circled numbers and compatibility
 ideographs.
-[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
+[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
 changes width and nothing else.
 
 ``` r
@@ -239,20 +239,20 @@ to_halfwidth(x) == "ガ"
 Everything above has a
 [stringr](https://CRAN.R-project.org/package=stringr)-style counterpart
 on plain character vectors:
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md),
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md),
-[`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_detect_language.md),
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md),
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md),
-[`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md),
-[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md),
-[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md),
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md),
+[`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md),
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md),
+[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
+[`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md),
+[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md),
+[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
 and
-[`to_fullwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md).
+[`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md).
 All are vectorised, propagate `NA`, and return zero-length output for
 zero-length input.
 
-[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md)
+[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md)
 exports the block table the whole package is built on, so the definition
 of “CJK” can be read rather than guessed at.
 
@@ -276,7 +276,7 @@ head(cjk_blocks(), 8)
 
 | Need | Use |
 |----|----|
-| Display width, width-aware padding | [stringi](https://CRAN.R-project.org/package=stringi) — `stri_width()` and `stri_pad()`, which [`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md) and [`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md) wrap |
+| Display width, width-aware padding | [stringi](https://CRAN.R-project.org/package=stringi) — `stri_width()` and `stri_pad()`, which [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md) and [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md) wrap |
 | Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) — archived from CRAN 2025-05-01; register it as a `tidycjk` engine |
 | Pinyin | [pinyin](https://CRAN.R-project.org/package=pinyin), [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) |
 | Traditional/simplified conversion | [tmcn](https://CRAN.R-project.org/package=tmcn); [OpenCC](https://github.com/BYVoid/OpenCC) outside R for phrase-level accuracy |

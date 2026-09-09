@@ -22,7 +22,7 @@ cjk_char_counts(data, col)
   The text column to scan, supplied unquoted. A non-character column is
   coerced with
   [`as.character()`](https://rdrr.io/r/base/character.html); see
-  [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+  [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
   for why that makes a numeric column a poor thing to measure.
 
 ## Value
@@ -35,7 +35,7 @@ in it gives a zero-row tibble with those columns.
 
 Only CJK characters appear; Latin letters, digits and whitespace are
 dropped. "CJK" means any block listed by
-[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md),
+[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md),
 so ideographic punctuation and fullwidth forms are included and are
 labelled as such in `script` – which makes this the quickest way to find
 out that a column you thought was clean is full of fullwidth spaces.
@@ -46,9 +46,9 @@ output does not change with the locale.
 
 ## See also
 
-[`cjk_summary()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_summary.md)
+[`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md)
 for the column-level figures,
-[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md)
+[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md)
 for the block table these labels come from.
 
 ## Examples

@@ -1,7 +1,7 @@
 # Segmentation engines
 
 `cjk_segmenters()` lists the engines
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
 can dispatch to, and `register_cjk_segmenter()` adds one.
 
 ## Usage
@@ -40,7 +40,7 @@ One engine ships with the package. `"character"` needs nothing at all:
 every CJK character becomes its own token and runs of non-CJK text are
 split on whitespace. Whitespace is never a token, the ideographic space
 U+3000 included, even though
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
 counts it as CJK. It is character tokenisation rather than word
 segmentation, and for Chinese it will cut two-character words in half.
 It is a baseline, not an answer.
@@ -71,11 +71,11 @@ The same shape works for any segmenter you can call from R.
 
 An engine is any function taking `(x, ...)` – a character vector and the
 dots from
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
 – and returning a list the same length as `x`, each element a character
 vector of tokens. `NA` input should give `NA_character_` and the empty
 string should give `character(0)`;
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
 checks the shape and complains if an engine breaks the contract. A plain
 list is required: a data frame is a list too, but
 [`length()`](https://rdrr.io/r/base/length.html) on one counts columns
@@ -87,9 +87,9 @@ a list of tokens.
 Anything in `...` goes to the engine, which is how you configure one.
 Name those arguments so that they are not a prefix of an argument of the
 verb itself: `...` comes after `engine` in
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md),
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md),
 and after `data` and `col` in
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md),
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md),
 so R's partial matching claims a prefix of one of those before the dots
 ever see it.
 
@@ -119,8 +119,8 @@ changed. Pick a distinct name unless shadowing is what you meant.
 
 ## See also
 
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md),
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md).
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md),
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md).
 
 ## Examples
 

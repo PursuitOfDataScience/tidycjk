@@ -2,6 +2,8 @@
 
 ## tidycjk 0.1.0
 
+CRAN release: 2026-09-09
+
 First release.
 
 `tidycjk` is a tidy toolkit for Chinese, Japanese and Korean text:
@@ -23,16 +25,16 @@ data, and makes no network requests.
   `cjk_tokens(data, col, engine)` is the tidy version, returning one row
   per token.
 - The engine is pluggable and **required**.
-  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
   lists what is available and
-  [`register_cjk_segmenter()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  [`register_cjk_segmenter()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
   adds an engine: any function of `(x, ...)` returning a list of
   character vectors.
 - No word segmenter is bundled, and `engine` has no default.
   [jiebaR](https://CRAN.R-project.org/package=jiebaR) was the obvious
   candidate and was archived from CRAN on 2025-05-01, so it cannot be a
   dependency of a CRAN package.
-  [`?cjk_segmenters`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  [`?cjk_segmenters`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
   shows the four lines that register it once you have installed it from
   source.
 - The one engine that ships is `"character"`: one token per CJK
@@ -44,23 +46,23 @@ data, and makes no network requests.
 
 ### Vector layer
 
-- [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md),
-  [`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md)
+- [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md),
+  [`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
   and
-  [`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md)
+  [`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
   classify and measure.
-- [`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_detect_language.md)
+- [`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md)
   infers the language from the scripts present.
-- [`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md),
-  [`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md)
+- [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
+  [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
   and
-  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md)
+  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)
   work in terminal columns rather than characters.
-- [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
+- [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
   and
-  [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
+  [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
   normalise width variants.
-- [`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md)
+- [`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md)
   exports the Unicode block table the package is built on, covering
   every unified ideograph block through Extension I as well as the
   phonetic scripts, CJK punctuation and the width variants.
@@ -75,9 +77,9 @@ data, and makes no network requests.
 
 - **Width is delegated to
   [stringi](https://CRAN.R-project.org/package=stringi).**
-  [`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md)
+  [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
   and
-  [`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md)
+  [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
   wrap
   [`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html)
   and
@@ -88,11 +90,11 @@ data, and makes no network requests.
   copied around is already wrong for tens of thousands of assigned code
   points: it stops below the supplementary planes, so every ideograph in
   Extensions B through I comes out one column instead of two.
-  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md)
+  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)
   has no `stringi` equivalent and is implemented here.
 
 - **Normalisation is surgical.**
-  [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
+  [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
   maps fullwidth ASCII, the ideographic space and halfwidth katakana,
   and touches nothing else. `NFKC` additionally rewrites ligatures,
   superscripts, Roman numerals, circled numbers, the no-break space and
@@ -105,9 +107,9 @@ data, and makes no network requests.
   that break the base-plus-one rule.
 
 - **Ties never depend on the locale.**
-  [`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md)
+  [`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
   and
-  [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
+  [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
   break ties by first appearance rather than by collation order.
 
 ### Not in this release

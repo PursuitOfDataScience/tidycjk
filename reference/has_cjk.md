@@ -28,20 +28,20 @@ empty string gives `FALSE`.
 ## Details
 
 "CJK" here means any block listed by
-[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md),
+[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md),
 which includes CJK punctuation and the halfwidth and fullwidth forms as
 well as the ideographs and the phonetic scripts. That is deliberate – a
 column typed with a CJK input method carries the punctuation too – but
 it does mean that a string of nothing but ideographic full stops
 (U+3002) is `TRUE`. Use
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md)
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
 when you need to know *which* kind of CJK you have.
 
 ## See also
 
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md)
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
 for how much of the text is CJK,
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md)
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
 for which script it is.
 
 ## Examples

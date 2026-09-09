@@ -21,7 +21,7 @@ cjk_summary(data, col)
   The text column to scan, supplied unquoted. A non-character column is
   coerced with
   [`as.character()`](https://rdrr.io/r/base/character.html); see
-  [`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+  [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
   for why that makes a numeric column a poor thing to measure.
 
 ## Value
@@ -36,7 +36,7 @@ A one-row tibble with columns `n_docs` (all entries), `n_with_cjk`
 `prop_with_cjk` counts an entry once however much CJK it holds, so it
 answers "how many of these documents are CJK at all". `mean_ratio`
 averages
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md)
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
 over the entries that have one, so it answers "how CJK are they". A
 corpus of English with one ideograph per row scores high on the first
 and near zero on the second.
@@ -54,9 +54,9 @@ if you need it per group.
 
 ## See also
 
-[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
+[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 for the per-character breakdown,
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md)
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
 for the per-row measure this averages.
 
 ## Examples

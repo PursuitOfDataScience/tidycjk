@@ -36,9 +36,9 @@ character in the string, including spaces and Latin punctuation.
 
 ## See also
 
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
 for the yes/no version,
-[`cjk_summary()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_summary.md)
+[`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md)
 for the column-level summary.
 
 ## Examples

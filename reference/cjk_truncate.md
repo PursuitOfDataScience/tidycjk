@@ -52,9 +52,9 @@ with it.
 
 ## See also
 
-[`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md)
+[`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
 for the other direction;
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md)
+[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
 for the measure both use.
 
 ## Examples

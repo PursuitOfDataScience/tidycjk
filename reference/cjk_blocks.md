@@ -30,7 +30,7 @@ two rows either side of it. And the halfwidth Hangul jamo at
 U+FFA0-U+FFDC are reported as `"fullwidth"` rather than `"hangul"`,
 because this table follows the block boundaries rather than the Unicode
 Script property; use
-[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
+[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 if you need to see exactly which code points a text contains.
 
 All ten blocks of unified ideographs are covered – the base block and
@@ -41,7 +41,7 @@ rather than after Extension H, and this table is in code point order.
 Ten is every block there was as of Unicode 16.0, which is what this
 table is current to. Unicode 17.0 added Extension J at U+323B0-U+3347F,
 and it is not here, so
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
 answers `FALSE` for an Extension J ideograph. That is a known limit of
 this version of the table rather than a judgement about the block, and
 it is the same gap the table once had at Extensions G, H and I.
@@ -63,7 +63,7 @@ ideograph, CJK punctuation nor a width variant: the radical blocks
 compatibility symbols in Enclosed CJK Letters and Months and CJK
 Compatibility. Those are typographic presentation forms rather than
 text, and counting them as CJK would inflate
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md)
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
 on a column that contains no CJK writing at all.
 
 The `script` column takes one of eight values. Six of them name a
@@ -71,13 +71,13 @@ writing system – `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`,
 `"bopomofo"`, `"kanbun"` – and two are ancillary: `"punctuation"` for
 the CJK Symbols and Punctuation block, and `"fullwidth"` for the
 width-variant forms. Only the six writing systems are consulted by
-[`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_detect_language.md).
+[`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md).
 
 ## See also
 
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md)
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
 for the dominant script of a string,
-[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
+[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 for a per-character breakdown.
 
 ## Examples

@@ -44,7 +44,7 @@ already at least `width` columns wide are returned unchanged –
 
 ## See also
 
-[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md)
+[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)
 for the other direction;
 [`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html),
 which this wraps.

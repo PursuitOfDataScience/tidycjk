@@ -26,24 +26,24 @@ requests and needs no compiled code of its own.
 The package has two layers. The **vector layer** takes an atomic
 character vector and returns an atomic vector of the same length, in the
 manner of stringr:
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md),
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md),
-[`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_detect_language.md),
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_width.md),
-[`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md),
-[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md),
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_ratio.md),
-[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md)
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md),
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md),
+[`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md),
+[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
+[`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md),
+[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md),
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md),
+[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
 and
-[`to_fullwidth()`](https://pursuitofdatascience.github.io/tidyckj/reference/to_halfwidth.md).
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segment.md)
+[`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md).
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
 belongs to the same layer but returns a list, because the number of
 tokens per string varies. The **tidy layer** takes
 `verb(data, col, ...)` with the column unquoted and returns a tibble:
-[`cjk_summary()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_summary.md),
-[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_char_counts.md)
+[`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md),
+[`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 and
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md).
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md).
 
 Every vector-layer function is vectorised, propagates `NA` element-wise,
 and returns a zero-length vector of the right type for zero-length
@@ -53,12 +53,12 @@ input.
 
 A character is CJK when its code point falls in one of the Unicode
 blocks listed by
-[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_blocks.md).
+[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md).
 That set is deliberately wide: it includes the ideographs and the three
 phonetic scripts, but also CJK punctuation and the halfwidth and
 fullwidth forms, because a text column that has been through a CJK input
 method carries those too.
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md)
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
 tells you which of them you actually have, so the wide definition never
 hides the detail.
 
@@ -68,7 +68,7 @@ tidycjk deliberately stops where another package already does the job:
 
 - Chinese word segmentation –
   [jiebaR](https://CRAN.R-project.org/package=jiebaR), which
-  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_segmenters.md)
+  [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
   shows how to register as an engine. It was archived from CRAN on
   2025-05-01, which is why it is not a dependency.
 
@@ -88,7 +88,7 @@ tidycjk deliberately stops where another package already does the job:
 - Tokenising whitespace-delimited text –
   [tidytext](https://CRAN.R-project.org/package=tidytext), whose
   `unnest_tokens()`
-  [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_tokens.md)
+  [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
   mirrors for text that has no spaces between words.
 
 ## Relationship to stringi
@@ -107,12 +107,12 @@ you need is the width of a string, call stringi directly.
 
 Useful links:
 
-- <https://pursuitofdatascience.github.io/tidyckj/>
+- <https://pursuitofdatascience.github.io/tidycjk/>
 
-- <https://github.com/PursuitOfDataScience/tidyckj>
+- <https://github.com/PursuitOfDataScience/tidycjk>
 
 - Report bugs at
-  <https://github.com/PursuitOfDataScience/tidyckj/issues>
+  <https://github.com/PursuitOfDataScience/tidycjk/issues>
 
 ## Author
 

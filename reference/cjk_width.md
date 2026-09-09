@@ -64,9 +64,9 @@ to line up on someone else's machine.
 
 ## See also
 
-[`cjk_pad()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_pad.md)
+[`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
 and
-[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_truncate.md),
+[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md),
 which lay text out by width;
 [`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html)
 for the underlying computation.

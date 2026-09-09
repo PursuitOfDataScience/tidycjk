@@ -64,12 +64,12 @@ keeps the assumption in the script, where a reader of the analysis can
 see it.
 
 CJK punctuation and fullwidth forms are ignored here, even though
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidyckj/reference/has_cjk.md)
+[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
 counts them, because all three languages share them.
 
 ## See also
 
-[`cjk_script()`](https://pursuitofdatascience.github.io/tidyckj/reference/cjk_script.md),
+[`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md),
 which reports what is actually there rather than inferring from it.
 
 ## Examples
