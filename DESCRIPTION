@@ -28,9 +28,9 @@ Description: A tidy toolkit for text that is written in Chinese, Japanese or
     specification; the package makes no network requests and needs no compiled
     code of its own.
 License: GPL (>= 3)
-URL: https://pursuitofdatascience.github.io/tidyckj/,
-    https://github.com/PursuitOfDataScience/tidyckj
-BugReports: https://github.com/PursuitOfDataScience/tidyckj/issues
+URL: https://pursuitofdatascience.github.io/tidycjk/,
+    https://github.com/PursuitOfDataScience/tidycjk
+BugReports: https://github.com/PursuitOfDataScience/tidycjk/issues
 Encoding: UTF-8
 Language: en-GB
 Roxygen: list(markdown = TRUE)

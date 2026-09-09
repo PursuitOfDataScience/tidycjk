@@ -72,9 +72,9 @@ If all you need is the width of a string, call \pkg{stringi} directly.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://pursuitofdatascience.github.io/tidyckj/}
-  \item \url{https://github.com/PursuitOfDataScience/tidyckj}
-  \item Report bugs at \url{https://github.com/PursuitOfDataScience/tidyckj/issues}
+  \item \url{https://pursuitofdatascience.github.io/tidycjk/}
+  \item \url{https://github.com/PursuitOfDataScience/tidycjk}
+  \item Report bugs at \url{https://github.com/PursuitOfDataScience/tidycjk/issues}
 }
 
 }

@@ -5,7 +5,8 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/PursuitOfDataScience/tidyckj/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/PursuitOfDataScience/tidyckj/actions/workflows/R-CMD-check.yaml)
+[![CRAN status](https://www.r-pkg.org/badges/version/tidycjk)](https://CRAN.R-project.org/package=tidycjk)
+[![R-CMD-check](https://github.com/PursuitOfDataScience/tidycjk/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/PursuitOfDataScience/tidycjk/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Text tooling in R assumes that words are separated by whitespace, and
@@ -27,7 +28,7 @@ tibbles.
 
 ``` r
 # install.packages("pak")
-pak::pak("PursuitOfDataScience/tidyckj")
+pak::pak("PursuitOfDataScience/tidycjk")
 ```
 
 ## The tidy layer

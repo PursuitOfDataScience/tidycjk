@@ -1,4 +1,4 @@
-url: https://pursuitofdatascience.github.io/tidyckj/
+url: https://pursuitofdatascience.github.io/tidycjk/
 template:
   bootstrap: 5
 
@@ -67,4 +67,4 @@ navbar:
     href: news/index.html
   right:
   - icon: fa-github fa-lg
-    href: https://github.com/PursuitOfDataScience/tidyckj
+    href: https://github.com/PursuitOfDataScience/tidycjk
