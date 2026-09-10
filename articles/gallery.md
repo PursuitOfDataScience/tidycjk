@@ -123,38 +123,107 @@ cjk_char_counts(posts, text)
 ![cjk_segment splitting a mixed string into
 tokens.](../reference/figures/fig-tokens.png)
 
+`"icu"` is a real word segmenter — ICU’s dictionary-based break
+iterators, shipped inside stringi:
+
 ``` r
 
-cjk_segment("hello 中文 world", engine = "character")
+cjk_segment("我今天很開心", engine = "icu")
 #> [[1]]
-#> [1] "hello" "中"    "文"    "world"
-
-cjk_tokens(posts[1:2, ], text, engine = "character")
-#> # A tibble: 11 × 3
-#>       id text         token
-#>    <int> <chr>        <chr>
-#>  1     1 我今天很開心 我   
-#>  2     1 我今天很開心 今   
-#>  3     1 我今天很開心 天   
-#>  4     1 我今天很開心 很   
-#>  5     1 我今天很開心 開   
-#>  6     1 我今天很開心 心   
-#>  7     2 こんにちは   こ   
-#>  8     2 こんにちは   ん   
-#>  9     2 こんにちは   に   
-#> 10     2 こんにちは   ち   
-#> 11     2 こんにちは   は
+#> [1] "我"   "今天" "很"   "開心"
+cjk_segment("今日は良い天気ですね", engine = "icu", locale = "ja")
+#> [[1]]
+#> [1] "今日" "は"   "良い" "天気" "です" "ね"
 ```
 
-`engine` is required. Where a word ends is a fact about a language
-rather than about Unicode, so no dictionary is bundled, and quietly
-handing back character tokens to someone who asked for words is the
-mistake this package exists to avoid.
+`"character"` is the dictionary-free baseline, and the contrast is the
+reason segmenters exist:
+
+``` r
+
+cjk_segment("我今天很開心", engine = "character")
+#> [[1]]
+#> [1] "我" "今" "天" "很" "開" "心"
+
+cjk_tokens(posts[1:2, ], text, engine = "icu")
+#> # A tibble: 5 × 3
+#>      id text         token     
+#>   <int> <chr>        <chr>     
+#> 1     1 我今天很開心 我        
+#> 2     1 我今天很開心 今天      
+#> 3     1 我今天很開心 很        
+#> 4     1 我今天很開心 開心      
+#> 5     2 こんにちは   こんにちは
+```
+
+`engine` is still required because `"character"` answers a different
+question and would otherwise be the answer you got by accident. Note
+that `locale` does *not* pick the dictionary: ICU applies one combined
+Chinese–Japanese word list to Han and kana runs, chosen by the script of
+the text, so the two calls above segment the same way under any locale.
 
 ``` r
 
 cjk_segmenters()
-#> [1] "character"
+#> [1] "character" "icu"
+```
+
+## Wrapping
+
+[`cjk_wrap()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_wrap.md)
+completes the layout set. Break positions follow the Unicode line
+breaking algorithm, so no line begins with `。` or `）`:
+
+``` r
+
+cat(cjk_wrap("他說（今天天氣很好）。我們去公園散步。", 12))
+#> 他說（今天
+#> 天氣很好）。
+#> 我們去公園散
+#> 步。
+```
+
+``` r
+
+x <- "我今天很開心，因為天氣非常好而且朋友來看我"
+cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
+#> [1] 14 14 14
+```
+
+## Romanisation, script and kana
+
+Exact for kana and jamo; an approximation for the other two.
+
+``` r
+
+cjk_romanize("中文")
+#> [1] "zhōng wén"
+cjk_romanize("中文", ascii = TRUE)
+#> [1] "zhong wen"
+
+cjk_simplify("漢字")
+#> [1] "汉字"
+cjk_traditionalize("汉字")
+#> [1] "漢字"
+
+to_hiragana("カタカナ")
+#> [1] "かたかな"
+to_katakana("ｶﾞ")        # halfwidth in, composed out
+#> [1] "ガ"
+
+cjk_jamo("한글")
+#> [[1]]
+#> [1] "ᄒ" "ᅡ"   "ᆫ"   "ᄀ" "ᅳ"   "ᆯ"
+```
+
+Where they break, stated plainly:
+
+``` r
+
+cjk_traditionalize("软件")   # characters right, Taiwanese word (軟體) wrong
+#> [1] "軟件"
+cjk_romanize("日本語")       # Han read as Chinese, not nihongo
+#> [1] "rì běn yǔ"
 ```
 
 ## Width forms

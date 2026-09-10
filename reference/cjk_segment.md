@@ -44,13 +44,18 @@ tokens. `NA` input gives `NA_character_`; the empty string gives
 
 ## Details
 
-`engine` is required and has no default. The only engine tidycjk can
-ship without a dictionary is `"character"`, which tokenises by character
-rather than by word – a different answer from the one you are asking
-for, and quietly returning it would be the mistake this package exists
-to avoid.
+Two engines ship with the package. `"icu"` is a real word segmenter,
+using the dictionary ICU carries inside stringi, so it costs no
+dependency you have not already installed. `"character"` tokenises by
+character rather than by word.
+
+`engine` is required and has no default, because `"character"` answers a
+different question from the one a caller asking for words is asking, and
+quietly returning it would be the mistake this package exists to avoid.
+The two also differ on punctuation: `"icu"` drops it, `"character"`
+keeps CJK punctuation as tokens.
 [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
-lists what is available and shows how to register a real word segmenter.
+lists what is available and shows how to register another.
 
 ## See also
 
@@ -62,6 +67,12 @@ for the engines and for registering one.
 ## Examples
 
 ``` r
+# a real word segmenter: four words, not six characters
+cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "icu")
+#> [[1]]
+#> [1] "我"   "今天" "很"   "開心"
+#> 
+
 # the dictionary-free baseline, one token per CJK character
 cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "character")
 #> [[1]]

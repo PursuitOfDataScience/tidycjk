@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">tidycjk</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -16,7 +16,15 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/gallery.html">Gallery</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/tidycjk.html">Introduction to tidycjk</a></li>
+    <li><a class="dropdown-item" href="../articles/segmentation.html">Segmenting CJK text</a></li>
+    <li><a class="dropdown-item" href="../articles/width-and-layout.html">Width, padding, truncation and wrapping</a></li>
+    <li><a class="dropdown-item" href="../articles/transliteration.html">Romanisation, script conversion and kana</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/gallery.html">A visual tour</a></li>
+  </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/PursuitOfDataScience/tidycjk"><span class="fa fa-github fa-lg"></span></a></li>
       </ul></div>
@@ -30,6 +38,110 @@
       <small>Source: <a href="https://github.com/PursuitOfDataScience/tidycjk/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="tidycjk-020">tidycjk 0.2.0<a class="anchor" aria-label="anchor" href="#tidycjk-020"></a></h2>
+<p>A release about the gap between what the package could do and what it said it could do. 0.1.0 shipped with no bundled word segmenter, no romanisation and no script conversion, on the reasoning that each needed a dictionary the package could not carry. That was half right. The dictionaries were already installed – ICU carries them and <a href="https://CRAN.R-project.org/package=stringi" class="external-link">stringi</a> carries ICU, and stringi has been a hard dependency since the first commit. Most of what follows is that discovery being spent.</p>
+<p>Four vignettes are new, and there were none before.</p>
+<div class="section level3">
+<h3 id="word-segmentation-now-ships-0-2-0">Word segmentation now ships<a class="anchor" aria-label="anchor" href="#word-segmentation-now-ships-0-2-0"></a></h3>
+<ul><li>
+<strong><code>engine = "icu"</code> is a real word segmenter.</strong> <code>cjk_segment("我今天很開心", engine = "icu")</code> returns <code>我</code> / <code>今天</code> / <code>很</code> / <code>開心</code> – words, not characters – using ICU’s dictionary-based break iterators for Chinese and Japanese. It costs no new dependency.</li>
+<li>
+<code>locale</code> is accepted and forwarded, but it does <em>not</em> select the dictionary: ICU applies one combined Chinese-Japanese word list to Han and kana runs, chosen by the script of the text. Seven CJK strings under five locales segment identically. Anything in <code>...</code> reaches the engine.</li>
+<li>
+<code>engine</code> still has no default, for the reason it always had: <code>"character"</code> answers a different question from the one a caller asking for words is asking, and would otherwise be the answer they got by accident.</li>
+<li>
+<strong>This reverses a claim 0.1.0 made.</strong> That release said no word segmenter could be bundled because jiebaR had been archived from CRAN. The archival was true and still is; the error was concluding from it that there was no bundled option, when one had been linked into a hard dependency the whole time.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="transliteration-0-2-0">Transliteration<a class="anchor" aria-label="anchor" href="#transliteration-0-2-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/cjk_romanize.html">cjk_romanize()</a></code></strong> romanises Han, kana and Hangul to the Latin alphabet. <code>ascii = TRUE</code> drops tone marks, which is what you want for a sort key.</li>
+<li>
+<strong><code><a href="../reference/cjk_simplify.html">cjk_simplify()</a></code> and <code><a href="../reference/cjk_simplify.html">cjk_traditionalize()</a></code></strong> convert between simplified and traditional Han.</li>
+<li>
+<strong><code><a href="../reference/to_hiragana.html">to_hiragana()</a></code> and <code><a href="../reference/to_hiragana.html">to_katakana()</a></code></strong> convert between the kana syllabaries. Halfwidth input is handled and composed on the way through: <code>to_katakana("ｶﾞ")</code> is the single character <code>ガ</code>.</li>
+<li>
+<strong><code><a href="../reference/cjk_jamo.html">cjk_jamo()</a></code> and <code><a href="../reference/cjk_jamo.html">cjk_compose_jamo()</a></code></strong> decompose Hangul syllables into jamo and put them back. The mapping is arithmetic in the standard, so the round trip is exact.</li>
+</ul><div class="section level4">
+<h4 id="two-of-these-are-approximations-and-say-so-0-2-0">Two of these are approximations, and say so<a class="anchor" aria-label="anchor" href="#two-of-these-are-approximations-and-say-so-0-2-0"></a></h4>
+<p>0.1.0’s “Not in this release” section withheld traditional/simplified conversion because character-level conversion “is wrong often enough to matter”. That remains true. It ships anyway, because a documented approximation the caller can reason about is more useful than an absence, and because the alternative most people reach for is worse. The limits are on the help page and in <code><a href="../articles/transliteration.html">vignette("transliteration")</a></code>:</p>
+<ul><li>Conversion is <strong>context-aware on characters and blind to vocabulary</strong>. The one-to-many cases resolve correctly from context – <code>头发</code> gives <code>頭髮</code> and <code>发送</code> gives <code>發送</code>, <code>后天</code> gives <code>後天</code> while <code>皇后</code> stays <code>皇后</code> – which is better than a per-character table can do; fourteen such pairs were checked and all fourteen were right. What it does not do is substitute regional vocabulary: <code>软件</code> becomes <code>軟件</code>, not Taiwan’s <code>軟體</code>. <a href="https://github.com/BYVoid/OpenCC" class="external-link">OpenCC</a> and its regional configurations are the answer there.</li>
+<li>Romanisation reads <strong>all Han as Chinese</strong>. Japanese kanji come back in pinyin – <code>日本語</code> gives <code>rì běn yǔ</code>, not <code>nihongo</code>. The kana in the same string romanise correctly, which makes the output look plausible and is what makes it dangerous. Use a morphological analyser such as <a href="https://CRAN.R-project.org/package=gibasa" class="external-link">gibasa</a> for Japanese.</li>
+</ul></div>
+</div>
+<div class="section level3">
+<h3 id="sentences-and-n-grams-0-2-0">Sentences and n-grams<a class="anchor" aria-label="anchor" href="#sentences-and-n-grams-0-2-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/cjk_sentences.html">cjk_sentences()</a></code></strong> splits text into sentences with ICU’s sentence break iterator, which knows U+3002, U+FF01 and U+FF1F. A regular expression on <code>[.!?]</code> finds no boundary at all in Chinese or Japanese, which is the reason this exists. The spans are returned unmodified, so the pieces concatenate back to the input exactly; whitespace between two sentences stays attached to the first rather than being trimmed away.</li>
+<li>
+<strong><code><a href="../reference/cjk_ngrams.html">cjk_ngrams()</a></code></strong> returns every run of <code>n</code> consecutive characters. Character n-grams are the standard dictionary-free baseline for Chinese retrieval and classification – most words are one or two characters, so bigrams capture the majority of them with no model, and they degrade gracefully on the names and coinages where a segmenter is least reliable. No gram is formed across whitespace.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="ordering-0-2-0">Ordering<a class="anchor" aria-label="anchor" href="#ordering-0-2-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/cjk_sort.html">cjk_sort()</a></code> and <code><a href="../reference/cjk_sort.html">cjk_order()</a></code></strong> sort CJK text by an ICU collation. <code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> on Chinese gives code point order, which is a real order and the wrong one: the unified ideographs are laid out in KangXi radical-stroke order, so sorting by code point sorts by radical within the base block. It is not phonetic, which is what sorting a column of names calls for, and it is not even radical order across blocks – every Extension A character sorts ahead of every base-block one. <code>locale = "zh"</code> sorts Han by pinyin; <code>"zh-u-co-stroke"</code> by stroke count.</li>
+<li>Both add two guards over calling stringi directly. <code>NA</code> is kept and sorts last, where <code>stri_sort()</code> drops it and silently shortens a column. And a locale whose language ICU has no collation for is an error, where stringi warns and falls back to the root collation – a plausible-looking wrong order. An unrecognised <em>region</em> is not an error: <code>"zh-CH"</code> resolves to <code>"zh"</code> and still sorts by pinyin.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="layout-0-2-0">Layout<a class="anchor" aria-label="anchor" href="#layout-0-2-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/cjk_wrap.html">cjk_wrap()</a></code></strong> wraps text to a width in terminal columns, completing the set with <code><a href="../reference/cjk_pad.html">cjk_pad()</a></code> and <code><a href="../reference/cjk_truncate.html">cjk_truncate()</a></code>. Break positions come from ICU’s implementation of the Unicode line breaking algorithm (Annex <a href="https://github.com/PursuitOfDataScience/tidycjk/issues/14" class="external-link">#14</a>), so a line will not begin with <code>。</code> or <code>）</code> or split a small kana from what it follows – none of which splitting every <em>n</em> columns would respect. Lines come back joined by <code>\n</code>, so the result is the same length as <code>x</code>. <code>indent</code> and <code>exdent</code> are supported.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-2-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-2-0"></a></h3>
+<ul><li>
+<strong>Four vignettes</strong>, where there were none: <code><a href="../articles/tidycjk.html">vignette("tidycjk")</a></code>, <code><a href="../articles/segmentation.html">vignette("segmentation")</a></code>, <code><a href="../articles/width-and-layout.html">vignette("width-and-layout")</a></code> and <code><a href="../articles/transliteration.html">vignette("transliteration")</a></code>.</li>
+<li>
+<strong>A hex logo</strong>, and a README rebuilt around six generated figures and an animated comparison rather than 210 lines of prose. The figures are drawn by <code>data-raw/make-figures.R</code> using the package itself – the terminal grids are positioned by <code><a href="../reference/cjk_width.html">cjk_width()</a></code> – so a figure cannot drift from what the functions return.</li>
+<li>The pkgdown site gains a theme, a light/dark switch and a Gallery article.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="fixes-0-2-0">Fixes<a class="anchor" aria-label="anchor" href="#fixes-0-2-0"></a></h3>
+<ul><li>
+<strong><code>cjk_detect_language(han_only = )</code> no longer turns two malformed values into languages.</strong> The check was written to stop <code>han_only = 1</code> coming back as the language <code>"1"</code>, and two cases slipped past it. <code>is.na(NaN)</code> is <code>TRUE</code>, so <code>NaN</code> was returned as the language <code>"NaN"</code>. Worse, <code>is.na(list(NA))</code> is <code>TRUE</code> while <code>as.character(list(NA))</code> is the <em>string</em> <code>"NA"</code> – not a missing value, so a downstream <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> would have called it a real answer. Both are now errors. Present since 0.1.0.</li>
+<li>
+<strong>Kana conversion is a normalisation, not a reversible mapping, and the documentation said otherwise.</strong> <code><a href="../reference/to_hiragana.html">?to_hiragana</a></code> called it “lossless” and <code><a href="../articles/transliteration.html">vignette("transliteration")</a></code> said it “round-trips exactly”. Both are true only when the input is already in a single syllabary. On mixed text the distinction between the two is erased – and it carries meaning, since katakana marks loanwords and emphasis – so <code>to_katakana(to_hiragana(x))</code> does not return <code>x</code>.</li>
+<li>
+<strong><code>locale</code> does not change where CJK sentences break either, and <code><a href="../reference/cjk_sentences.html">?cjk_sentences</a></code> no longer implies it does.</strong> Same correction as for the segmentation engine: identical output across Chinese, Japanese, Korean and mixed text under <code>"zh"</code>, <code>"ja"</code>, <code>"ko"</code>, <code>"en"</code> and the session default.</li>
+<li>
+<strong><code><a href="../reference/cjk_wrap.html">cjk_wrap()</a></code> no longer crashes R on a long string.</strong> <code>stri_wrap()</code>’s default optimal-fit algorithm segfaults on long input – a plain <code>stri_wrap(strrep("\u4e2d\u6587", 50000), 40)</code> takes the session down, at any width, with no tidycjk involved. Strings over 10,000 characters now go through the greedy algorithm, which handles 200,000 characters in a fraction of a second. For CJK the two agree exactly: over 600 randomly generated CJK strings they produced identical output every time, because nearly every position is a break opportunity. Mixed CJK and Latin can differ. The threshold is deliberately far below where the crash was seen, since it looks like stack exhaustion and the real limit moves with the machine.</li>
+<li>
+<strong>The jamo round trip returns NFC, and the documentation claimed it returned the input.</strong> <code><a href="../reference/cjk_jamo.html">?cjk_jamo</a></code> said recomposition was “guaranteed to return the original” and the vignette’s table called it reversible. That holds only when the input is already in NFC. <code><a href="../reference/cjk_jamo.html">cjk_compose_jamo()</a></code> is normalisation form C, so it composes everything composable and not only the jamo it was handed: an <code>e</code> followed by a combining acute comes back as the single character U+00E9. The guarantee is now stated as <code>cjk_compose_jamo(cjk_jamo(x))</code> equalling <code>stri_trans_nfc(x)</code>, which is <code>x</code> whenever <code>x</code> was already NFC. The decomposition of Hangul itself is still exact.</li>
+<li>
+<strong>A leading byte-order mark is no longer silently deleted by <code><a href="../reference/cjk_sort.html">cjk_sort()</a></code>, <code><a href="../reference/cjk_sentences.html">cjk_sentences()</a></code>, <code><a href="../reference/cjk_wrap.html">cjk_wrap()</a></code> or <code><a href="../reference/cjk_jamo.html">cjk_jamo()</a></code>.</strong> 0.1.0 had already fixed this for the verbs that go through code points; the new ones call stringi directly, and <code>stri_sort()</code>, <code>stri_split_boundaries()</code>, <code>stri_wrap()</code> and <code>stri_sub()</code> all read a leading U+FEFF as a byte-order mark and drop it. The consequences were worth the name: <code><a href="../reference/cjk_sort.html">cjk_sort()</a></code> returned a vector holding <em>different strings</em> from the one it was given, so <code>x[cjk_order(x)]</code> and <code>cjk_sort(x)</code> disagreed; <code><a href="../reference/cjk_sentences.html">cjk_sentences()</a></code> was not lossless, which is the promise its help page rests on; and the <code><a href="../reference/cjk_jamo.html">cjk_jamo()</a></code> round trip was not exact. All four now hide the mark from stringi and restore it, counting the whole leading run rather than a single mark.</li>
+<li>
+<code><a href="../reference/cjk_sort.html">cjk_sort()</a></code> is now implemented as <code>x[cjk_order(x)]</code>, so it can only ever reorder its input – a sort cannot rewrite the values it was handed.</li>
+<li>
+<strong>The locale guard now works on older stringi, where it used to do nothing.</strong> It detected an unusable locale by watching for the “resource bundle lookup” warning, and stringi 1.6.2 does not emit that warning at all – so on an older installation the guard was silently inert, which is exactly the failure it exists to prevent. It now checks the language subtag against <code><a href="https://rdrr.io/pkg/stringi/man/stri_locale_list.html" class="external-link">stringi::stri_locale_list()</a></code>, which is present in every stringi tested and gives the same verdict on each. An unrecognised region still resolves to its language, so <code>"zh-CH"</code> and <code>"zh-u-co-stroke"</code> remain valid.</li>
+<li>
+<strong>A typo in a <code>locale</code> is now an error everywhere, not just in one place.</strong> ICU falls back to the root locale when it has no data for the one asked for, and stringi reports that as a warning most callers never see – so <code>cjk_segment(engine = "icu", locale = "jp")</code> quietly selected a different break iterator, and the output looked right. <code><a href="../reference/cjk_sort.html">cjk_sort()</a></code> guarded against this from the start; <code><a href="../reference/cjk_sentences.html">cjk_sentences()</a></code> and the <code>"icu"</code> engine did not. All three now share one guard. An unrecognised <em>region</em> is still fine: <code>"zh-CH"</code> resolves to <code>"zh"</code>.</li>
+<li>
+<strong><code>cjk_ngrams(x, n = )</code> rejects an <code>n</code> past the integer range.</strong> It used to coerce to <code>NA</code> with a bare “NAs introduced by coercion” warning naming no argument, then fail on the comparison a few frames down – the same failure <code>.cjk_as_width()</code> was written to prevent for <code>width</code>.</li>
+<li>
+<strong><code><a href="../reference/cjk_wrap.html">cjk_wrap()</a></code> is about five times faster on a column.</strong> It called <code>stri_wrap()</code> once per string; it now makes one call per <em>distinct</em> width, which for the usual scalar <code>width</code> is a single call. Measured at 0.23s to 0.05s over 2,000 rows.</li>
+<li>
+<strong>The two segmentation engines do not tokenise punctuation alike, and the help page now says so.</strong> <code>"icu"</code> drops punctuation and symbols along with whitespace; <code>"character"</code> keeps CJK punctuation as tokens, because those code points are in blocks <code><a href="../reference/cjk_blocks.html">cjk_blocks()</a></code> lists. The same sentence therefore yields different token counts – and the gap is punctuation, not a disagreement about where words end. An emoji is dropped by one and kept by the other for the same reason.</li>
+<li>
+<strong><code><a href="../reference/cjk_wrap.html">cjk_wrap()</a></code> re-flows rather than measures, and two consequences are now documented.</strong> Existing newlines in the input are whitespace to the algorithm and are replaced by the new breaks, so <code>"a\nb"</code> wrapped wide comes back as <code>"a b"</code>. A string of nothing but whitespace re-flows to <code>""</code>, where <code><a href="../reference/cjk_pad.html">cjk_pad()</a></code> would have kept it.</li>
+<li>Every published URL now points at <code>tidycjk</code>. The repository had been created as <code>tidyckj</code>, with the last two letters transposed, and the typo reached the <code>URL</code> and <code>BugReports</code> fields, the pkgdown site, the R-CMD-check badge and the <code><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak::pak()</a></code> install line. GitHub redirects the repository addresses, so the ones in the 0.1.0 tarball still resolve; it does not redirect a project Pages site, so the old documentation URL 404s and this release is what corrects it on CRAN.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="notes-0-2-0">Notes<a class="anchor" aria-label="anchor" href="#notes-0-2-0"></a></h3>
+<ul><li>
+<code>RoxygenNote</code> replaces <code>Config/roxygen2/version</code>: <code>man/</code> is generated by roxygen2 7.3.2, and the file now records what actually built it.</li>
+<li>Still no compiled code, no bundled data, and no network requests.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="still-not-in-this-release-0-2-0">Still not in this release<a class="anchor" aria-label="anchor" href="#still-not-in-this-release-0-2-0"></a></h3>
+<ul><li>
+<strong>Stroke counts, radicals and per-character readings.</strong> These need the <a href="https://www.unicode.org/charts/unihan.html" class="external-link">Unihan database</a>; <code>data-raw/unihan.R</code> downloads and parses it, but nothing is bundled yet.</li>
+<li>
+<strong>Vertical text layout.</strong> Unicode Annex <a href="https://github.com/PursuitOfDataScience/tidycjk/issues/50" class="external-link">#50</a> assigns each character an orientation for vertical writing. Nothing here models it.</li>
+<li>
+<strong>Encoding detection.</strong> <code><a href="https://rdrr.io/pkg/stringi/man/stri_enc_detect.html" class="external-link">stringi::stri_enc_detect()</a></code> exists and is unreliable on short CJK samples, which is exactly when it would be used. It is not wrapped rather than wrapped badly.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="tidycjk-010">tidycjk 0.1.0<a class="anchor" aria-label="anchor" href="#tidycjk-010"></a></h2><p class="text-muted">CRAN release: 2026-09-09</p>
 <p>First release.</p>

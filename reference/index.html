@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">tidycjk</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -16,7 +16,15 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/gallery.html">Gallery</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/tidycjk.html">Introduction to tidycjk</a></li>
+    <li><a class="dropdown-item" href="../articles/segmentation.html">Segmenting CJK text</a></li>
+    <li><a class="dropdown-item" href="../articles/width-and-layout.html">Width, padding, truncation and wrapping</a></li>
+    <li><a class="dropdown-item" href="../articles/transliteration.html">Romanisation, script conversion and kana</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/gallery.html">A visual tour</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/PursuitOfDataScience/tidycjk"><span class="fa fa-github fa-lg"></span></a></li>
       </ul></div>
@@ -62,7 +70,7 @@
       </dl></div><div class="section level2">
       <h2 id="segment">Segment<a class="anchor" aria-label="anchor" href="#segment"></a></h2>
 
-      <div class="section-desc"><p>Splitting CJK text into words. Where a word ends is a fact about a language rather than about Unicode, so no segmenter is bundled and the engine is a required, pluggable choice.</p></div>
+      <div class="section-desc"><p>Splitting CJK text into words. Where a word ends is a fact about a language rather than about Unicode, so the engine is a required, pluggable choice. Dictionary-based segmentation for Chinese and Japanese ships via ICU; further engines can be registered.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -82,6 +90,45 @@
 
         </dt>
         <dd>Segmentation engines</dd>
+      </dl></div><div class="section level2">
+      <h2 id="sentences-and-n-grams">Sentences and n-grams<a class="anchor" aria-label="anchor" href="#sentences-and-n-grams"></a></h2>
+
+      <div class="section-desc"><p>Preprocessing that generic tooling gets wrong on CJK: sentence terminators are U+3002, U+FF01 and U+FF1F rather than “.!?”, and character n-grams are the dictionary-free baseline for Chinese.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="cjk_sentences.html">cjk_sentences()</a></code>
+
+        </dt>
+        <dd>Split text into sentences</dd>
+
+        <dt>
+
+          <code><a href="cjk_ngrams.html">cjk_ngrams()</a></code>
+
+        </dt>
+        <dd>Character n-grams</dd>
+      </dl></div><div class="section level2">
+      <h2 id="order">Order<a class="anchor" aria-label="anchor" href="#order"></a></h2>
+
+      <div class="section-desc"><p>ICU collation. R’s sort() puts Han in code point order, which is not pronunciation, stroke or frequency.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="cjk_sort.html">cjk_sort()</a></code> <code><a href="cjk_sort.html">cjk_order()</a></code>
+
+        </dt>
+        <dd>Sort CJK text by pronunciation or stroke</dd>
       </dl></div><div class="section level2">
       <h2 id="detect-classify">Detect &amp; classify<a class="anchor" aria-label="anchor" href="#detect-classify"></a></h2>
 
@@ -149,6 +196,13 @@
 
         </dt>
         <dd>Truncate text to a display width</dd>
+
+        <dt>
+
+          <code><a href="cjk_wrap.html">cjk_wrap()</a></code>
+
+        </dt>
+        <dd>Wrap text to a display width</dd>
       </dl></div><div class="section level2">
       <h2 id="normalise-width-variants">Normalise width variants<a class="anchor" aria-label="anchor" href="#normalise-width-variants"></a></h2>
 
@@ -165,6 +219,43 @@
 
         </dt>
         <dd>Normalise fullwidth and halfwidth forms</dd>
+      </dl></div><div class="section level2">
+      <h2 id="transliterate">Transliterate<a class="anchor" aria-label="anchor" href="#transliterate"></a></h2>
+
+      <div class="section-desc"><p>Romanisation, Han script conversion, the kana syllabaries and Hangul jamo. Exact for kana and jamo; an approximation, documented as such, for romanisation and simplified/traditional conversion.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="cjk_romanize.html">cjk_romanize()</a></code>
+
+        </dt>
+        <dd>Romanise CJK text</dd>
+
+        <dt>
+
+          <code><a href="cjk_simplify.html">cjk_simplify()</a></code> <code><a href="cjk_simplify.html">cjk_traditionalize()</a></code>
+
+        </dt>
+        <dd>Convert between simplified and traditional Han</dd>
+
+        <dt>
+
+          <code><a href="to_hiragana.html">to_hiragana()</a></code> <code><a href="to_hiragana.html">to_katakana()</a></code>
+
+        </dt>
+        <dd>Convert between hiragana and katakana</dd>
+
+        <dt>
+
+          <code><a href="cjk_jamo.html">cjk_jamo()</a></code> <code><a href="cjk_jamo.html">cjk_compose_jamo()</a></code>
+
+        </dt>
+        <dd>Decompose and recompose Hangul syllables</dd>
       </dl></div><div class="section level2">
       <h2 id="reference-data">Reference data<a class="anchor" aria-label="anchor" href="#reference-data"></a></h2>
 

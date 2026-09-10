@@ -9,7 +9,7 @@ register_cjk_segmenter() adds one."><meta property="og:image" content="https://p
 
     <a class="navbar-brand me-2" href="../index.html">tidycjk</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,7 +18,15 @@ register_cjk_segmenter() adds one."><meta property="og:image" content="https://p
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/gallery.html">Gallery</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/tidycjk.html">Introduction to tidycjk</a></li>
+    <li><a class="dropdown-item" href="../articles/segmentation.html">Segmenting CJK text</a></li>
+    <li><a class="dropdown-item" href="../articles/width-and-layout.html">Width, padding, truncation and wrapping</a></li>
+    <li><a class="dropdown-item" href="../articles/transliteration.html">Romanisation, script conversion and kana</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/gallery.html">A visual tour</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/PursuitOfDataScience/tidycjk"><span class="fa fa-github fa-lg"></span></a></li>
       </ul></div>
@@ -69,17 +77,44 @@ register_cjk_segmenter() adds one."><meta property="og:image" content="https://p
 about Unicode, so it cannot be derived the way everything else in this
 package is. It needs a dictionary and a statistical model, and which one is
 right depends on the language and the corpus. <span class="pkg">tidycjk</span> therefore
-bundles no word segmenter and dispatches on a name instead.</p>
-<p>One engine ships with the package. <code>"character"</code> needs nothing at all:
-every CJK character becomes its own token and runs of non-CJK text are
-split on whitespace. Whitespace is never a token, the ideographic space
-U+3000 included, even though <code><a href="has_cjk.html">has_cjk()</a></code> counts it as CJK. It is character
-tokenisation rather than word segmentation, and for Chinese it will cut
-two-character words in half. It is a baseline, not an answer.</p>
+dispatches on a name rather than committing to one.</p>
+<p>Two engines ship with the package.</p>
+<p><code>"icu"</code> is a real word segmenter. ICU carries dictionary-based break
+iterators for Chinese and Japanese, and stringi carries ICU, so this costs
+no dependency you have not already installed: a six-character Chinese
+sentence comes back as its four words rather than as six characters.</p>
+<p><code>locale</code> is accepted and forwarded, but it does not select the dictionary.
+ICU applies a single combined Chinese-Japanese word list to Han and kana
+runs, chosen by the script of the text, so Chinese and Japanese segment
+the same way under <code>"zh"</code>, <code>"ja"</code> or the session default. It returns
+surface forms only, with no part of speech, lemma or user dictionary, and
+its models are lighter than MeCab's or jieba's tuned ones. It is the right
+starting point and not the last word.</p>
+<p><code>"character"</code> needs nothing at all: every CJK character becomes its own
+token and runs of non-CJK text are split on whitespace. Whitespace is never
+a token, the ideographic space U+3000 included, even though <code><a href="has_cjk.html">has_cjk()</a></code>
+counts it as CJK. It is character tokenisation rather than word
+segmentation, and for Chinese it will cut two-character words in half. It
+is a baseline, not an answer.</p>
     </div>
     <div class="section level2">
-    <h2 id="registering-a-word-segmenter">Registering a word segmenter<a class="anchor" aria-label="anchor" href="#registering-a-word-segmenter"></a></h2>
-    <p><a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a>, which binds
+    <h2 id="the-two-engines-do-not-tokenise-punctuation-alike">The two engines do not tokenise punctuation alike<a class="anchor" aria-label="anchor" href="#the-two-engines-do-not-tokenise-punctuation-alike"></a></h2>
+    <p>This matters when comparing counts, so it is worth stating rather than
+leaving to be discovered. <code>"icu"</code> drops punctuation and symbols along with
+whitespace; <code>"character"</code> keeps CJK punctuation as tokens, because those
+code points are in blocks <code><a href="cjk_blocks.html">cjk_blocks()</a></code> lists, and keeps a run of
+non-CJK text whole up to the next space.</p>
+<p>The upshot is that the same sentence yields different token counts, and
+the gap is punctuation rather than a disagreement about where words end.
+An emoji is dropped by <code>"icu"</code> and kept by <code>"character"</code> for the same
+reason. Filter or compare accordingly.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="registering-another-segmenter">Registering another segmenter<a class="anchor" aria-label="anchor" href="#registering-another-segmenter"></a></h2>
+    <p>For Japanese, <a href="https://CRAN.R-project.org/package=gibasa" class="external-link">gibasa</a> binds
+MeCab and is on CRAN; it gives part of speech and lemma, which <code>"icu"</code> does
+not.</p>
+<p><a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a>, which binds
 <a href="https://github.com/yanyiwu/cppjieba" class="external-link">cppjieba</a>, is the usual choice for
 Chinese. It was archived from CRAN on 2025-05-01, so it cannot be a
 dependency of a CRAN package and <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code> will not find it;
@@ -143,7 +178,7 @@ distinct name unless shadowing is what you meant.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">cjk_segmenters</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "character"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "character" "icu"      </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># an engine that splits on an explicit marker</span></span></span>
 <span class="r-in"><span><span class="fu">register_cjk_segmenter</span><span class="op">(</span><span class="st">"pipe"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="va">x</span>, <span class="st">"|"</span>,</span></span>

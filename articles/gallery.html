@@ -29,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">tidycjk</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,7 +39,17 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="active nav-item"><a class="nav-link" href="../articles/gallery.html">Gallery</a></li>
+<li class="active nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/tidycjk.html">Introduction to tidycjk</a></li>
+    <li><a class="dropdown-item" href="../articles/segmentation.html">Segmenting CJK text</a></li>
+    <li><a class="dropdown-item" href="../articles/width-and-layout.html">Width, padding, truncation and wrapping</a></li>
+    <li><a class="dropdown-item" href="../articles/transliteration.html">Romanisation, script conversion and kana</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/gallery.html">A visual tour</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -161,39 +171,94 @@ included. At the column level:</p>
 <h2 id="segmentation">Segmentation<a class="anchor" aria-label="anchor" href="#segmentation"></a>
 </h2>
 <p><img src="../reference/figures/fig-tokens.png" width="100%" alt="cjk_segment splitting a mixed string into tokens."></p>
+<p><code>"icu"</code> is a real word segmenter — ICU’s dictionary-based
+break iterators, shipped inside stringi:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"hello 中文 world"</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, engine <span class="op">=</span> <span class="st">"icu"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
-<span><span class="co">#&gt; [1] "hello" "中"    "文"    "world"</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/cjk_tokens.html">cjk_tokens</a></span><span class="op">(</span><span class="va">posts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="op">]</span>, <span class="va">text</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 11 × 3</span></span></span>
-<span><span class="co">#&gt;       id text         token</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>     1 我今天很開心 我   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>     1 我今天很開心 今   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>     1 我今天很開心 天   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>     1 我今天很開心 很   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>     1 我今天很開心 開   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>     1 我今天很開心 心   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>     2 こんにちは   こ   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>     2 こんにちは   ん   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>     2 こんにちは   に   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>     2 こんにちは   ち   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">11</span>     2 こんにちは   は</span></span></code></pre></div>
-<p><code>engine</code> is required. Where a word ends is a fact about a
-language rather than about Unicode, so no dictionary is bundled, and
-quietly handing back character tokens to someone who asked for words is
-the mistake this package exists to avoid.</p>
+<span><span class="co">#&gt; [1] "我"   "今天" "很"   "開心"</span></span>
+<span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"今日は良い天気ですね"</span>, engine <span class="op">=</span> <span class="st">"icu"</span>, locale <span class="op">=</span> <span class="st">"ja"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "今日" "は"   "良い" "天気" "です" "ね"</span></span></code></pre></div>
+<p><code>"character"</code> is the dictionary-free baseline, and the
+contrast is the reason segmenters exist:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "我" "今" "天" "很" "開" "心"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_tokens.html">cjk_tokens</a></span><span class="op">(</span><span class="va">posts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="op">]</span>, <span class="va">text</span>, engine <span class="op">=</span> <span class="st">"icu"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 5 × 3</span></span></span>
+<span><span class="co">#&gt;      id text         token     </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 我今天很開心 我        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     1 我今天很開心 今天      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     1 我今天很開心 很        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     1 我今天很開心 開心      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     2 こんにちは   こんにちは</span></span></code></pre></div>
+<p><code>engine</code> is still required because
+<code>"character"</code> answers a different question and would
+otherwise be the answer you got by accident. Note that
+<code>locale</code> does <em>not</em> pick the dictionary: ICU applies
+one combined Chinese–Japanese word list to Han and kana runs, chosen by
+the script of the text, so the two calls above segment the same way
+under any locale.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_segmenters.html">cjk_segmenters</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "character"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "character" "icu"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="wrapping">Wrapping<a class="anchor" aria-label="anchor" href="#wrapping"></a>
+</h2>
+<p><code><a href="../reference/cjk_wrap.html">cjk_wrap()</a></code> completes the layout set. Break positions
+follow the Unicode line breaking algorithm, so no line begins with
+<code>。</code> or <code>）</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_wrap.html">cjk_wrap</a></span><span class="op">(</span><span class="st">"他說（今天天氣很好）。我們去公園散步。"</span>, <span class="fl">12</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; 他說（今天</span></span>
+<span><span class="co">#&gt; 天氣很好）。</span></span>
+<span><span class="co">#&gt; 我們去公園散</span></span>
+<span><span class="co">#&gt; 步。</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="st">"我今天很開心，因為天氣非常好而且朋友來看我"</span></span>
+<span><span class="fu"><a href="../reference/cjk_width.html">cjk_width</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_wrap.html">cjk_wrap</a></span><span class="op">(</span><span class="va">x</span>, <span class="fl">14</span><span class="op">)</span>, <span class="st">"\n"</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 14 14 14</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="romanisation-script-and-kana">Romanisation, script and kana<a class="anchor" aria-label="anchor" href="#romanisation-script-and-kana"></a>
+</h2>
+<p>Exact for kana and jamo; an approximation for the other two.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "zhōng wén"</span></span>
+<span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span>, ascii <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "zhong wen"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_simplify.html">cjk_simplify</a></span><span class="op">(</span><span class="st">"漢字"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "汉字"</span></span>
+<span><span class="fu"><a href="../reference/cjk_simplify.html">cjk_traditionalize</a></span><span class="op">(</span><span class="st">"汉字"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "漢字"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/to_hiragana.html">to_hiragana</a></span><span class="op">(</span><span class="st">"カタカナ"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "かたかな"</span></span>
+<span><span class="fu"><a href="../reference/to_hiragana.html">to_katakana</a></span><span class="op">(</span><span class="st">"ｶﾞ"</span><span class="op">)</span>        <span class="co"># halfwidth in, composed out</span></span>
+<span><span class="co">#&gt; [1] "ガ"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_jamo.html">cjk_jamo</a></span><span class="op">(</span><span class="st">"한글"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "ᄒ" "ᅡ"   "ᆫ"   "ᄀ" "ᅳ"   "ᆯ"</span></span></code></pre></div>
+<p>Where they break, stated plainly:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_simplify.html">cjk_traditionalize</a></span><span class="op">(</span><span class="st">"软件"</span><span class="op">)</span>   <span class="co"># characters right, Taiwanese word (軟體) wrong</span></span>
+<span><span class="co">#&gt; [1] "軟件"</span></span>
+<span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"日本語"</span><span class="op">)</span>       <span class="co"># Han read as Chinese, not nihongo</span></span>
+<span><span class="co">#&gt; [1] "rì běn yǔ"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="width-forms">Width forms<a class="anchor" aria-label="anchor" href="#width-forms"></a>
 </h2>
 <p><img src="../reference/figures/fig-normalize.png" width="100%" alt="to_halfwidth narrows width forms and leaves everything else alone."></p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "123"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span><span class="op">)</span></span>
@@ -216,7 +281,7 @@ the mistake this package exists to avoid.</p>
 <h2 id="the-block-table">The block table<a class="anchor" aria-label="anchor" href="#the-block-table"></a>
 </h2>
 <p><img src="../reference/figures/fig-blocks.png" width="100%" alt="The first rows of the cjk_blocks table."></p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_blocks.html">cjk_blocks</a></span><span class="op">(</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 10 × 5</span></span></span>
 <span><span class="co">#&gt;    block                              script      start   end n_codepoints</span></span>

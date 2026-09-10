@@ -3,7 +3,11 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   articles/gallery: gallery.html
-last_built: 2026-09-10T00:09Z
+  segmentation: segmentation.html
+  tidycjk: tidycjk.html
+  transliteration: transliteration.html
+  width-and-layout: width-and-layout.html
+last_built: 2026-09-10T10:17Z
 urls:
   reference: https://pursuitofdatascience.github.io/tidycjk/reference
   article: https://pursuitofdatascience.github.io/tidycjk/articles

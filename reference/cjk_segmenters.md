@@ -34,18 +34,51 @@ Where a word begins and ends in CJK text is a fact about a language, not
 about Unicode, so it cannot be derived the way everything else in this
 package is. It needs a dictionary and a statistical model, and which one
 is right depends on the language and the corpus. tidycjk therefore
-bundles no word segmenter and dispatches on a name instead.
+dispatches on a name rather than committing to one.
 
-One engine ships with the package. `"character"` needs nothing at all:
-every CJK character becomes its own token and runs of non-CJK text are
-split on whitespace. Whitespace is never a token, the ideographic space
-U+3000 included, even though
+Two engines ship with the package.
+
+`"icu"` is a real word segmenter. ICU carries dictionary-based break
+iterators for Chinese and Japanese, and stringi carries ICU, so this
+costs no dependency you have not already installed: a six-character
+Chinese sentence comes back as its four words rather than as six
+characters.
+
+`locale` is accepted and forwarded, but it does not select the
+dictionary. ICU applies a single combined Chinese-Japanese word list to
+Han and kana runs, chosen by the script of the text, so Chinese and
+Japanese segment the same way under `"zh"`, `"ja"` or the session
+default. It returns surface forms only, with no part of speech, lemma or
+user dictionary, and its models are lighter than MeCab's or jieba's
+tuned ones. It is the right starting point and not the last word.
+
+`"character"` needs nothing at all: every CJK character becomes its own
+token and runs of non-CJK text are split on whitespace. Whitespace is
+never a token, the ideographic space U+3000 included, even though
 [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
 counts it as CJK. It is character tokenisation rather than word
 segmentation, and for Chinese it will cut two-character words in half.
 It is a baseline, not an answer.
 
-## Registering a word segmenter
+## The two engines do not tokenise punctuation alike
+
+This matters when comparing counts, so it is worth stating rather than
+leaving to be discovered. `"icu"` drops punctuation and symbols along
+with whitespace; `"character"` keeps CJK punctuation as tokens, because
+those code points are in blocks
+[`cjk_blocks()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_blocks.md)
+lists, and keeps a run of non-CJK text whole up to the next space.
+
+The upshot is that the same sentence yields different token counts, and
+the gap is punctuation rather than a disagreement about where words end.
+An emoji is dropped by `"icu"` and kept by `"character"` for the same
+reason. Filter or compare accordingly.
+
+## Registering another segmenter
+
+For Japanese, [gibasa](https://CRAN.R-project.org/package=gibasa) binds
+MeCab and is on CRAN; it gives part of speech and lemma, which `"icu"`
+does not.
 
 [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
 [cppjieba](https://github.com/yanyiwu/cppjieba), is the usual choice for
@@ -126,7 +159,7 @@ changed. Pick a distinct name unless shadowing is what you meant.
 
 ``` r
 cjk_segmenters()
-#> [1] "character"
+#> [1] "character" "icu"      
 
 # an engine that splits on an explicit marker
 register_cjk_segmenter("pipe", function(x, ...) strsplit(x, "|",
