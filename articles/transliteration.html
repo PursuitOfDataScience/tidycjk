@@ -191,9 +191,9 @@ mark — and comes back as the single character <code>ガ</code>:</p>
 <p>A modern Hangul syllable is built from a leading consonant, a vowel
 and an optional trailing consonant, and Unicode encodes all 11,172
 combinations precomposed. The relationship is arithmetic —
-<code>SIndex = (LIndex * 21 + VIndex) * 28 + TIndex</code> — so
-decomposition is exact rather than tabulated, and recomposition is
-guaranteed to return the original.</p>
+<code>SIndex = (LIndex * 21 + VIndex) * 28 + TIndex</code> — so the
+decomposition is exact rather than tabulated: no table can be out of
+date and no syllable is missed.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_jamo.html">cjk_jamo</a></span><span class="op">(</span><span class="st">"한글"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
@@ -225,7 +225,8 @@ only in a final consonant. <code>한</code> is one character to
 <span><span class="co">#&gt; [1] 3</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="simplified-and-traditional-han-approximate">Simplified and traditional Han: approximate<a class="anchor" aria-label="anchor" href="#simplified-and-traditional-han-approximate"></a>
+<h2 id="simplified-and-traditional-han-right-on-characters-blind-to-vocabulary">Simplified and traditional Han: right on characters, blind to
+vocabulary<a class="anchor" aria-label="anchor" href="#simplified-and-traditional-han-right-on-characters-blind-to-vocabulary"></a>
 </h2>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_simplify.html">cjk_simplify</a></span><span class="op">(</span><span class="st">"漢字"</span><span class="op">)</span></span>

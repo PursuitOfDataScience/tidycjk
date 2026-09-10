@@ -27,12 +27,13 @@ install.packages("tidycjk")
 | **Transliterate** | [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md) · [`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) · [`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) |
 | **Kana & jamo** | [`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) · [`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) · [`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md) · [`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md) |
 
-Every verb is vectorised and propagates `NA`. Three of them —
+Most verbs take a character vector, are vectorised and propagate `NA`.
+Three —
 [`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md),
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 and
 [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
-— also take `(data, column)` and return a tibble straight into a
+— take `(data, column)` instead and return a tibble straight into a
 [dplyr](https://CRAN.R-project.org/package=dplyr) pipeline.
 
 ## Which script, which language?
@@ -168,10 +169,14 @@ cjk_jamo("한")              # Hangul syllable -> jamo
 #> [1] "ᄒ" "ᅡ"   "ᆫ"
 ```
 
-Romanisation and Han conversion are per-character, which is exact for
-kana and jamo and an approximation for the other two —
+These differ in how far you can trust them, and
 [`vignette("transliteration")`](https://pursuitofdatascience.github.io/tidycjk/articles/transliteration.md)
-is explicit about where each one breaks.
+is explicit about each. Kana conversion is a normalisation — run it one
+way, since converting mixed text to one syllabary erases a distinction
+that carries meaning. The jamo round trip returns NFC. Han conversion
+resolves ambiguous characters from context, and gets them right, but
+does not substitute regional vocabulary. Romanisation reads every Han
+character as Chinese, so it is pinyin even for Japanese kanji.
 
 ## Sentences and n-grams
 
@@ -218,7 +223,8 @@ of “CJK” can be read rather than guessed at.
 | Need | Use |
 |----|----|
 | Display width, width-aware padding | [stringi](https://CRAN.R-project.org/package=stringi) — `stri_width()` and `stri_pad()`, which [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md) and [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md) wrap |
-| Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) — register it as a `tidycjk` engine |
+| Japanese segmentation | [gibasa](https://CRAN.R-project.org/package=gibasa) — a MeCab binding, on CRAN; gives part of speech and lemma, which the `"icu"` engine does not |
+| Chinese segmentation | [jiebaR](https://CRAN.R-project.org/package=jiebaR) — archived from CRAN 2025-05-01, so install from source; register it as a `tidycjk` engine |
 | Pinyin | [pinyin](https://CRAN.R-project.org/package=pinyin), [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) |
 | Traditional/simplified | [tmcn](https://CRAN.R-project.org/package=tmcn); [OpenCC](https://github.com/BYVoid/OpenCC) outside R |
 | Japanese utilities | [zipangu](https://CRAN.R-project.org/package=zipangu), [Nippon](https://CRAN.R-project.org/package=Nippon) |

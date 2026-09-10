@@ -89,9 +89,9 @@ nchar(to_katakana("ｶﾞ"))
 A modern Hangul syllable is built from a leading consonant, a vowel and
 an optional trailing consonant, and Unicode encodes all 11,172
 combinations precomposed. The relationship is arithmetic —
-`SIndex = (LIndex * 21 + VIndex) * 28 + TIndex` — so decomposition is
-exact rather than tabulated, and recomposition is guaranteed to return
-the original.
+`SIndex = (LIndex * 21 + VIndex) * 28 + TIndex` — so the decomposition
+is exact rather than tabulated: no table can be out of date and no
+syllable is missed.
 
 ``` r
 
@@ -139,7 +139,7 @@ lengths(cjk_jamo("한"))
 #> [1] 3
 ```
 
-## Simplified and traditional Han: approximate
+## Simplified and traditional Han: right on characters, blind to vocabulary
 
 ``` r
 

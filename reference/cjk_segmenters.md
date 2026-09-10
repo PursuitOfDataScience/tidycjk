@@ -44,13 +44,15 @@ costs no dependency you have not already installed: a six-character
 Chinese sentence comes back as its four words rather than as six
 characters.
 
+It returns surface forms only, with no part of speech, lemma or user
+dictionary, and its models are lighter than MeCab's or jieba's tuned
+ones. It is the right starting point and not the last word.
+
 `locale` is accepted and forwarded, but it does not select the
 dictionary. ICU applies a single combined Chinese-Japanese word list to
 Han and kana runs, chosen by the script of the text, so Chinese and
 Japanese segment the same way under `"zh"`, `"ja"` or the session
-default. It returns surface forms only, with no part of speech, lemma or
-user dictionary, and its models are lighter than MeCab's or jieba's
-tuned ones. It is the right starting point and not the last word.
+default.
 
 `"character"` needs nothing at all: every CJK character becomes its own
 token and runs of non-CJK text are split on whitespace. Whitespace is

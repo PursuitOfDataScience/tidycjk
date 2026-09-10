@@ -96,11 +96,11 @@ text with lines separated by <code>\n</code>. <code>NA</code> gives <code>NA</co
 the line breaking algorithm, which is what makes this more than
 <code><a href="https://rdrr.io/r/base/strwrap.html" class="external-link">strwrap()</a></code> with a different counter. CJK text is mostly breakable
 <em>between</em> characters – there are no spaces to break at – but not
-everywhere: a closing bracket may not begin a line, a small kana may not be
-separated from what it follows, and the ideographic full stop U+3002 may
-not start one either. Splitting
-every <code>width</code> columns would put breaks in all of those places. Latin runs
-inside the same string still break on spaces.</p>
+everywhere: a closing bracket may not begin a line, an opening bracket may
+not end one, and the ideographic full stop U+3002 may not start one
+either. Splitting every <code>width</code> columns would put breaks in all three
+places. Latin runs inside the same string still break on spaces. A fourth
+rule, about small kana, holds only in some locales – see below.</p>
 <p>Lines are returned joined by <code>\n</code>, so the result is the same length as <code>x</code>
 and can go straight to <code><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat()</a></code>. <code>strsplit(out, "\n", fixed = TRUE)</code> gives
 the lines separately.</p>

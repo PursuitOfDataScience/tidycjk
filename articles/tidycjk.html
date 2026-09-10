@@ -192,11 +192,12 @@ than from heuristics:</p>
 <div class="section level2">
 <h2 id="two-layers-one-contract">Two layers, one contract<a class="anchor" aria-label="anchor" href="#two-layers-one-contract"></a>
 </h2>
-<p>Every verb works on a plain character vector, in the manner of
-<strong>stringr</strong>. Three of them — <code><a href="../reference/cjk_summary.html">cjk_summary()</a></code>,
-<code><a href="../reference/cjk_char_counts.html">cjk_char_counts()</a></code> and <code><a href="../reference/cjk_tokens.html">cjk_tokens()</a></code> — also take
-<code>(data, column)</code> and return a tibble, so they drop into a
-<strong>dplyr</strong> pipeline without an adaptor <span class="citation">(Wickham 2014)</span>.</p>
+<p>Most verbs work on a plain character vector, in the manner of
+<strong>stringr</strong>. Three — <code><a href="../reference/cjk_summary.html">cjk_summary()</a></code>,
+<code><a href="../reference/cjk_char_counts.html">cjk_char_counts()</a></code> and <code><a href="../reference/cjk_tokens.html">cjk_tokens()</a></code> — take
+<code>(data, column)</code> instead and return a tibble, so they drop
+into a <strong>dplyr</strong> pipeline without an adaptor <span class="citation">(Wickham 2014)</span>. Those three want a data frame;
+they do not accept a bare character vector.</p>
 <p>The contract is the same throughout, and it is worth stating once
 because the rest of this vignette relies on it. Every vector-layer verb
 is vectorised: <code>NA</code> in gives <code>NA</code> out, zero-length

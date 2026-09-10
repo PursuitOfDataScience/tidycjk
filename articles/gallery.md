@@ -192,7 +192,11 @@ cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
 
 ## Romanisation, script and kana
 
-Exact for kana and jamo; an approximation for the other two.
+Kana conversion is a normalisation, the jamo round trip returns NFC, Han
+conversion resolves ambiguity from context but not regional vocabulary,
+and romanisation reads all Han as Chinese.
+[`vignette("transliteration")`](https://pursuitofdatascience.github.io/tidycjk/articles/transliteration.md)
+is explicit about each.
 
 ``` r
 

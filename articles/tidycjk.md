@@ -47,14 +47,15 @@ library(tidycjk)
 
 ## Two layers, one contract
 
-Every verb works on a plain character vector, in the manner of
-**stringr**. Three of them —
+Most verbs work on a plain character vector, in the manner of
+**stringr**. Three —
 [`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md),
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 and
 [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
-— also take `(data, column)` and return a tibble, so they drop into a
-**dplyr** pipeline without an adaptor (Wickham 2014).
+— take `(data, column)` instead and return a tibble, so they drop into a
+**dplyr** pipeline without an adaptor (Wickham 2014). Those three want a
+data frame; they do not accept a bare character vector.
 
 The contract is the same throughout, and it is worth stating once
 because the rest of this vignette relies on it. Every vector-layer verb

@@ -121,8 +121,9 @@ real word segmentation costs nothing extra:</p>
 <span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"今天天氣很好我們去公園散步"</span>, engine <span class="op">=</span> <span class="st">"icu"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [1] "今天" "天氣" "很好" "我們" "去"   "公園" "散步"</span></span></code></pre></div>
-<p>Japanese works out of the box, and <code>locale</code> is accepted
-though it does not change the result — see below:</p>
+<p>Japanese works out of the box. <code>locale</code> is accepted but
+does not change the result — “<code>locale</code> does not pick the
+dictionary” below says why:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"今日は良い天気ですね"</span>, engine <span class="op">=</span> <span class="st">"icu"</span>, locale <span class="op">=</span> <span class="st">"ja"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
@@ -165,10 +166,11 @@ default it to <code>"character"</code>, and the reason not to is that it
 answers a <em>different question</em> from the one a caller asking for
 words is asking, while looking like an answer to theirs. Silence there
 is the failure mode this package exists to prevent.</p>
-<p>Even now that <code>"icu"</code> exists the choice stays explicit,
-for the original reason rather than a new one: <code>"character"</code>
-still answers a different question, and it is still the answer a caller
-would get by accident.</p>
+<p><code>"icu"</code> arriving does not change that. It would be a
+defensible default in a way <code>"character"</code> never was, but a
+default is a decision made on the caller’s behalf about what a word is,
+and this package would rather that decision were visible in the calling
+code.</p>
 </div>
 <div class="section level3">
 <h3 id="locale-does-not-pick-the-dictionary">

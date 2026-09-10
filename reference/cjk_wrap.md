@@ -54,10 +54,11 @@ The break positions come from ICU's implementation of Unicode Annex
 [`strwrap()`](https://rdrr.io/r/base/strwrap.html) with a different
 counter. CJK text is mostly breakable *between* characters – there are
 no spaces to break at – but not everywhere: a closing bracket may not
-begin a line, a small kana may not be separated from what it follows,
-and the ideographic full stop U+3002 may not start one either. Splitting
-every `width` columns would put breaks in all of those places. Latin
-runs inside the same string still break on spaces.
+begin a line, an opening bracket may not end one, and the ideographic
+full stop U+3002 may not start one either. Splitting every `width`
+columns would put breaks in all three places. Latin runs inside the same
+string still break on spaces. A fourth rule, about small kana, holds
+only in some locales – see below.
 
 Lines are returned joined by `\n`, so the result is the same length as
 `x` and can go straight to [`cat()`](https://rdrr.io/r/base/cat.html).

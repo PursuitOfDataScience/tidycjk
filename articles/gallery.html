@@ -227,7 +227,10 @@ follow the Unicode line breaking algorithm, so no line begins with
 <div class="section level2">
 <h2 id="romanisation-script-and-kana">Romanisation, script and kana<a class="anchor" aria-label="anchor" href="#romanisation-script-and-kana"></a>
 </h2>
-<p>Exact for kana and jamo; an approximation for the other two.</p>
+<p>Kana conversion is a normalisation, the jamo round trip returns NFC,
+Han conversion resolves ambiguity from context but not regional
+vocabulary, and romanisation reads all Han as Chinese.
+<code><a href="../articles/transliteration.html">vignette("transliteration")</a></code> is explicit about each.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "zhōng wén"</span></span>

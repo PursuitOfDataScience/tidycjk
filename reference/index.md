@@ -78,8 +78,10 @@ Terminal columns rather than characters, so CJK tables line up.
 ## Transliterate
 
 Romanisation, Han script conversion, the kana syllabaries and Hangul
-jamo. Exact for kana and jamo; an approximation, documented as such, for
-romanisation and simplified/traditional conversion.
+jamo. Each help page states how far it can be trusted: kana conversion
+is a normalisation, the jamo round trip returns NFC, Han conversion
+resolves ambiguity from context but not regional vocabulary, and
+romanisation reads all Han as Chinese.
 
 - [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md)
   : Romanise CJK text

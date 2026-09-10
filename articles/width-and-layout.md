@@ -136,28 +136,7 @@ positions (Unicode Consortium 2024b), and several are forbidden:
 - a full stop `。` may not begin a line;
 - an opening bracket `（` may not end one.
 
-Those three hold whatever the locale. A fourth — whether a small kana
-may be separated from the character it follows — does **not**: Annex
-\#14 defines strict, normal and loose styles, and which applies is
-tailored per locale. Under `"en"` a small kana never begins a line;
-under `"ja"`, which uses the looser style, it may. Pass `locale` when
-the output has to be reproducible, and `"ja@lb=strict"` for the strict
-style:
-
-``` r
-
-kana <- "きょうはとてもいいてんきですっしゃちょ"
-cat(cjk_wrap(kana, 6, locale = "ja@lb=strict"))
-#> きょう
-#> はとて
-#> もいい
-#> てんき
-#> ですっ
-#> しゃ
-#> ちょ
-```
-
-A naive chunker violates all four.
+A naive chunker violates all three.
 [`cjk_wrap()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_wrap.md)
 uses ICU’s implementation of the algorithm, so the break positions are
 the ones a typesetter would choose:
@@ -172,6 +151,28 @@ cat(cjk_wrap("他說（今天天氣很好）。我們去公園散步。", 12))
 ```
 
 Notice that no line begins with `。` or `）`.
+
+### One rule that is not universal
+
+Those three hold whatever the locale. A fourth — whether a small kana
+may be separated from the character it follows — does **not**. Annex
+\#14 defines strict, normal and loose line-breaking styles and which
+applies is tailored per locale: under `"en"` a small kana never begins a
+line, and under `"ja"`, which uses the looser style, it may. Name the
+style when the output has to be reproducible:
+
+``` r
+
+kana <- "きょうはとてもいいてんきですっしゃちょ"
+cat(cjk_wrap(kana, 6, locale = "ja@lb=strict"))
+#> きょう
+#> はとて
+#> もいい
+#> てんき
+#> ですっ
+#> しゃ
+#> ちょ
+```
 
 Latin runs inside the same string still break on spaces, so mixed text
 behaves the way you would expect from both sides:

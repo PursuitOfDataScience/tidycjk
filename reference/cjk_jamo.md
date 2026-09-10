@@ -72,13 +72,15 @@ cjk_jamo("\ud55c\uae00")
 #> [1] "ᄒ" "ᅡ"   "ᆫ"   "ᄀ" "ᅳ"   "ᆯ"  
 #> 
 
-# the round trip returns NFC: already-NFC input comes back unchanged
-identical(cjk_compose_jamo(paste(cjk_jamo("\ud55c")[[1]], collapse = "")),
-          "\ud55c")
-#> [1] TRUE
-
-# exact round trip
-cjk_compose_jamo(vapply(cjk_jamo("\ud55c\uae00"), paste, character(1),
-                        collapse = ""))
+# the round trip returns NFC, so already-NFC input comes back unchanged
+rt <- function(x) {
+  cjk_compose_jamo(vapply(cjk_jamo(x), paste, character(1), collapse = ""))
+}
+rt("\ud55c\uae00")
 #> [1] "한글"
+
+# input that was not NFC comes back normalised: "e" plus a combining
+# acute becomes the single character U+00E9
+rt("e\u0301")
+#> [1] "é"
 ```

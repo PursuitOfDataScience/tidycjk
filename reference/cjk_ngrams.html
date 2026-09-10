@@ -86,7 +86,11 @@ new coinages – where a segmenter is least reliable. Compare against
 <code>cjk_segment(engine = "icu")</code> on your own corpus rather than assuming
 either wins.</p>
 <p>Characters are counted as code points, the same unit <code><a href="cjk_ratio.html">cjk_ratio()</a></code> uses,
-so a supplementary-plane ideograph counts once.</p>
+so a supplementary-plane ideograph counts once. A combining mark or a
+variation selector is a code point too, and therefore its own position in
+the window: a base character followed by a selector contributes two grams
+rather than one. That is consistent with the rest of the package, and it
+is worth knowing if your corpus carries ideographic variation sequences.</p>
     </div>
     <div class="section level2">
     <h2 id="whitespace-ends-a-window">Whitespace ends a window<a class="anchor" aria-label="anchor" href="#whitespace-ends-a-window"></a></h2>
