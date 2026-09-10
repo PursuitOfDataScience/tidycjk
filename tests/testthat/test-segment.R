@@ -1,7 +1,8 @@
-# Segmentation: the engine registry, the built-in engine, and the tidy verb.
+# Segmentation: the engine registry, the built-in engines, and the tidy verb.
 #
-# No word segmenter is bundled -- jiebaR was archived from CRAN -- so the
-# registry is exercised with engines defined here.
+# Two engines ship: "icu", a dictionary-based word segmenter reached through
+# stringi, and "character", the dictionary-free baseline. The registry is
+# additionally exercised with engines defined here.
 
 test_that("the built-in engine is listed", {
   expect_true("character" %in% cjk_segmenters())

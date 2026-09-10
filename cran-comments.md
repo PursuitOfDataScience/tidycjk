@@ -3,9 +3,10 @@
 This is an update (0.2.0) to a package already on CRAN. The previous version
 is 0.1.0.
 
-The release adds word segmentation, transliteration and two NLP preprocessing
-verbs, all reached through `stringi`/ICU, so it takes no new dependency.
-`Imports` is unchanged.
+The release adds word segmentation, transliteration, width-aware wrapping,
+sentence splitting, character n-grams and locale-aware ordering -- twelve
+new exports, all reached through `stringi`/ICU, so it takes no new
+dependency. `Imports` is unchanged.
 
 New exported functions: `cjk_wrap()`, `cjk_romanize()`, `cjk_simplify()`,
 `cjk_traditionalize()`, `to_hiragana()`, `to_katakana()`, `cjk_jamo()`,
@@ -42,10 +43,19 @@ transforms.
 What the package adds over calling ICU directly is a single contract across
 the verbs -- `NA` in, `NA` out; zero length in, zero length out; a ragged
 recycle is an error -- and guards where ICU's own behaviour is quietly wrong
-for this use. Two examples: `stri_sort()` drops missing values, so
-`cjk_sort()` keeps them and preserves length; and a locale ICU has no data
-for produces a warning and a silent fallback to the root collation, which
-`cjk_sort()`, `cjk_sentences()` and the `"icu"` engine turn into an error.
+for this use. Three examples:
+
+* `stri_sort()` drops missing values, so `cjk_sort()` keeps them and
+  preserves length. It is also built on `stri_order()` rather than
+  `stri_sort()`, so it can only reorder its input, never return
+  round-tripped values.
+* An unusable locale makes ICU fall back to the root one. Every verb taking
+  a `locale` -- `cjk_sort()`, `cjk_order()`, `cjk_sentences()`,
+  `cjk_wrap()` and `cjk_segment(engine = "icu")` -- turns that into an
+  error, checked against `stri_locale_list()` rather than against a
+  warning, because stringi 1.6.2 does not emit one.
+* Several stringi entry points drop a leading U+FEFF; the verbs that call
+  them restore it, so text from a BOM-carrying CSV is not silently edited.
 
 Related CRAN packages are named in the README, in `?tidycjk` and in the
 vignettes: `gibasa` (MeCab) and `jiebaR` for segmentation, `pinyin` and
@@ -61,18 +71,13 @@ whose `unnest_tokens()` `cjk_tokens()` mirrors.
     vignette rebuild all run with only the declared dependencies available,
     and with the strict `_R_CHECK_LENGTH_1_LOGIC2_` and
     `_R_CHECK_LENGTH_1_CONDITION_` settings. Clean.
-  - The test suite passes under eight locales: `C`, `en_US.UTF-8`, the three
-    CJK UTF-8 locales `ja_JP.utf8`, `ko_KR.utf8` and `zh_CN.utf8`, and the
-    three legacy CJK encodings `ja_JP.eucjp`, `zh_CN.gb18030` and
-    `ko_KR.euckr`. The CJK locales matter here: ICU tailors the Annex #14
-    line-breaking style per locale, and a test that assumed the strict style
-    passed under C and en_US while failing under ja_JP, so `cjk_wrap()` now
-    takes a `locale` argument naming the style. `ko_KR.euckr` caught a
-    second one, where a test compared against `sort()`, whose order follows
-    `LC_COLLATE`.
-    `LC_ALL=C` is also what the ASCII-only sources under `R/` and `tests/`
-    are for. One test skips under it, and says why: it asserts how invalid
-    UTF-8 is reported, and the installed stringi warns where later versions
+  - The test suite passes under eight locales: `C`, `en_US.UTF-8`, the CJK
+    UTF-8 locales `ja_JP.utf8`, `ko_KR.utf8` and `zh_CN.utf8`, and the
+    legacy CJK encodings `ja_JP.eucjp`, `zh_CN.gb18030` and `ko_KR.euckr`.
+    The CJK locales are checked because ICU tailors the Annex #14
+    line-breaking style per locale, and `LC_COLLATE` changes what `sort()`
+    returns. One test skips under `LC_ALL=C` and says why: it asserts how
+    invalid UTF-8 is reported, and older stringi warns where later versions
     raise an error.
 * Newer R on the same host: R 4.5.3 (dplyr 1.2.1, tibble 3.3.1), full suite
   passing; and R 4.6.0, where `R CMD check --as-cran` reports no errors, no
@@ -114,9 +119,20 @@ that crashes the session. The two agree exactly on CJK text.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes on the maintainer's machine, once the notes
-that are properties of that host are set aside: `qpdf` and HTML `tidy` are
-not installed there, and it has no network access to verify the system clock.
+0 errors | 1 warning | 3 notes on the maintainer's machine. All four are
+properties of that host rather than of the package:
+
+* WARNING: `qpdf` is not installed, so the check cannot test PDF size
+  reduction.
+* NOTE: no `tidy`, so HTML validation of the manual is skipped.
+* NOTE: no network access, so the check cannot verify the system clock
+  ("unable to verify current time").
+* NOTE: CRAN incoming feasibility, reporting the maintainer address and
+  days since the last update.
+
+The same tarball on R 4.6.0 checks with 0 errors, 0 warnings and 2 notes:
+that host has `qpdf` and a usable clock, so only the incoming-feasibility
+and HTML-manual notes remain.
 
 ## Spelling
 

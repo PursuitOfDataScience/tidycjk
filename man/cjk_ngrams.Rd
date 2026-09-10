@@ -33,7 +33,11 @@ new coinages -- where a segmenter is least reliable. Compare against
 either wins.
 
 Characters are counted as code points, the same unit \code{\link[=cjk_ratio]{cjk_ratio()}} uses,
-so a supplementary-plane ideograph counts once.
+so a supplementary-plane ideograph counts once. A combining mark or a
+variation selector is a code point too, and therefore its own position in
+the window: a base character followed by a selector contributes two grams
+rather than one. That is consistent with the rest of the package, and it
+is worth knowing if your corpus carries ideographic variation sequences.
 }
 \section{Whitespace ends a window}{
 An n-gram is never formed across a space, so no gram spans two words of a

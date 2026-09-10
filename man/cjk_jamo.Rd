@@ -55,13 +55,15 @@ a mixed column.
 # U+D55C U+AE00, "Hangul"
 cjk_jamo("\ud55c\uae00")
 
-# the round trip returns NFC: already-NFC input comes back unchanged
-identical(cjk_compose_jamo(paste(cjk_jamo("\ud55c")[[1]], collapse = "")),
-          "\ud55c")
+# the round trip returns NFC, so already-NFC input comes back unchanged
+rt <- function(x) {
+  cjk_compose_jamo(vapply(cjk_jamo(x), paste, character(1), collapse = ""))
+}
+rt("\ud55c\uae00")
 
-# exact round trip
-cjk_compose_jamo(vapply(cjk_jamo("\ud55c\uae00"), paste, character(1),
-                        collapse = ""))
+# input that was not NFC comes back normalised: "e" plus a combining
+# acute becomes the single character U+00E9
+rt("e\u0301")
 }
 \seealso{
 \code{\link[=cjk_script]{cjk_script()}} to detect Hangul, \code{\link[=cjk_blocks]{cjk_blocks()}} for the blocks

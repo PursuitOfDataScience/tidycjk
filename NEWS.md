@@ -17,10 +17,9 @@ Four vignettes are new, and there were none before.
   engine = "icu")` returns `我` / `今天` / `很` / `開心` -- words, not
   characters -- using ICU's dictionary-based break iterators for Chinese and
   Japanese. It costs no new dependency.
-* `locale` is accepted and forwarded, but it does *not* select the
-  dictionary: ICU applies one combined Chinese-Japanese word list to Han and
-  kana runs, chosen by the script of the text. Seven CJK strings under five
-  locales segment identically. Anything in `...` reaches the engine.
+* Anything in `...` reaches the engine, `locale` included -- though see
+  "How the new verbs behave" below, because `locale` does not do what its
+  name suggests here.
 * `engine` still has no default, for the reason it always had: `"character"`
   answers a different question from the one a caller asking for words is
   asking, and would otherwise be the answer they got by accident.
@@ -120,7 +119,12 @@ help page and in `vignette("transliteration")`:
   functions return.
 * The pkgdown site gains a theme, a light/dark switch and a Gallery article.
 
-## Fixes
+## Fixes to 0.1.0
+
+Only two things in this release are fixes in the sense a 0.1.0 user cares
+about. The rest of what changed during development concerned code that had
+never shipped, and is described under the features it belongs to rather
+than dressed up as a fix.
 
 * **`cjk_detect_language(han_only = )` no longer turns two malformed values
   into languages.** The check was written to stop `han_only = 1` coming back
@@ -128,97 +132,74 @@ help page and in `vignette("transliteration")`:
   `TRUE`, so `NaN` was returned as the language `"NaN"`. Worse,
   `is.na(list(NA))` is `TRUE` while `as.character(list(NA))` is the *string*
   `"NA"` -- not a missing value, so a downstream `is.na()` would have called
-  it a real answer. Both are now errors. Present since 0.1.0.
-* **Kana conversion is a normalisation, not a reversible mapping, and the
-  documentation said otherwise.** `?to_hiragana` called it "lossless" and
-  `vignette("transliteration")` said it "round-trips exactly". Both are true
-  only when the input is already in a single syllabary. On mixed text the
-  distinction between the two is erased -- and it carries meaning, since
-  katakana marks loanwords and emphasis -- so `to_katakana(to_hiragana(x))`
-  does not return `x`.
-* **`locale` does not change where CJK sentences break either, and
-  `?cjk_sentences` no longer implies it does.** Same correction as for the
-  segmentation engine: identical output across Chinese, Japanese, Korean and
-  mixed text under `"zh"`, `"ja"`, `"ko"`, `"en"` and the session default.
-* **`cjk_wrap()` no longer crashes R on a long string.** `stri_wrap()`'s
-  default optimal-fit algorithm segfaults on long input -- a plain
-  `stri_wrap(strrep("\u4e2d\u6587", 50000), 40)` takes the session down, at
-  any width, with no tidycjk involved. Strings over 10,000 characters now go
-  through the greedy algorithm, which handles 200,000 characters in a
-  fraction of a second. For CJK the two agree exactly: over 600 randomly
+  it a real answer. Both are now errors.
+* **Every published URL now points at `tidycjk`.** The repository had been
+  created as `tidyckj`, with the last two letters transposed, and the typo
+  reached the `URL` and `BugReports` fields, the pkgdown site, the
+  R-CMD-check badge and the `pak::pak()` install line. GitHub redirects the
+  repository addresses, so the ones in the 0.1.0 tarball still resolve; it
+  does not redirect a project Pages site, so the old documentation URL 404s
+  and this release is what corrects it on CRAN.
+
+## How the new verbs behave
+
+Not fixes -- these verbs are new -- but the details most likely to surprise
+you, gathered in one place.
+
+* **A leading byte-order mark survives.** `stri_sort()`,
+  `stri_split_boundaries()`, `stri_wrap()` and `stri_sub()` all read a
+  leading U+FEFF as a byte-order mark and drop it, which 0.1.0 had already
+  worked around for the verbs that go through code points. `cjk_sort()`,
+  `cjk_sentences()`, `cjk_wrap()` and `cjk_jamo()` hide the whole leading
+  run from stringi and restore it, so a mark from an Excel-written CSV is
+  not silently deleted. A U+FEFF *elsewhere* in a string may still be lost
+  to `cjk_wrap()`, because re-flowing can put it at the start of a segment;
+  `?cjk_wrap` says so.
+* **`cjk_sort()` is `x[cjk_order(x)]`,** so it can only reorder its input.
+  A sort must not rewrite the values it was handed, and building it on
+  `stri_sort()` -- which returns round-tripped values -- would let it.
+* **`cjk_wrap()` switches to a greedy fit above 10,000 characters.**
+  `stri_wrap()`'s default optimal fit segfaults on long input: a plain
+  `stri_wrap(strrep("\u4e2d\u6587", 50000), 40)` takes R down, at any
+  width, with no tidycjk involved. Greedy handles 200,000 characters in a
+  fraction of a second, and for CJK the two agree exactly -- over 600
   generated CJK strings they produced identical output every time, because
   nearly every position is a break opportunity. Mixed CJK and Latin can
-  differ. The threshold is deliberately far below where the crash was seen,
-  since it looks like stack exhaustion and the real limit moves with the
-  machine.
-* **The jamo round trip returns NFC, and the documentation claimed it
-  returned the input.** `?cjk_jamo` said recomposition was "guaranteed to
-  return the original" and the vignette's table called it reversible. That
-  holds only when the input is already in NFC. `cjk_compose_jamo()` is
+  differ.
+* **`cjk_wrap()` re-flows rather than measures.** Existing newlines are
+  whitespace to the algorithm and are replaced by the new breaks, so
+  `"a\nb"` wrapped wide comes back as `"a b"`. A string of nothing but
+  whitespace re-flows to `""`, where `cjk_pad()` would have kept it.
+* **The jamo round trip returns NFC.** `cjk_compose_jamo()` is
   normalisation form C, so it composes everything composable and not only
   the jamo it was handed: an `e` followed by a combining acute comes back as
-  the single character U+00E9. The guarantee is now stated as
+  the single character U+00E9. The guarantee is
   `cjk_compose_jamo(cjk_jamo(x))` equalling `stri_trans_nfc(x)`, which is
-  `x` whenever `x` was already NFC. The decomposition of Hangul itself is
-  still exact.
-* **A leading byte-order mark is no longer silently deleted by
-  `cjk_sort()`, `cjk_sentences()`, `cjk_wrap()` or `cjk_jamo()`.** 0.1.0 had
-  already fixed this for the verbs that go through code points; the new ones
-  call stringi directly, and `stri_sort()`, `stri_split_boundaries()`,
-  `stri_wrap()` and `stri_sub()` all read a leading U+FEFF as a byte-order
-  mark and drop it. The consequences were worth the name: `cjk_sort()`
-  returned a vector holding *different strings* from the one it was given,
-  so `x[cjk_order(x)]` and `cjk_sort(x)` disagreed; `cjk_sentences()` was not
-  lossless, which is the promise its help page rests on; and the
-  `cjk_jamo()` round trip was not exact. All four now hide the mark from
-  stringi and restore it, counting the whole leading run rather than a
-  single mark.
-* `cjk_sort()` is now implemented as `x[cjk_order(x)]`, so it can only ever
-  reorder its input -- a sort cannot rewrite the values it was handed.
-* **The locale guard now works on older stringi, where it used to do
-  nothing.** It detected an unusable locale by watching for the
-  "resource bundle lookup" warning, and stringi 1.6.2 does not emit that
-  warning at all -- so on an older installation the guard was silently
-  inert, which is exactly the failure it exists to prevent. It now checks
-  the language subtag against `stringi::stri_locale_list()`, which is
-  present in every stringi tested and gives the same verdict on each. An
-  unrecognised region still resolves to its language, so `"zh-CH"` and
-  `"zh-u-co-stroke"` remain valid.
-* **A typo in a `locale` is now an error everywhere, not just in one place.**
-  ICU falls back to the root locale when it has no data for the one asked
-  for, and stringi reports that as a warning most callers never see -- so
-  `cjk_segment(engine = "icu", locale = "jp")` quietly selected a different
-  break iterator, and the output looked right. `cjk_sort()` guarded against
-  this from the start; `cjk_sentences()` and the `"icu"` engine did not. All
-  three now share one guard. An unrecognised *region* is still fine:
-  `"zh-CH"` resolves to `"zh"`.
-* **`cjk_ngrams(x, n = )` rejects an `n` past the integer range.** It used to
-  coerce to `NA` with a bare "NAs introduced by coercion" warning naming no
-  argument, then fail on the comparison a few frames down -- the same failure
-  `.cjk_as_width()` was written to prevent for `width`.
-* **`cjk_wrap()` is about five times faster on a column.** It called
-  `stri_wrap()` once per string; it now makes one call per *distinct* width,
-  which for the usual scalar `width` is a single call. Measured at 0.23s to
-  0.05s over 2,000 rows.
-* **The two segmentation engines do not tokenise punctuation alike, and the
-  help page now says so.** `"icu"` drops punctuation and symbols along with
-  whitespace; `"character"` keeps CJK punctuation as tokens, because those
-  code points are in blocks `cjk_blocks()` lists. The same sentence therefore
-  yields different token counts -- and the gap is punctuation, not a
-  disagreement about where words end. An emoji is dropped by one and kept by
-  the other for the same reason.
-* **`cjk_wrap()` re-flows rather than measures, and two consequences are now
-  documented.** Existing newlines in the input are whitespace to the
-  algorithm and are replaced by the new breaks, so `"a\nb"` wrapped wide
-  comes back as `"a b"`. A string of nothing but whitespace re-flows to `""`,
-  where `cjk_pad()` would have kept it.
-* Every published URL now points at `tidycjk`. The repository had been created
-  as `tidyckj`, with the last two letters transposed, and the typo reached the
-  `URL` and `BugReports` fields, the pkgdown site, the R-CMD-check badge and
-  the `pak::pak()` install line. GitHub redirects the repository addresses, so
-  the ones in the 0.1.0 tarball still resolve; it does not redirect a project
-  Pages site, so the old documentation URL 404s and this release is what
-  corrects it on CRAN.
+  `x` whenever `x` was already NFC. The Hangul decomposition itself is
+  exact.
+* **Kana conversion is a normalisation, not a reversible mapping.** On text
+  holding both syllabaries it erases the distinction between them, and that
+  distinction carries meaning -- katakana marks loanwords and emphasis -- so
+  `to_katakana(to_hiragana(x))` returns `x` only when `x` was already all
+  katakana.
+* **The two segmentation engines do not tokenise punctuation alike.**
+  `"icu"` drops punctuation and symbols along with whitespace;
+  `"character"` keeps CJK punctuation as tokens, because those code points
+  are in blocks `cjk_blocks()` lists. The same sentence therefore yields
+  different token counts, and the gap is punctuation rather than a
+  disagreement about where words end. An emoji goes the same way.
+* **A locale ICU has no data for is an error, not a silent fallback.** ICU
+  resolves an unknown locale to the root one, and stringi reports that with
+  a warning most callers never see -- or, on stringi 1.6.2, with no warning
+  at all. The four verbs taking a `locale` share one guard, which checks the
+  language subtag against `stringi::stri_locale_list()` rather than watching
+  for a warning that is not dependable. An unrecognised *region* still
+  resolves to its language, so `"zh-CH"` and `"zh-u-co-stroke"` are valid.
+* **`locale` does not change CJK word or sentence boundaries.** It is
+  accepted and forwarded, and ICU may use it elsewhere, but the CJK
+  dictionary is chosen by the script of the text. It *does* select the
+  Annex #14 line-breaking style in `cjk_wrap()`, which is why that verb
+  takes one.
 
 ## Notes
 

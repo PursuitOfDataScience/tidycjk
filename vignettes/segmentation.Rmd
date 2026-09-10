@@ -59,8 +59,8 @@ cjk_segment("我今天很開心", engine = "icu")
 cjk_segment("今天天氣很好我們去公園散步", engine = "icu")
 ```
 
-Japanese works out of the box, and `locale` is accepted though it does not
-change the result — see below:
+Japanese works out of the box. `locale` is accepted but does not change the
+result — "`locale` does not pick the dictionary" below says why:
 
 ```{r icu-ja}
 cjk_segment("今日は良い天気ですね", engine = "icu", locale = "ja")
@@ -99,9 +99,10 @@ cjk_segment("hello 中文 world", engine = "character")
 from the one a caller asking for words is asking, while looking like an answer
 to theirs. Silence there is the failure mode this package exists to prevent.
 
-Even now that `"icu"` exists the choice stays explicit, for the original
-reason rather than a new one: `"character"` still answers a different
-question, and it is still the answer a caller would get by accident.
+`"icu"` arriving does not change that. It would be a defensible default in a
+way `"character"` never was, but a default is a decision made on the
+caller's behalf about what a word is, and this package would rather that
+decision were visible in the calling code.
 
 ### `locale` does not pick the dictionary
 

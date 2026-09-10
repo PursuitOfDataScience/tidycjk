@@ -346,11 +346,11 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 #' the line breaking algorithm, which is what makes this more than
 #' `strwrap()` with a different counter. CJK text is mostly breakable
 #' *between* characters -- there are no spaces to break at -- but not
-#' everywhere: a closing bracket may not begin a line, a small kana may not be
-#' separated from what it follows, and the ideographic full stop U+3002 may
-#' not start one either. Splitting
-#' every `width` columns would put breaks in all of those places. Latin runs
-#' inside the same string still break on spaces.
+#' everywhere: a closing bracket may not begin a line, an opening bracket may
+#' not end one, and the ideographic full stop U+3002 may not start one
+#' either. Splitting every `width` columns would put breaks in all three
+#' places. Latin runs inside the same string still break on spaces. A fourth
+#' rule, about small kana, holds only in some locales -- see below.
 #'
 #' Lines are returned joined by `\n`, so the result is the same length as `x`
 #' and can go straight to `cat()`. `strsplit(out, "\n", fixed = TRUE)` gives

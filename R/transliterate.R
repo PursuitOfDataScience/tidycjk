@@ -73,6 +73,23 @@
 #'   particle U+306F romanises to `ha`, which is how it is written and not
 #'   how it is said.
 #'
+#' # It is slow, by a wide margin
+#'
+#' ICU's transliterator is the most expensive thing this package calls.
+#' Measured here, romanising runs at roughly thirty thousand characters a
+#' second, and it degrades on a single very long string: 200,000 characters
+#' took about eight seconds and a million took over two minutes. For scale,
+#' `cjk_segment(engine = "icu")` gets through that same million in a third
+#' of a second, so romanisation can be several hundred times the cost of
+#' everything around it.
+#'
+#' None of that is this package's doing -- a bare
+#' `stringi::stri_trans_general(x, "Any-Latin")` takes the same time -- and
+#' there is no faster route to the same answer. Two things help. Keep a
+#' corpus as one row per document rather than pasting it into one string,
+#' which is worth about a factor of two. And romanise once into a column you
+#' keep, rather than inside a loop.
+#'
 #' For Japanese specifically, a morphological analyser that knows the reading
 #' -- [gibasa](https://CRAN.R-project.org/package=gibasa), which binds MeCab
 #' -- is the right tool. This function is for Chinese, for kana, and for
@@ -255,13 +272,15 @@ to_katakana <- function(x) {
 #' # U+D55C U+AE00, "Hangul"
 #' cjk_jamo("\ud55c\uae00")
 #'
-#' # the round trip returns NFC: already-NFC input comes back unchanged
-#' identical(cjk_compose_jamo(paste(cjk_jamo("\ud55c")[[1]], collapse = "")),
-#'           "\ud55c")
+#' # the round trip returns NFC, so already-NFC input comes back unchanged
+#' rt <- function(x) {
+#'   cjk_compose_jamo(vapply(cjk_jamo(x), paste, character(1), collapse = ""))
+#' }
+#' rt("\ud55c\uae00")
 #'
-#' # exact round trip
-#' cjk_compose_jamo(vapply(cjk_jamo("\ud55c\uae00"), paste, character(1),
-#'                         collapse = ""))
+#' # input that was not NFC comes back normalised: "e" plus a combining
+#' # acute becomes the single character U+00E9
+#' rt("e\u0301")
 #' @export
 cjk_jamo <- function(x) {
   x <- as.character(x)

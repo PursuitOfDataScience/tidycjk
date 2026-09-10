@@ -110,7 +110,11 @@ cjk_sentences <- function(x, locale = NULL) {
 #' either wins.
 #'
 #' Characters are counted as code points, the same unit [cjk_ratio()] uses,
-#' so a supplementary-plane ideograph counts once.
+#' so a supplementary-plane ideograph counts once. A combining mark or a
+#' variation selector is a code point too, and therefore its own position in
+#' the window: a base character followed by a selector contributes two grams
+#' rather than one. That is consistent with the rest of the package, and it
+#' is worth knowing if your corpus carries ideographic variation sequences.
 #'
 #' # Whitespace ends a window
 #'
