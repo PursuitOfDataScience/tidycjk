@@ -1,0 +1,125 @@
+---
+title: "A visual tour"
+description: >
+  Every verb in tidycjk, shown on real CJK text rather than described.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(tidycjk)
+```
+
+Each figure below was drawn by `data-raw/make-figures.R` using the package
+itself — the terminal grids are laid out by `cjk_width()`, so they cannot
+drift from what the functions actually return.
+
+## Width is not character count
+
+<img src="../reference/figures/hero-width.svg" width="100%" alt="Padding by character count leaves a CJK column ragged; padding by display width aligns it." />
+
+`nchar()` counts characters. A terminal counts columns, and a CJK character
+takes two of them. That single mismatch is why CJK tables print ragged.
+
+```{r width}
+labels <- c("中文", "abcd", "日本語")
+
+nchar(labels)
+cjk_width(labels)
+
+cat(paste0("|", cjk_pad(labels, 8), "|"), sep = "\n")
+```
+
+Truncation follows the same rule — a cut at eight columns, not eight
+characters:
+
+```{r truncate}
+cjk_truncate("我今天很開心", 8)
+```
+
+## Which script, which language
+
+<img src="../reference/figures/fig-scripts.png" width="100%" alt="cjk_script and cjk_detect_language over five sample strings." />
+
+```{r script}
+txt <- c("我今天很開心", "こんにちは", "안녕하세요", "東京都", "no CJK here")
+
+cjk_script(txt)
+cjk_detect_language(txt)
+```
+
+Rows one and four come back `NA`. Both are written entirely in Han
+characters, and nothing in the script separates Japanese from Chinese there.
+A library that answers `"chinese"` is guessing, and it will be wrong on
+Japanese input in a way you cannot detect downstream. Opt in if you want it:
+
+```{r script-optin}
+cjk_detect_language(txt, han_only = "chinese")
+```
+
+## How much of it is CJK
+
+<img src="../reference/figures/fig-ratio.png" width="100%" alt="cjk_ratio over four sample strings, shown as filled bars." />
+
+```{r ratio}
+cjk_ratio(c("我今天很開心", "hello 中文 world", "東京都 2024", "no CJK here"))
+```
+
+The denominator is every code point, spaces and Latin punctuation included.
+At the column level:
+
+```{r summary}
+posts <- data.frame(id = 1:5, text = txt)
+
+cjk_summary(posts, text)
+cjk_char_counts(posts, text)
+```
+
+## Segmentation
+
+<img src="../reference/figures/fig-tokens.png" width="100%" alt="cjk_segment splitting a mixed string into tokens." />
+
+```{r segment}
+cjk_segment("hello 中文 world", engine = "character")
+
+cjk_tokens(posts[1:2, ], text, engine = "character")
+```
+
+`engine` is required. Where a word ends is a fact about a language rather
+than about Unicode, so no dictionary is bundled, and quietly handing back
+character tokens to someone who asked for words is the mistake this package
+exists to avoid.
+
+```{r engines}
+cjk_segmenters()
+```
+
+## Width forms
+
+<img src="../reference/figures/fig-normalize.png" width="100%" alt="to_halfwidth narrows width forms and leaves everything else alone." />
+
+```{r halfwidth}
+to_halfwidth("１２３")
+as.numeric(to_halfwidth("１２３"))
+
+# NFKC would rewrite all three of these; to_halfwidth leaves them alone
+to_halfwidth("½ Ⅸ ①")
+
+# halfwidth katakana: two code points composed into one
+x <- "ｶﾞ"
+nchar(x)
+nchar(to_halfwidth(x))
+to_halfwidth(x) == "ガ"
+```
+
+## The block table
+
+<img src="../reference/figures/fig-blocks.png" width="100%" alt="The first rows of the cjk_blocks table." />
+
+```{r blocks}
+head(cjk_blocks(), 10)
+
+nrow(cjk_blocks())
+```

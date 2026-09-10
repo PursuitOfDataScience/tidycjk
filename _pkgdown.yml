@@ -1,6 +1,13 @@
 url: https://pursuitofdatascience.github.io/tidycjk/
 template:
   bootstrap: 5
+  light-switch: true
+  bslib:
+    primary: "#1D3A61"
+    link-color: "#C2412F"
+    border-radius: "0.5rem"
+    btn-border-radius: "0.5rem"
+    headings-font-weight: 600
 
 development:
   mode: release
@@ -63,6 +70,8 @@ navbar:
   left:
   - text: Reference
     href: reference/index.html
+  - text: Gallery
+    href: articles/gallery.html
   - text: News
     href: news/index.html
   right:

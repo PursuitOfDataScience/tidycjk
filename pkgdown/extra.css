@@ -1,0 +1,37 @@
+/* tidycjk -- site styling to match the hex logo. */
+
+:root {
+  --tidycjk-ink: #0C1728;
+  --tidycjk-vermilion: #C2412F;
+}
+
+/* Figures are dark panels; give them room and soften the edge so they do not
+   collide with the page background in either light or dark mode. */
+.template-home img[src*="fig-"],
+.template-home img[src*="hero-"],
+.template-article img[src*="fig-"],
+.template-article img[src*="hero-"] {
+  border-radius: 10px;
+  margin: 1.4rem 0;
+  box-shadow: 0 2px 14px rgb(12 23 40 / 18%);
+  max-width: 100%;
+}
+
+/* The hex sits beside the title, not inside the text flow. */
+img[src$="logo.png"] {
+  box-shadow: none;
+  margin-left: 1rem;
+}
+
+/* The "What you get" table reads as a key, so drop the header rule and let
+   the first column carry the weight. */
+.template-home table td:first-child { white-space: nowrap; }
+.template-home table code { font-size: 0.86em; }
+
+h2, h3 { letter-spacing: -0.01em; }
+
+blockquote {
+  border-left: 3px solid var(--tidycjk-vermilion);
+  padding-left: 1rem;
+  color: inherit;
+}
