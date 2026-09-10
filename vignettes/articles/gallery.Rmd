@@ -81,19 +81,69 @@ cjk_char_counts(posts, text)
 
 <img src="../reference/figures/fig-tokens.png" width="100%" alt="cjk_segment splitting a mixed string into tokens." />
 
-```{r segment}
-cjk_segment("hello 中文 world", engine = "character")
+`"icu"` is a real word segmenter — ICU's dictionary-based break iterators,
+shipped inside stringi:
 
-cjk_tokens(posts[1:2, ], text, engine = "character")
+```{r segment-icu}
+cjk_segment("我今天很開心", engine = "icu")
+cjk_segment("今日は良い天気ですね", engine = "icu", locale = "ja")
 ```
 
-`engine` is required. Where a word ends is a fact about a language rather
-than about Unicode, so no dictionary is bundled, and quietly handing back
-character tokens to someone who asked for words is the mistake this package
-exists to avoid.
+`"character"` is the dictionary-free baseline, and the contrast is the reason
+segmenters exist:
+
+```{r segment}
+cjk_segment("我今天很開心", engine = "character")
+
+cjk_tokens(posts[1:2, ], text, engine = "icu")
+```
+
+`engine` is still required because `"character"` answers a different
+question and would otherwise be the answer you got by accident. Note that
+`locale` does *not* pick the dictionary: ICU applies one combined
+Chinese–Japanese word list to Han and kana runs, chosen by the script of the
+text, so the two calls above segment the same way under any locale.
 
 ```{r engines}
 cjk_segmenters()
+```
+
+## Wrapping
+
+`cjk_wrap()` completes the layout set. Break positions follow the Unicode
+line breaking algorithm, so no line begins with `。` or `）`:
+
+```{r wrap}
+cat(cjk_wrap("他說（今天天氣很好）。我們去公園散步。", 12))
+```
+
+```{r wrap-width}
+x <- "我今天很開心，因為天氣非常好而且朋友來看我"
+cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
+```
+
+## Romanisation, script and kana
+
+Exact for kana and jamo; an approximation for the other two.
+
+```{r translit}
+cjk_romanize("中文")
+cjk_romanize("中文", ascii = TRUE)
+
+cjk_simplify("漢字")
+cjk_traditionalize("汉字")
+
+to_hiragana("カタカナ")
+to_katakana("ｶﾞ")        # halfwidth in, composed out
+
+cjk_jamo("한글")
+```
+
+Where they break, stated plainly:
+
+```{r translit-limits}
+cjk_traditionalize("软件")   # characters right, Taiwanese word (軟體) wrong
+cjk_romanize("日本語")       # Han read as Chinese, not nihongo
 ```
 
 ## Width forms

@@ -184,33 +184,43 @@ lab("1.00 is entirely CJK; 0.00 has none. The denominator is every code point,",
 lab("spaces and Latin punctuation included.", 46, 30, muted, 21)
 invisible(dev.off())
 
-## ---- fig-tokens: what the character engine actually returns -------------
+## ---- fig-tokens: the two engines, side by side -----------------------
 cells_w <- function(s, mono_px) sum(cjk_width(strsplit(s, "")[[1]])) * cell_for(mono_px)
 
-W <- 1040; H <- 340
+W <- 1040; H <- 430
 dev_open("fig-tokens.png", W, H); vp(W, H)
 
-src <- "hello 中文 world"
-tok <- cjk_segment(src, engine = "character")[[1]]
+src <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3"          # "I am very happy today"
+rows <- list(
+  list(y = 196, eng = "icu",       col = mint,
+       lab = "engine = \"icu\"",       note = "words"),
+  list(y =  86, eng = "character", col = "#3E9BD6",
+       lab = "engine = \"character\"", note = "characters")
+)
 
-title_pair("cjk_segment()", "engine = \"character\"", 46, 292)
-rrect(46, 196, 948, 62, panel, r = 10)
-draw_cells(src, 78, 226, 30)
+title_pair("cjk_segment()", "one sentence, two engines", 46, 384)
+rrect(46, 300, 948, 62, panel, r = 10)
+draw_cells(src, 78, 330, 30)
 
-grid.lines(c(W / 2, W / 2), c(188, 156), default.units = "native",
-           gp = gpar(col = verm, lwd = px(3)))
-grid.polygon(c(W / 2 - 9, W / 2 + 9, W / 2), c(158, 158, 142),
-             default.units = "native", gp = gpar(fill = verm, col = NA))
+# Chips start after the widest label, measured -- hardcoding the offset is
+# what made the first version of this figure overprint them.
+chip_x <- 46 + max(vapply(rows, function(r) text_w(r$lab, 19, MONO),
+                          numeric(1))) + 26
 
-x <- 46
-for (t in tok) {
-  tw <- cells_w(t, 30) + 42
-  rrect(x, 74, tw, 58, "#1E3350", col = mint, lwd = 2, r = 8)
-  draw_cells(t, x + 21, 102, 30)
-  x <- x + tw + 16
+for (r in rows) {
+  lab(r$lab, 46, r$y + 42, muted, 19, MONO)
+  x <- chip_x
+  for (t in cjk_segment(src, engine = r$eng)[[1]]) {
+    tw <- cells_w(t, 30) + 40
+    rrect(x, r$y + 14, tw, 56, "#1E3350", col = r$col, lwd = 2, r = 8)
+    draw_cells(t, x + 20, r$y + 42, 30)
+    x <- x + tw + 14
+  }
+  lab(sprintf("%d %s", length(cjk_segment(src, engine = r$eng)[[1]]), r$note),
+      x + 8, r$y + 42, r$col, 20)
 }
-lab("one token per CJK character; non-CJK runs split on whitespace",
-    46, 38, muted, 21)
+lab("\"icu\" uses ICU's dictionary; \"character\" needs none and cuts words in half",
+    46, 34, muted, 21)
 invisible(dev.off())
 
 ## ---- fig-blocks: the table the package is built on ----------------------

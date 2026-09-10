@@ -35,12 +35,27 @@ reference:
 - title: Segment
   desc: >
     Splitting CJK text into words. Where a word ends is a fact about a
-    language rather than about Unicode, so no segmenter is bundled and the
-    engine is a required, pluggable choice.
+    language rather than about Unicode, so the engine is a required,
+    pluggable choice. Dictionary-based segmentation for Chinese and Japanese
+    ships via ICU; further engines can be registered.
   contents:
   - cjk_segment
   - cjk_segmenters
   - register_cjk_segmenter
+- title: Sentences and n-grams
+  desc: >
+    Preprocessing that generic tooling gets wrong on CJK: sentence
+    terminators are U+3002, U+FF01 and U+FF1F rather than ".!?", and
+    character n-grams are the dictionary-free baseline for Chinese.
+  contents:
+  - cjk_sentences
+  - cjk_ngrams
+- title: Order
+  desc: >
+    ICU collation. R's sort() puts Han in code point order, which is not
+    pronunciation, stroke or frequency.
+  contents:
+  - cjk_sort
 - title: Detect & classify
   contents:
   - has_cjk
@@ -54,10 +69,21 @@ reference:
   - cjk_width
   - cjk_pad
   - cjk_truncate
+  - cjk_wrap
 - title: Normalise width variants
   contents:
   - to_halfwidth
   - to_fullwidth
+- title: Transliterate
+  desc: >
+    Romanisation, Han script conversion, the kana syllabaries and Hangul
+    jamo. Exact for kana and jamo; an approximation, documented as such, for
+    romanisation and simplified/traditional conversion.
+  contents:
+  - cjk_romanize
+  - cjk_simplify
+  - to_hiragana
+  - cjk_jamo
 - title: Reference data
   contents:
   - cjk_blocks
@@ -70,8 +96,19 @@ navbar:
   left:
   - text: Reference
     href: reference/index.html
-  - text: Gallery
-    href: articles/gallery.html
+  - text: Articles
+    menu:
+    - text: Introduction to tidycjk
+      href: articles/tidycjk.html
+    - text: Segmenting CJK text
+      href: articles/segmentation.html
+    - text: Width, padding, truncation and wrapping
+      href: articles/width-and-layout.html
+    - text: Romanisation, script conversion and kana
+      href: articles/transliteration.html
+    - text: '---'
+    - text: A visual tour
+      href: articles/gallery.html
   - text: News
     href: news/index.html
   right:

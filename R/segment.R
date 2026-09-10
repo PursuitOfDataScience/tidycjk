@@ -12,13 +12,13 @@
 # is any function of (x, ...) returning a list of character vectors, parallel
 # to x.
 #
-# No word segmenter is bundled, and `engine` has no default. jiebaR was the
-# obvious candidate and it was archived from CRAN on 2025-05-01, so it cannot
-# be a dependency of a CRAN package; and the only engine we can ship without
-# one, "character", answers a different question from the one a caller asking
-# for words is asking. Rather than quietly hand back character tokens, the
-# choice is required. ?cjk_segmenters shows how to register jiebaR in four
-# lines if you have it.
+# Two engines ship with the package. "icu" is a real word segmenter, from the
+# dictionaries ICU carries inside stringi; "character" is the dictionary-free
+# baseline. `engine` still has no default, because the right answer depends on
+# the language: "character" answers a different question from the one a
+# caller asking for words is asking, and handing back its output silently is
+# the mistake this package exists to avoid. Rather than guess, the choice is
+# required. ?cjk_segmenters shows how to register jiebaR or gibasa as well.
 
 # User-registered engines. Built-ins are not kept here, so a caller can shadow
 # one deliberately but cannot delete it by accident.
@@ -88,8 +88,54 @@
   })
 }
 
+# ICU's dictionary-based word segmenter, reached through stringi. This is a
+# real segmenter -- it splits a six-character Chinese sentence into its four
+# words rather than into
+# six characters -- and it costs no new dependency, because stringi is already
+# an Import and ICU ships the Chinese and Japanese dictionaries inside it.
+#
+# That is worth stating plainly, because the package shipped 0.1.0 saying no
+# segmenter could be bundled. jiebaR being archived from CRAN was true and is
+# still true; the error was concluding from it that there was no bundled
+# option at all, when the one already linked into a hard dependency had been
+# there the whole time.
+#
+# It is not a replacement for a language-specific analyser. ICU's model is
+# lighter than MeCab's for Japanese and than jieba's tuned dictionaries for
+# Chinese, it returns surface forms with no part of speech or lemma, and it
+# takes no user dictionary. It is the right default and the wrong last word.
+#
+# `locale` is accepted and forwarded, but it does not choose the dictionary:
+# ICU applies one combined Chinese-Japanese word list to Han and kana runs,
+# selected by the script of the text. Measured over seven CJK strings under
+# five locales, the output was identical every time. It is passed through
+# because ICU may use it elsewhere and because the guard catches a typo --
+# not because it switches models.
+.cjk_engine_icu <- function(x, locale = NULL, ...) {
+  x <- as.character(x)
+  # skip_word_none drops everything ICU classifies as "none" -- whitespace,
+  # punctuation and symbols alike. Note that this is NOT the same rule the
+  # "character" engine follows: that one drops whitespace but keeps CJK
+  # punctuation, because U+3002 and friends sit in a block cjk_blocks()
+  # lists. The two engines therefore return different token counts for the
+  # same string, and the difference is punctuation, not segmentation.
+  out <- .cjk_locale_guard(
+    .cjk_stri(stringi::stri_split_boundaries(
+      x, type = "word", skip_word_none = TRUE, locale = locale
+    )),
+    locale, "break data", "Use a language such as \"zh\", \"ja\" or \"ko\"."
+  )
+  # stringi already returns NA for NA input and character(0) for "", which is
+  # the engine contract; the coercion is only so an NA element is typed
+  # NA_character_ rather than the logical NA a zero-token split can produce.
+  lapply(out, function(tok) {
+    if (length(tok) == 1L && is.na(tok)) NA_character_ else as.character(tok)
+  })
+}
+
+
 .cjk_builtin_engines <- function() {
-  list(character = .cjk_engine_character)
+  list(character = .cjk_engine_character, icu = .cjk_engine_icu)
 }
 
 
@@ -103,16 +149,48 @@
 #' about Unicode, so it cannot be derived the way everything else in this
 #' package is. It needs a dictionary and a statistical model, and which one is
 #' right depends on the language and the corpus. \pkg{tidycjk} therefore
-#' bundles no word segmenter and dispatches on a name instead.
+#' dispatches on a name rather than committing to one.
 #'
-#' One engine ships with the package. `"character"` needs nothing at all:
-#' every CJK character becomes its own token and runs of non-CJK text are
-#' split on whitespace. Whitespace is never a token, the ideographic space
-#' U+3000 included, even though [has_cjk()] counts it as CJK. It is character
-#' tokenisation rather than word segmentation, and for Chinese it will cut
-#' two-character words in half. It is a baseline, not an answer.
+#' Two engines ship with the package.
 #'
-#' # Registering a word segmenter
+#' `"icu"` is a real word segmenter. ICU carries dictionary-based break
+#' iterators for Chinese and Japanese, and stringi carries ICU, so this costs
+#' no dependency you have not already installed: a six-character Chinese
+#' sentence comes back as its four words rather than as six characters.
+#'
+#' `locale` is accepted and forwarded, but it does not select the dictionary.
+#' ICU applies a single combined Chinese-Japanese word list to Han and kana
+#' runs, chosen by the script of the text, so Chinese and Japanese segment
+#' the same way under `"zh"`, `"ja"` or the session default. It returns
+#' surface forms only, with no part of speech, lemma or user dictionary, and
+#' its models are lighter than MeCab's or jieba's tuned ones. It is the right
+#' starting point and not the last word.
+#'
+#' `"character"` needs nothing at all: every CJK character becomes its own
+#' token and runs of non-CJK text are split on whitespace. Whitespace is never
+#' a token, the ideographic space U+3000 included, even though [has_cjk()]
+#' counts it as CJK. It is character tokenisation rather than word
+#' segmentation, and for Chinese it will cut two-character words in half. It
+#' is a baseline, not an answer.
+#'
+#' # The two engines do not tokenise punctuation alike
+#'
+#' This matters when comparing counts, so it is worth stating rather than
+#' leaving to be discovered. `"icu"` drops punctuation and symbols along with
+#' whitespace; `"character"` keeps CJK punctuation as tokens, because those
+#' code points are in blocks [cjk_blocks()] lists, and keeps a run of
+#' non-CJK text whole up to the next space.
+#'
+#' The upshot is that the same sentence yields different token counts, and
+#' the gap is punctuation rather than a disagreement about where words end.
+#' An emoji is dropped by `"icu"` and kept by `"character"` for the same
+#' reason. Filter or compare accordingly.
+#'
+#' # Registering another segmenter
+#'
+#' For Japanese, [gibasa](https://CRAN.R-project.org/package=gibasa) binds
+#' MeCab and is on CRAN; it gives part of speech and lemma, which `"icu"` does
+#' not.
 #'
 #' [jiebaR](https://CRAN.R-project.org/package=jiebaR), which binds
 #' [cppjieba](https://github.com/yanyiwu/cppjieba), is the usual choice for
@@ -251,12 +329,17 @@ register_cjk_segmenter <- function(name, fn) {
 #' sentence as one token; this dispatches to a segmentation engine instead.
 #'
 #' @details
-#' `engine` is required and has no default. The only engine \pkg{tidycjk} can
-#' ship without a dictionary is `"character"`, which tokenises by character
-#' rather than by word -- a different answer from the one you are asking for,
-#' and quietly returning it would be the mistake this package exists to avoid.
-#' [cjk_segmenters()] lists what is available and shows how to register a real
-#' word segmenter.
+#' Two engines ship with the package. `"icu"` is a real word segmenter, using
+#' the dictionary ICU carries inside \pkg{stringi}, so it costs no dependency
+#' you have not already installed. `"character"` tokenises by character rather
+#' than by word.
+#'
+#' `engine` is required and has no default, because `"character"` answers a
+#' different question from the one a caller asking for words is asking, and
+#' quietly returning it would be the mistake this package exists to avoid.
+#' The two also differ on punctuation: `"icu"` drops it, `"character"` keeps
+#' CJK punctuation as tokens. [cjk_segmenters()] lists what is available and
+#' shows how to register another.
 #'
 #' @inheritParams has_cjk
 #' @param engine Name of a segmentation engine, or a function implementing
@@ -271,6 +354,9 @@ register_cjk_segmenter <- function(name, fn) {
 #' @seealso [cjk_tokens()] for the tidy version, [cjk_segmenters()] for the
 #'   engines and for registering one.
 #' @examples
+#' # a real word segmenter: four words, not six characters
+#' cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "icu")
+#'
 #' # the dictionary-free baseline, one token per CJK character
 #' cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "character")
 #'

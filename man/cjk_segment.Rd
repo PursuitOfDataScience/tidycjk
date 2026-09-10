@@ -32,14 +32,22 @@ put spaces between words, so splitting on whitespace returns the whole
 sentence as one token; this dispatches to a segmentation engine instead.
 }
 \details{
-\code{engine} is required and has no default. The only engine \pkg{tidycjk} can
-ship without a dictionary is \code{"character"}, which tokenises by character
-rather than by word -- a different answer from the one you are asking for,
-and quietly returning it would be the mistake this package exists to avoid.
-\code{\link[=cjk_segmenters]{cjk_segmenters()}} lists what is available and shows how to register a real
-word segmenter.
+Two engines ship with the package. \code{"icu"} is a real word segmenter, using
+the dictionary ICU carries inside \pkg{stringi}, so it costs no dependency
+you have not already installed. \code{"character"} tokenises by character rather
+than by word.
+
+\code{engine} is required and has no default, because \code{"character"} answers a
+different question from the one a caller asking for words is asking, and
+quietly returning it would be the mistake this package exists to avoid.
+The two also differ on punctuation: \code{"icu"} drops it, \code{"character"} keeps
+CJK punctuation as tokens. \code{\link[=cjk_segmenters]{cjk_segmenters()}} lists what is available and
+shows how to register another.
 }
 \examples{
+# a real word segmenter: four words, not six characters
+cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "icu")
+
 # the dictionary-free baseline, one token per CJK character
 cjk_segment("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", engine = "character")
 

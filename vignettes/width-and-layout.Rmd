@@ -1,0 +1,194 @@
+---
+title: "Width, padding, truncation and wrapping"
+author: 'Youzhi Yu<br><span style="font-weight: 400; font-size: 0.85em;">University of Chicago</span>'
+bibliography: tidycjk.bib
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Width, padding, truncation and wrapping}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, message = FALSE, warning = FALSE, comment = "#>"
+)
+```
+
+```{r setup}
+library(tidycjk)
+```
+
+## One character is not one column
+
+This is the whole vignette in one comparison:
+
+```{r basic}
+labels <- c("中文", "abcd", "日本語")
+
+nchar(labels)      # characters
+cjk_width(labels)  # terminal columns
+```
+
+`中文` is two characters and four columns. Unicode Annex #11 assigns every
+character an East Asian Width, and the values `Wide` and `Fullwidth` mean two
+columns in a monospaced terminal [@uax11]. `cjk_width()` reports that number.
+
+Everything that goes wrong with CJK in a console follows from code that used
+the first number where it needed the second.
+
+```{r ragged}
+pad_by_char <- function(x, n) paste0(x, strrep(" ", n - nchar(x)))
+
+cat(paste0("|", pad_by_char(labels, 8), "|"), sep = "\n")
+```
+
+Three lines that should be the same width, and are not. Now with the column
+count:
+
+```{r aligned}
+cat(paste0("|", cjk_pad(labels, 8), "|"), sep = "\n")
+```
+
+## `cjk_pad()`
+
+Pads to a width in columns. `side` names the side the padding goes on, and
+`pad` must itself be one column wide — a two-column pad character cannot hit
+an odd target, so it is rejected rather than allowed to overshoot.
+
+```{r pad}
+cjk_pad("中文", 10)
+cjk_pad("中文", 10, side = "left")
+cjk_pad("中文", 10, side = "both")
+cjk_pad("中文", 10, pad = ".")
+```
+
+A width already exceeded is left alone rather than truncated — padding and
+truncation are separate verbs on purpose:
+
+```{r pad-over}
+cjk_width(cjk_pad("日本語テキスト", 4))
+```
+
+## `cjk_truncate()`
+
+Cuts to a width, again in columns, appending an ellipsis that is itself
+counted against the budget:
+
+```{r truncate}
+cjk_truncate("我今天很開心", 8)
+cjk_width(cjk_truncate("我今天很開心", 8))
+```
+
+The cut never lands inside a character. Because a CJK character is two
+columns, an odd budget can leave one column unused, and leaving it empty is
+the only correct option:
+
+```{r truncate-odd}
+cjk_truncate("中文中文", 5, ellipsis = "")
+cjk_width(cjk_truncate("中文中文", 5, ellipsis = ""))
+```
+
+## `cjk_wrap()`
+
+Breaks a string into lines that each fit the budget. This is where counting
+columns stops being sufficient, because *where* you are allowed to break is
+its own question.
+
+```{r wrap}
+x <- "我今天很開心，因為天氣非常好而且朋友來看我"
+cat(cjk_wrap(x, 14))
+```
+
+Every line is inside the budget:
+
+```{r wrap-check}
+cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
+```
+
+### Why this is not "split every N columns"
+
+CJK text is *mostly* breakable between any two characters — there are no
+spaces to break at — but not everywhere. Unicode Annex #14 defines the
+positions [@uax14], and several are forbidden:
+
+* a closing bracket `）` may not begin a line;
+* a full stop `。` may not begin a line;
+* an opening bracket `（` may not end one.
+
+Those three hold whatever the locale. A fourth — whether a small kana may be
+separated from the character it follows — does **not**: Annex #14 defines
+strict, normal and loose styles, and which applies is tailored per locale.
+Under `"en"` a small kana never begins a line; under `"ja"`, which uses the
+looser style, it may. Pass `locale` when the output has to be reproducible,
+and `"ja@lb=strict"` for the strict style:
+
+```{r wrap-style}
+kana <- "きょうはとてもいいてんきですっしゃちょ"
+cat(cjk_wrap(kana, 6, locale = "ja@lb=strict"))
+```
+
+A naive chunker violates all four. `cjk_wrap()` uses ICU's implementation of
+the algorithm, so the break positions are the ones a typesetter would choose:
+
+```{r wrap-punct}
+cat(cjk_wrap("他說（今天天氣很好）。我們去公園散步。", 12))
+```
+
+Notice that no line begins with `。` or `）`.
+
+Latin runs inside the same string still break on spaces, so mixed text
+behaves the way you would expect from both sides:
+
+```{r wrap-mixed}
+cat(cjk_wrap("tidycjk 讓中日韓文字在終端機裡對齊 and it handles Latin too", 20))
+```
+
+### Indents
+
+```{r wrap-indent}
+cat(cjk_wrap(x, 14, exdent = 2))
+```
+
+## The shared contract
+
+All three layout verbs behave identically at the edges, which is what makes
+them safe inside a pipeline:
+
+```{r contract}
+cjk_pad(c("中", NA), 6)
+cjk_truncate(character(0), 6)
+cjk_wrap(NA, 6)
+```
+
+A `width` that is `Inf` or outside integer range is an error rather than a
+silent `NA`. `cjk_pad(x, Inf)` is a plausible way to write "do not truncate",
+and it used to return missing values with only a coercion warning:
+
+```{r contract-error, error = TRUE}
+cjk_pad("中文", Inf)
+```
+
+Ragged recycling is an error too, naming both lengths, because a plausible
+vector of the wrong length is worse for a layout function than a refusal:
+
+```{r contract-recycle, error = TRUE}
+cjk_pad(c("a", "b", "c"), c(2, 3))
+```
+
+## Ambiguous width
+
+Some characters — Greek, Cyrillic, a few punctuation marks — are `Ambiguous`
+in Annex #11: two columns in a legacy East Asian font, one otherwise. There is
+no context-free answer, and ICU has changed its treatment more than once.
+`cjk_width()` reports what ICU reports on your machine. If your output must
+align in a specific terminal, measure there rather than assuming:
+
+```{r ambiguous}
+cjk_width(c("α", "→", "±"))
+```
+
+## References

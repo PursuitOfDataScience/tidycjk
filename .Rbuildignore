@@ -15,4 +15,4 @@
 ^\.claude$
 ^tidycjk\.Rcheck$
 ^tidycjk_.*\.tar\.gz$
-^vignettes$
+^vignettes/articles$

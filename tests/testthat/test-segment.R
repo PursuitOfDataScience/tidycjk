@@ -18,8 +18,8 @@ test_that("cjk_segmenters() orders by radix, not by the session's collation", {
              envir = .cjk_engine_registry), add = TRUE)
   for (nm in c("a", "B", "Z", "_x")) register_cjk_segmenter(nm, identity)
   got <- cjk_segmenters()
-  # radix is byte order: "B" < "Z" < "_x" < "a" < "character"
-  expect_equal(got, c("B", "Z", "_x", "a", "character"))
+  # radix is byte order: "B" < "Z" < "_x" < "a" < "character" < "icu"
+  expect_equal(got, c("B", "Z", "_x", "a", "character", "icu"))
   # The discriminating pair is B before a: byte order puts uppercase first and
   # every common collation does the opposite.
   expect_lt(which(got == "B"), which(got == "a"))
@@ -376,4 +376,93 @@ test_that("a registered word segmenter keeps a multi-character word whole", {
   expect_equal(cjk_segment(NA_character_, engine = "test_dict")[[1]],
                NA_character_)
   expect_equal(cjk_segment("", engine = "test_dict")[[1]], character(0))
+})
+
+
+# --- the ICU engine ---------------------------------------------------------
+# This is a real word segmenter, so the tests that matter are the ones showing
+# it does not merely split characters, plus the engine contract.
+
+test_that("the icu engine is a built-in", {
+  expect_true("icu" %in% cjk_segmenters())
+})
+
+test_that("icu segments Chinese into words, not characters", {
+  # The exact tokens are ICU's dictionary to choose, and a different ICU on a
+  # check farm may group them differently -- the same reasoning that keeps
+  # ambiguous widths out of test-width.R. What must hold on any build with a
+  # CJK dictionary is that this is word segmentation rather than character
+  # segmentation, and that it is lossless.
+  x <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3"          # six characters
+  tok <- cjk_segment(x, engine = "icu")[[1]]
+  expect_gt(length(tok), 1L)                    # not one blob
+  expect_lt(length(tok), 6L)                    # and not one token per character
+  expect_equal(paste(tok, collapse = ""), x)    # no character invented or lost
+  # at least one multi-character token, which is what a dictionary buys you
+  expect_true(any(nchar(tok) > 1L))
+  # the baseline, by contrast, is exactly one token per character
+  expect_length(cjk_segment(x, engine = "character")[[1]], 6L)
+})
+
+test_that("icu segments Japanese, and accepts a locale", {
+  tok <- cjk_segment("\u4eca\u65e5\u306f\u826f\u3044\u5929\u6c17\u3067\u3059\u306d", engine = "icu", locale = "ja")[[1]]
+  expect_true(length(tok) > 1L)
+  expect_true("\u4eca\u65e5" %in% tok)
+})
+
+test_that("icu drops whitespace and punctuation, unlike the character engine", {
+  expect_equal(cjk_segment("hello \u4e2d\u6587 world", engine = "icu")[[1]],
+               c("hello", "\u4e2d\u6587", "world"))
+  expect_false(any(grepl("^\\s+$", cjk_segment("\u4e2d\u6587 \u4f60\u597d", engine = "icu")[[1]])))
+})
+
+test_that("icu honours the engine contract for NA and empty", {
+  out <- cjk_segment(c("\u4e2d\u6587", NA, ""), engine = "icu")
+  expect_identical(out[[2]], NA_character_)
+  expect_identical(out[[3]], character(0))
+  expect_type(out, "list")
+  expect_length(out, 3L)
+})
+
+test_that("icu works through cjk_tokens", {
+  df <- data.frame(id = 1:2, text = c("\u6211\u4eca\u5929\u5f88\u958b\u5fc3", "hello \u4e2d\u6587"))
+  out <- cjk_tokens(df, text, engine = "icu")
+  expect_s3_class(out, "tbl_df")
+  expect_true(nrow(out) > 2L)
+})
+
+
+test_that("the two engines differ on punctuation, as documented", {
+  # ?cjk_segmenters says so explicitly, so it is pinned here: icu drops CJK
+  # punctuation and symbols, character keeps them.
+  expect_identical(cjk_segment("\u3002\u3002", engine = "icu")[[1]],
+                   character(0))
+  expect_equal(cjk_segment("\u3002\u3002", engine = "character")[[1]],
+               c("\u3002", "\u3002"))
+  # an emoji goes the same way
+  expect_identical(cjk_segment("\U0001F600", engine = "icu")[[1]],
+                   character(0))
+  expect_equal(cjk_segment("\U0001F600", engine = "character")[[1]],
+               "\U0001F600")
+})
+
+test_that("the icu engine rejects a locale ICU has no break data for", {
+  # Same guard as cjk_sentences() and cjk_sort(): a typo'd locale silently
+  # selects a different break iterator, which is a wrong answer that looks
+  # right.
+  expect_error(cjk_segment("\u4e2d\u6587", engine = "icu",
+                           locale = "not-a-locale"), "break data")
+  expect_silent(cjk_segment("\u4e2d\u6587", engine = "icu", locale = "zh"))
+})
+
+test_that("locale does not change CJK word segmentation", {
+  # Documented in ?cjk_segmenters and the segmentation vignette: ICU applies
+  # one combined Chinese-Japanese word list, chosen by the script of the
+  # text. If a future ICU makes this locale-sensitive, the docs are wrong and
+  # this should fail.
+  s <- "\u4eca\u65e5\u306f\u826f\u3044\u5929\u6c17\u3067\u3059\u306d"
+  base <- cjk_segment(s, engine = "icu")[[1]]
+  for (l in c("zh", "ja", "ko", "en")) {
+    expect_equal(cjk_segment(s, engine = "icu", locale = l)[[1]], base)
+  }
 })

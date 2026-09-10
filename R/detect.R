@@ -153,8 +153,16 @@ cjk_detect_language <- function(x, han_only = NA_character_) {
   # language "1" and han_only = TRUE as "TRUE", so a typo was returned as an
   # answer rather than reported. NA of any type still passes -- it is the
   # default, and it is what "undecidable" is written as.
-  if (length(han_only) != 1L ||
-      !(is.character(han_only) || is.na(han_only))) {
+  #
+  # Two things slip past a bare is.na() and have to be excluded by name.
+  # is.na(NaN) is TRUE, so han_only = NaN used to come back as the language
+  # "NaN". And is.na(list(NA)) is TRUE while as.character(list(NA)) is the
+  # *string* "NA" -- not a missing value, so a downstream is.na() would call
+  # it a real answer. Requiring an atomic vector rejects the list; excluding
+  # NaN rejects the other.
+  if (length(han_only) != 1L || !is.atomic(han_only) ||
+      !(is.character(han_only) ||
+        (is.na(han_only) && !is.nan(han_only)))) {
     stop("`han_only` must be a single string or NA.", call. = FALSE)
   }
   han_only <- as.character(han_only)

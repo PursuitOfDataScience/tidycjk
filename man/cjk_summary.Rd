@@ -38,7 +38,7 @@ one figure they are dropped from, along with empty strings, because neither
 has a ratio to contribute.
 
 Grouping is ignored: the result is always one row for the whole column. Use
-\code{\link[dplyr:group_modify]{dplyr::group_modify()}} if you need it per group.
+\code{\link[dplyr:group_map]{dplyr::group_modify()}} if you need it per group.
 }
 \examples{
 df <- data.frame(

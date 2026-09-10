@@ -204,3 +204,23 @@ test_that("every ratio is a proportion", {
   r <- cjk_ratio(x)
   expect_true(all(r >= 0 & r <= 1))
 })
+
+test_that("han_only rejects the values that used to become languages", {
+  han <- "\u6771\u4eac\u90fd"
+  # is.na(NaN) is TRUE, so this used to return the language "NaN"
+  expect_error(cjk_detect_language(han, han_only = NaN), "`han_only`")
+  # is.na(list(NA)) is TRUE and as.character(list(NA)) is the string "NA",
+  # which is not a missing value -- worse than an error, because downstream
+  # is.na() would call it an answer
+  expect_error(cjk_detect_language(han, han_only = list(NA)), "`han_only`")
+  expect_error(cjk_detect_language(han, han_only = list("chinese")),
+               "`han_only`")
+})
+
+test_that("han_only still accepts a string and every flavour of NA", {
+  han <- "\u6771\u4eac\u90fd"
+  expect_equal(cjk_detect_language(han, han_only = "chinese"), "chinese")
+  for (na in list(NA, NA_character_, NA_integer_, NA_real_)) {
+    expect_identical(cjk_detect_language(han, han_only = na), NA_character_)
+  }
+})

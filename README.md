@@ -29,9 +29,13 @@ install.packages("tidycjk")
 |----|----|
 | **Detect** | `has_cjk()` · `cjk_script()` · `cjk_detect_language()` · `cjk_ratio()` |
 | **Measure** | `cjk_width()` · `cjk_char_counts()` · `cjk_summary()` |
-| **Lay out** | `cjk_pad()` · `cjk_truncate()` |
+| **Lay out** | `cjk_pad()` · `cjk_truncate()` · `cjk_wrap()` |
 | **Normalise** | `to_halfwidth()` · `to_fullwidth()` |
-| **Segment** | `cjk_tokens()` · `cjk_segment()` · `register_cjk_segmenter()` |
+| **Segment** | `cjk_tokens()` · `cjk_segment()` · `cjk_segmenters()` · `register_cjk_segmenter()` |
+| **NLP prep** | `cjk_sentences()` · `cjk_ngrams()` |
+| **Order** | `cjk_sort()` · `cjk_order()` |
+| **Transliterate** | `cjk_romanize()` · `cjk_simplify()` · `cjk_traditionalize()` |
+| **Kana & jamo** | `to_hiragana()` · `to_katakana()` · `cjk_jamo()` · `cjk_compose_jamo()` |
 
 Every verb is vectorised and propagates `NA`. Three of them —
 `cjk_summary()`, `cjk_char_counts()` and `cjk_tokens()` — also take
@@ -117,34 +121,81 @@ to_halfwidth("ｶﾞ") == "ガ"   # composed into one
 
 ## Segmentation
 
-Where a word ends is a fact about a language, not about Unicode, so no
-dictionary is bundled and `engine` is required — quietly handing back
-character tokens to someone who asked for words is the mistake this
-package exists to avoid.
+Where a word ends is a fact about a language, not about Unicode. `"icu"`
+is a real word segmenter — ICU’s dictionary-based break iterators, which
+ship inside stringi, so it costs no dependency you do not already have:
 
 ``` r
-cjk_segment("hello 中文 world", engine = "character")
+cjk_segment("我今天很開心", engine = "icu")
 #> [[1]]
-#> [1] "hello" "中"    "文"    "world"
+#> [1] "我"   "今天" "很"   "開心"
 ```
 
-`"character"` is the one engine needing no dictionary: one token per CJK
-character, non-CJK runs split on whitespace. For real Chinese word
-segmentation register
-[jiebaR](https://CRAN.R-project.org/package=jiebaR) (archived from CRAN
-2025-05-01, so `remotes::install_github("qinwf/jiebaR")`):
+Words, not characters. `"character"` is the dictionary-free baseline,
+and the contrast is what a segmenter is for:
 
 ``` r
-register_cjk_segmenter("jiebar", function(x, ...) {
-  worker <- jiebaR::worker(...)
-  lapply(x, function(s) as.character(jiebaR::segment(s, worker)))
-})
+cjk_segment("我今天很開心", engine = "character")
+#> [[1]]
+#> [1] "我" "今" "天" "很" "開" "心"
+```
 
-cjk_segment("我今天很開心", engine = "jiebar")
+`engine` has no default, because `"character"` answers a different
+question and would otherwise be the answer you got by accident.
+(`locale` is accepted but does not pick the dictionary — ICU segments
+Han and kana by script, not by locale.) Register
+[gibasa](https://CRAN.R-project.org/package=gibasa) or jiebaR the same
+way — see `vignette("segmentation")`.
+
+## Romanise and convert
+
+``` r
+cjk_romanize("中文")        # pinyin
+#> [1] "zhōng wén"
+cjk_simplify("漢字")        # traditional -> simplified
+#> [1] "汉字"
+to_hiragana("カタカナ")
+#> [1] "かたかな"
+cjk_jamo("한")              # Hangul syllable -> jamo
+#> [[1]]
+#> [1] "ᄒ" "ᅡ"   "ᆫ"
+```
+
+Romanisation and Han conversion are per-character, which is exact for
+kana and jamo and an approximation for the other two —
+`vignette("transliteration")` is explicit about where each one breaks.
+
+## Sentences and n-grams
+
+``` r
+cjk_sentences("我今天很開心。你呢？")
+#> [[1]]
+#> [1] "我今天很開心。" "你呢？"
+
+cjk_ngrams("中文很好")   # character bigrams: the dictionary-free baseline
+#> [[1]]
+#> [1] "中文" "文很" "很好"
+```
+
+Sorting is its own trap. `sort()` on Chinese gives code point order —
+which is radical order, not phonetic order, and so not what sorting a
+column of names calls for:
+
+``` r
+x <- c("張", "王", "李")   # Zhang, Wang, Li
+sort(x)                    # code point order
+#> [1] "張" "李" "王"
+cjk_sort(x, locale = "zh") # pinyin: Li, Wang, Zhang
+#> [1] "李" "王" "張"
 ```
 
 `cjk_blocks()` exports the block table the whole package is built on, so
 the definition of “CJK” can be read rather than guessed at.
+
+## Learn more
+
+`vignette("tidycjk")` · `vignette("segmentation")` ·
+`vignette("width-and-layout")` · `vignette("transliteration")`
 
 ## Related work
 
@@ -155,7 +206,3 @@ the definition of “CJK” can be read rather than guessed at.
 | Pinyin | [pinyin](https://CRAN.R-project.org/package=pinyin), [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin) |
 | Traditional/simplified | [tmcn](https://CRAN.R-project.org/package=tmcn); [OpenCC](https://github.com/BYVoid/OpenCC) outside R |
 | Japanese utilities | [zipangu](https://CRAN.R-project.org/package=zipangu), [Nippon](https://CRAN.R-project.org/package=Nippon) |
-
-## License
-
-GPL (\>= 3).

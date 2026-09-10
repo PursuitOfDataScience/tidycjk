@@ -20,6 +20,12 @@
 # NA, so a typo would come back as missing output rather than as an error. A
 # genuinely missing width still propagates as NA, which is what every other
 # function in the package does with NA.
+# Above this many characters cjk_wrap() switches to the greedy algorithm,
+# because stringi's optimal one segfaults on long input. Set well below the
+# ~70,000 where the crash was observed here: it looks like stack exhaustion
+# in a recursive fit, so the real limit moves with the platform's stack.
+.CJK_WRAP_GREEDY_ABOVE <- 10000L
+
 .cjk_as_width <- function(width) {
   if (length(width) == 0L) {
     stop("`width` must have at least one element.", call. = FALSE)
@@ -326,4 +332,173 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
     return("")
   }
   stringi::stri_enc_fromutf32(list(cp[seq_len(keep)]))
+}
+
+
+#' Wrap text to a display width
+#'
+#' Breaks each string into lines no wider than `width` terminal columns,
+#' completing the layout set with [cjk_pad()] and [cjk_truncate()]. Like them,
+#' it counts columns rather than characters.
+#'
+#' @details
+#' The break positions come from ICU's implementation of Unicode Annex #14,
+#' the line breaking algorithm, which is what makes this more than
+#' `strwrap()` with a different counter. CJK text is mostly breakable
+#' *between* characters -- there are no spaces to break at -- but not
+#' everywhere: a closing bracket may not begin a line, a small kana may not be
+#' separated from what it follows, and the ideographic full stop U+3002 may
+#' not start one either. Splitting
+#' every `width` columns would put breaks in all of those places. Latin runs
+#' inside the same string still break on spaces.
+#'
+#' Lines are returned joined by `\n`, so the result is the same length as `x`
+#' and can go straight to `cat()`. `strsplit(out, "\n", fixed = TRUE)` gives
+#' the lines separately.
+#'
+#' A `width` narrower than a single character cannot be honoured -- a CJK
+#' character needs two columns -- and ICU emits the character anyway rather
+#' than looping, so a line may exceed `width` in that case. It is the only
+#' case where it can.
+#'
+#' # The break style depends on the locale
+#'
+#' Annex #14 defines three line-breaking styles -- strict, normal and loose --
+#' and which one applies is tailored per locale. The difference that shows up
+#' in CJK text is small kana: under `"en"` a small kana may not begin a line,
+#' and under `"ja"`, which uses the looser style, it may. So the same call
+#' wraps Japanese differently depending on the session locale, which is why
+#' `locale` is an argument here rather than left implicit. Name it when the
+#' output has to be reproducible, and `"ja@lb=strict"` if you want the strict
+#' style for Japanese.
+#'
+#' The rules that hold whatever the locale are the ones about punctuation: a
+#' closing bracket or an ideographic full stop never begins a line, and an
+#' opening bracket never ends one.
+#'
+#' # Very long strings use a different fit
+#'
+#' `stri_wrap()`'s default is an optimal-fit algorithm, and it crashes R on a
+#' long string -- `stri_wrap(strrep("\u4e2d\u6587", 50000), 40)` segfaults,
+#' at any width. Strings longer than 10,000 characters are therefore wrapped
+#' with the greedy algorithm, which handles the same input without
+#' complaint. For CJK text the two agree exactly, because nearly every
+#' position is a break opportunity: over 600 randomly generated CJK strings
+#' the two produced identical output every time. Mixed CJK and Latin can
+#' differ, where a long Latin word gives the optimal fit something to
+#' optimise. The threshold is set well below the length where the crash was
+#' seen, since it looks like stack exhaustion and the true limit will move
+#' with the machine.
+#'
+#' A leading byte-order mark survives, which takes work: stringi drops one.
+#' A U+FEFF *elsewhere* in the string may not, because re-flowing can put it
+#' at the start of a segment, where stringi reads it as a byte-order mark
+#' again and removes it. Unicode deprecated U+FEFF for any use other than
+#' marking the start of a stream, so this only bites text that is already
+#' using it against the standard's advice -- but it is a content change, and
+#' this page would rather say so than have you find it.
+#'
+#' Two behaviours differ from [cjk_pad()] and [cjk_truncate()], because this
+#' verb re-flows text rather than measuring it in place. Existing newlines in
+#' `x` are whitespace to the algorithm and are replaced by the new line
+#' breaks, so `"a\nb"` wrapped wide comes back as `"a b"`; wrap the pieces
+#' separately if the original breaks are meaningful. And a string of nothing
+#' but whitespace re-flows to `""`, where `cjk_pad()` would have kept it.
+#'
+#' @inheritParams cjk_pad
+#' @param width Target width in columns. Recycled against `x`.
+#' @param indent Columns to indent the first line of each string by.
+#' @param exdent Columns to indent every line after the first by.
+#' @param locale ICU locale selecting the line-breaking style, e.g. `"ja"` or
+#'   `"ja@lb=strict"`. `NULL`, the default, uses the session default -- which
+#'   means the result depends on where it is run; see Details.
+#'
+#' @return A character vector the same length as `x`, each element the wrapped
+#'   text with lines separated by `\n`. `NA` gives `NA`.
+#' @seealso [cjk_pad()] and [cjk_truncate()] for the fixed-width forms,
+#'   [cjk_width()] for the measurement itself.
+#' @examples
+#' # "I am happy today, because the weather is very good"
+#' x <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d"
+#' cat(cjk_wrap(x, 12), "\n")
+#'
+#' # every line is within the budget, measured in columns
+#' cjk_width(strsplit(cjk_wrap(x, 12), "\n", fixed = TRUE)[[1]])
+#'
+#' # hanging indent
+#' cat(cjk_wrap(x, 12, exdent = 2), "\n")
+#'
+#' # the strict style, so a small kana never begins a line
+#' cat(cjk_wrap("\u304d\u3087\u3046\u306f\u3068\u3066\u3082\u3044\u3044",
+#'              6, locale = "ja@lb=strict"), "\n")
+#' @export
+cjk_wrap <- function(x, width, indent = 0L, exdent = 0L,
+                     locale = NULL) {
+  x <- as.character(x)
+  # Validate ahead of the zero-length exit, so a bad argument is an error
+  # whatever the length of `x` -- the same ordering as cjk_pad().
+  width <- .cjk_as_width(width)
+  for (nm in c("indent", "exdent")) {
+    v <- get(nm)
+    if (!is.numeric(v) || length(v) != 1L || is.na(v) || !is.finite(v) ||
+        v < 0) {
+      stop("`", nm, "` must be a single, non-negative, non-missing number.",
+           call. = FALSE)
+    }
+  }
+  indent <- as.integer(indent)
+  exdent <- as.integer(exdent)
+  if (length(x) == 0L) {
+    return(character(0))
+  }
+  n <- .cjk_recycled_length(x, width)
+  x <- rep_len(x, n)
+  width <- rep_len(width, n)
+
+  # Hide a leading byte-order mark from stri_wrap(), which would drop it.
+  # Re-flowing text is not licence to delete a character from it, and the
+  # mark is zero width, so removing and restoring it cannot move a break.
+  bom <- .cjk_leading_bom(x)
+  x <- .cjk_strip_bom(x, bom)
+
+  out <- rep(NA_character_, n)
+  usable <- !is.na(x) & !is.na(width)
+  # An empty string has nothing to re-flow, and stri_wrap() would give
+  # character(0) for it; "" is the answer that keeps the length contract.
+  out[usable & !nzchar(x)] <- ""
+
+  # stri_wrap() takes one width, but it is vectorised over the strings, so
+  # the work is one call per *distinct* width rather than one per element.
+  # Looping per element instead cost about 13x on a 2,000-row column -- the
+  # same once-per-vector point the block table and cjk_truncate() already
+  # make.
+  todo <- usable & nzchar(x)
+  # stri_wrap()'s default is an optimal-fit algorithm, and on a long string
+  # it segfaults: a plain stri_wrap(strrep("\u4e2d\u6587", 50000), 40) takes
+  # R down, at any width. The greedy algorithm (cost_exponent = 0) handles
+  # the same input fine, so long strings go through that instead. See the
+  # note under Details; a crash is not an acceptable answer, and for CJK the
+  # two agree anyway.
+  long <- todo & nchar(x) > .CJK_WRAP_GREEDY_ABOVE
+  for (w in unique(width[todo])) {
+    for (greedy in c(FALSE, TRUE)) {
+      idx <- which(todo & width == w & long == greedy)
+      if (!length(idx)) {
+        next
+      }
+      # measured in columns by default -- use_length = TRUE is what switches
+      # it to code points -- so it already agrees with cjk_width()
+      lines <- .cjk_locale_guard(
+        .cjk_stri(stringi::stri_wrap(
+          x[idx], width = w, indent = indent, exdent = exdent,
+          simplify = FALSE, whitespace_only = FALSE, locale = locale,
+          cost_exponent = if (greedy) 0 else 2
+        )),
+        locale, "break data", "Use a language such as \"zh\", \"ja\" or \"ko\"."
+      )
+      out[idx] <- vapply(lines, paste, character(1), collapse = "\n")
+    }
+  }
+  out <- .cjk_restore_bom(out, bom)
+  out
 }

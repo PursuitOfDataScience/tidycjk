@@ -182,6 +182,91 @@
   })
 }
 
+# ICU falls back to the root locale when it has no data for the one asked
+# for, and the fallback is a different answer wearing the right answer's
+# clothes: a sort that is not by pronunciation, a break iterator that is not
+# the style you named. Every verb here that takes a `locale` routes through
+# this, so a typo is an error in all of them rather than in one.
+#
+# The check is on the language subtag, looked up in ICU's own locale list,
+# rather than on the warning stringi emits. That warning is not dependable:
+# stringi 1.8.7 raises "resource bundle lookup ..." for an unknown locale and
+# stringi 1.6.2 raises nothing at all, so a guard built on it was silently
+# inert on older installations -- which is the very failure it exists to
+# prevent. stri_locale_list() is present in both and agrees on every case.
+#
+# Only the language is checked. An unrecognised region resolves to the
+# language and still gives the right answer -- "zh-CH", a typo for "zh-CN",
+# sorts by pinyin -- and BCP 47 extensions such as "zh-u-co-stroke" and
+# "ja@lb=strict" are the documented way to pick a variant, so neither may be
+# rejected.
+#
+# `locale = NULL` means the session default and is not checked; that is not
+# the caller's typo to answer for.
+.cjk_locale_langs <- local({
+  langs <- NULL
+  function() {
+    if (is.null(langs)) {
+      langs <<- unique(sub("[-_@].*$", "", stringi::stri_locale_list()))
+    }
+    langs
+  }
+})
+
+.cjk_locale_guard <- function(expr, locale, what, hint) {
+  if (is.null(locale)) {
+    return(expr)
+  }
+  if (!is.character(locale) || length(locale) != 1L || is.na(locale)) {
+    stop("`locale` must be a single string, or NULL.", call. = FALSE)
+  }
+  lang <- sub("[-_@].*$", "", locale)
+  if (!nzchar(lang) || !(lang %in% .cjk_locale_langs())) {
+    stop("ICU has no ", what, " for locale \"", locale, "\". It would fall ",
+         "back to the root locale, which is a different answer that looks ",
+         "like the one you asked for. ", hint, call. = FALSE)
+  }
+  expr
+}
+
+# How many U+FEFF each element begins with.
+#
+# Several stringi entry points -- stri_enc_toutf32(), stri_sort(), stri_wrap(),
+# stri_split_boundaries(), stri_sub() -- read a *leading* U+FEFF as a
+# byte-order mark and drop it. .cjk_codepoints() works around it for the verbs
+# that go through code points; the verbs that call stringi directly need the
+# same guard, or they silently delete a character from text they promised only
+# to reorder, re-flow or divide.
+#
+# The whole leading run is counted rather than a single mark. Removing one
+# from "\uFEFF\uFEFF" leaves another for stringi to drop in turn, so a
+# one-for-one patch was still short by one.
+#
+# base regexpr(), not a stringi matcher: stringi strips the mark from the
+# *pattern* too, so a pattern of U+FEFF alone arrives empty and is rejected.
+# The detector must not be built out of the thing doing the stripping.
+.cjk_leading_bom <- function(x) {
+  n <- integer(length(x))
+  ok <- !is.na(x)
+  if (any(ok)) {
+    n[ok] <- attr(regexpr("^\uFEFF*", x[ok], useBytes = FALSE),
+                  "match.length")
+  }
+  n
+}
+
+.cjk_strip_bom <- function(x, n) {
+  hit <- !is.na(x) & n > 0L
+  if (any(hit)) x[hit] <- substring(x[hit], n[hit] + 1L)
+  x
+}
+
+.cjk_restore_bom <- function(x, n) {
+  hit <- !is.na(x) & n > 0L
+  if (any(hit)) x[hit] <- paste0(strrep("\uFEFF", n[hit]), x[hit])
+  x
+}
+
 # Split a character vector into code points. Returns a list parallel to `x`;
 # an NA string becomes NULL, an empty string becomes integer(0). Everything
 # downstream distinguishes those two cases, so the difference matters.
