@@ -1,8 +1,9 @@
 pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
-articles: {}
-last_built: 2026-09-09T22:24Z
+articles:
+  articles/gallery: gallery.html
+last_built: 2026-09-10T00:09Z
 urls:
   reference: https://pursuitofdatascience.github.io/tidycjk/reference
   article: https://pursuitofdatascience.github.io/tidycjk/articles
