@@ -34,12 +34,19 @@ integer vector of indices.
 
 ## Details
 
-[`sort()`](https://rdrr.io/r/base/sort.html) on Chinese gives code point
-order, which is a real order and the wrong one. The unified ideographs
-are laid out in KangXi radical-stroke order, so within the base block
-sorting by code point sorts by radical. What it is not is phonetic,
-which is what someone sorting a column of names is after. It also stops
-being radical order across blocks: every Extension A character
+[`sort()`](https://rdrr.io/r/base/sort.html) reads `LC_COLLATE`, so the
+order it gives Han text is a property of the session rather than of the
+data. Under `C` or `en_US.UTF-8` it falls back to code point order;
+under `zh_CN.utf8` glibc supplies a pinyin collation and the answer
+changes; under `ja_JP.utf8` it changes again. None of those is wrong in
+itself, and that is the difficulty: the same script sorts a name column
+differently on two machines and says nothing.
+
+The fallback order is worth knowing, because it is not arbitrary. The
+unified ideographs are laid out in KangXi radical-stroke order, so
+within the base block sorting by code point sorts by radical. What it is
+not is phonetic, which is what someone sorting names is after. It also
+stops being radical order across blocks: every Extension A character
 (U+3400-U+4DBF) sorts ahead of every base-block one, so a rare character
 lands nowhere near the common characters sharing its radical.
 
@@ -86,9 +93,9 @@ locale is available.
 # Chinese surnames: Zhang, Wang, Li
 x <- c("\u5f35", "\u738b", "\u674e")
 
-sort(x)                        # code point order: not an order
+sort(x)                        # depends on LC_COLLATE
 #> [1] "張" "李" "王"
-cjk_sort(x, locale = "zh")     # pinyin: Li, Wang, Zhang
+cjk_sort(x, locale = "zh")     # pinyin: Li, Wang, Zhang -- on any machine
 #> [1] "李" "王" "張"
 
 # stroke order instead

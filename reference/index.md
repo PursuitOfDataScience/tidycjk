@@ -35,11 +35,13 @@ character n-grams are the dictionary-free baseline for Chinese.
   : Split text into sentences
 - [`cjk_ngrams()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ngrams.md)
   : Character n-grams
+- [`cjk_strip_punct()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_strip_punct.md)
+  : Remove punctuation from CJK text
 
 ## Order
 
-ICU collation. R’s sort() puts Han in code point order, which is not
-pronunciation, stroke or frequency.
+ICU collation. R’s sort() reads LC_COLLATE, so the order it gives Han
+depends on the machine it runs on; naming a collation makes it not.
 
 - [`cjk_sort()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md)
   [`cjk_order()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md)
@@ -69,11 +71,19 @@ Terminal columns rather than characters, so CJK tables line up.
 - [`cjk_wrap()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_wrap.md)
   : Wrap text to a display width
 
-## Normalise width variants
+## Normalise
+
+Making strings that look the same compare the same. The width verbs move
+text along one axis and touch nothing else;
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+is the Unicode forms, including the fact that plain NFC rewrites most of
+the CJK compatibility ideographs.
 
 - [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
   [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
   : Normalise fullwidth and halfwidth forms
+- [`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+  : Apply Unicode normalisation
 
 ## Transliterate
 

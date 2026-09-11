@@ -169,7 +169,17 @@ as `x`, each element a character vector of tokens. `NA` in gives
 `NA_character_`; the empty string gives `character(0)`.
 [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
 checks the shape and complains if an engine breaks the contract, rather
-than passing a malformed result downstream.
+than passing a malformed result downstream — the list itself, its
+length, and the type of each element. An atomic element is coerced, so
+integers or a factor are fine; a list element is refused, because
+[`as.character()`](https://rdrr.io/r/base/character.html) deparses a
+list rather than coercing it and `list(c(1, 2))` would otherwise arrive
+as the single token `"c(1, 2)"`.
+
+A leading byte-order mark survives both built-in engines, which takes
+work: the stringi calls underneath them each read a leading U+FEFF as a
+byte-order mark and drop it. An engine you register yourself gets no
+such help — if it calls stringi, it needs the same guard.
 
 ### gibasa, for Japanese
 

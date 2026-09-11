@@ -48,10 +48,11 @@ already NFC. Normalise first if you need to be certain.
 
 That makes jamo the right unit for questions the syllable hides: which
 initial consonants a corpus favours, whether two spellings differ only
-in a final consonant, or how to sort by consonant. U+D55C is one
-character to
+in a final consonant, or how to sort by consonant. U+D55C counts three
+ways, each right for a different question: one character to
+[`nchar()`](https://rdrr.io/r/base/nchar.html), two terminal columns to
 [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
-and three jamo here.
+– a Hangul syllable is East Asian Wide – and three jamo here.
 
 Text that is not Hangul passes through unchanged, so it is safe to run
 over a mixed column.

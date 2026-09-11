@@ -9,7 +9,7 @@ sentences whole.
 ## Usage
 
 ``` r
-cjk_tokens(data, col, engine, ...)
+cjk_tokens(data, col, engine, ..., output = "token")
 ```
 
 ## Arguments
@@ -39,6 +39,11 @@ cjk_tokens(data, col, engine, ...)
   engine" in
   [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md).
 
+- output:
+
+  Name for the token column. Defaults to `"token"`. It follows `...`, so
+  it has to be given by its full name.
+
 ## Value
 
 `data`, as a tibble, with one row per token and an added `token` column.
@@ -52,7 +57,11 @@ yields one row with an `NA` token, so a missing document does not
 silently vanish from the output.
 
 The token column is called `token` and is added to `data`; an existing
-column of that name is replaced. As with
+column of that name is replaced. Set `output` to put the tokens
+somewhere else when `data` already has a column worth keeping under that
+name – the same escape hatch tidytext's `unnest_tokens()` gives you. It
+comes after `...` and so has to be named in full, which is what stops it
+competing with an engine argument for a prefix. As with
 [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md),
 `engine` is required.
 

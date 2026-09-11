@@ -105,13 +105,18 @@ both use.</p></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># six columns is three ideographs</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># six columns would be three ideographs, but "..." is counted against</span></span></span>
+<span class="r-in"><span><span class="co"># the budget and costs three of them, so one ideograph is what fits</span></span></span>
 <span class="r-in"><span><span class="fu">cjk_truncate</span><span class="op">(</span><span class="st">"\u4e2d\u6587\u4e2d\u6587\u4e2d\u6587"</span>, <span class="fl">6</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "中..."</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># ASCII, same budget</span></span></span>
+<span class="r-in"><span><span class="co"># the same six columns hold three ASCII characters plus the ellipsis</span></span></span>
 <span class="r-in"><span><span class="fu">cjk_truncate</span><span class="op">(</span><span class="st">"abcdefghij"</span>, <span class="fl">6</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "abc..."</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># drop the ellipsis and all six columns are available again</span></span></span>
+<span class="r-in"><span><span class="fu">cjk_truncate</span><span class="op">(</span><span class="st">"\u4e2d\u6587\u4e2d\u6587\u4e2d\u6587"</span>, <span class="fl">6</span>, ellipsis <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "中文中"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># already fits, so nothing happens</span></span></span>
 <span class="r-in"><span><span class="fu">cjk_truncate</span><span class="op">(</span><span class="st">"\u4e2d\u6587"</span>, <span class="fl">10</span><span class="op">)</span></span></span>

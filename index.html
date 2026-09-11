@@ -17,8 +17,8 @@
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
 <meta property="og:title" content="Tidy Tools for Chinese, Japanese and Korean Text">
-<meta name="description" content="A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is a pluggable engine, with dictionary-based segmentation for Chinese and Japanese supplied through ICU and further engines registrable by the caller, because where a word ends is a fact about a language and not about Unicode. tidycjk classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a tidyverse workflow. It also measures display width in terminal columns, pads, truncates and wraps to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- without the collateral damage of a full NFKC pass. Romanisation, conversion between simplified and traditional Han, conversion between the two kana syllabaries, and decomposition of Hangul syllables into jamo are provided on the same vectorised contract. Sentence segmentation, character n-grams and locale-aware ordering cover the preprocessing that generic tooling gets wrong on CJK, where the sentence terminators are ideographic and a code point sort is not an alphabetical one. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.">
-<meta property="og:description" content="A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is a pluggable engine, with dictionary-based segmentation for Chinese and Japanese supplied through ICU and further engines registrable by the caller, because where a word ends is a fact about a language and not about Unicode. tidycjk classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a tidyverse workflow. It also measures display width in terminal columns, pads, truncates and wraps to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- without the collateral damage of a full NFKC pass. Romanisation, conversion between simplified and traditional Han, conversion between the two kana syllabaries, and decomposition of Hangul syllables into jamo are provided on the same vectorised contract. Sentence segmentation, character n-grams and locale-aware ordering cover the preprocessing that generic tooling gets wrong on CJK, where the sentence terminators are ideographic and a code point sort is not an alphabetical one. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.">
+<meta name="description" content="A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is a pluggable engine, with dictionary-based segmentation for Chinese and Japanese supplied through ICU and further engines registrable by the caller, because where a word ends is a fact about a language and not about Unicode. tidycjk classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a tidyverse workflow. It also measures display width in terminal columns, pads, truncates and wraps to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- while offering the Unicode normalisation forms separately for when a full NFKC fold is what is wanted. Romanisation, conversion between simplified and traditional Han, conversion between the two kana syllabaries, and decomposition of Hangul syllables into jamo are provided on the same vectorised contract. Sentence segmentation, character n-grams, punctuation removal by Unicode category and locale-aware ordering cover the preprocessing that generic tooling gets wrong on CJK, where the sentence terminators are ideographic, a code point sort is not an alphabetical one, and the POSIX punctuation class is resolved by the C library rather than by Unicode. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.">
+<meta property="og:description" content="A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is a pluggable engine, with dictionary-based segmentation for Chinese and Japanese supplied through ICU and further engines registrable by the caller, because where a word ends is a fact about a language and not about Unicode. tidycjk classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a tidyverse workflow. It also measures display width in terminal columns, pads, truncates and wraps to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- while offering the Unicode normalisation forms separately for when a full NFKC fold is what is wanted. Romanisation, conversion between simplified and traditional Han, conversion between the two kana syllabaries, and decomposition of Hangul syllables into jamo are provided on the same vectorised contract. Sentence segmentation, character n-grams, punctuation removal by Unicode category and locale-aware ordering cover the preprocessing that generic tooling gets wrong on CJK, where the sentence terminators are ideographic, a code point sort is not an alphabetical one, and the POSIX punctuation class is resolved by the C library rather than by Unicode. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.">
 <meta property="og:image" content="https://pursuitofdatascience.github.io/tidycjk/logo.png">
 </head>
 <body>
@@ -106,7 +106,7 @@
 <tr>
 <td><strong>Normalise</strong></td>
 <td>
-<code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> · <code><a href="reference/to_halfwidth.html">to_fullwidth()</a></code>
+<code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> · <code><a href="reference/to_halfwidth.html">to_fullwidth()</a></code> · <code><a href="reference/cjk_normalize.html">cjk_normalize()</a></code>
 </td>
 </tr>
 <tr>
@@ -118,7 +118,7 @@
 <tr>
 <td><strong>NLP prep</strong></td>
 <td>
-<code><a href="reference/cjk_sentences.html">cjk_sentences()</a></code> · <code><a href="reference/cjk_ngrams.html">cjk_ngrams()</a></code>
+<code><a href="reference/cjk_sentences.html">cjk_sentences()</a></code> · <code><a href="reference/cjk_ngrams.html">cjk_ngrams()</a></code> · <code><a href="reference/cjk_strip_punct.html">cjk_strip_punct()</a></code>
 </td>
 </tr>
 <tr>
@@ -138,6 +138,10 @@
 <td>
 <code><a href="reference/to_hiragana.html">to_hiragana()</a></code> · <code><a href="reference/to_hiragana.html">to_katakana()</a></code> · <code><a href="reference/cjk_jamo.html">cjk_jamo()</a></code> · <code><a href="reference/cjk_jamo.html">cjk_compose_jamo()</a></code>
 </td>
+</tr>
+<tr>
+<td><strong>Reference</strong></td>
+<td><code><a href="reference/cjk_blocks.html">cjk_blocks()</a></code></td>
 </tr>
 </tbody>
 </table>
@@ -192,10 +196,10 @@
 <span><span class="co">#&gt; |日本語  |</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="fullwidth-and-halfwidth">Fullwidth and halfwidth<a class="anchor" aria-label="anchor" href="#fullwidth-and-halfwidth"></a>
+<h2 id="normalise-surgical-or-blunt">Normalise: surgical or blunt<a class="anchor" aria-label="anchor" href="#normalise-surgical-or-blunt"></a>
 </h2>
 <p><img src="reference/figures/fig-normalize.png" width="100%" alt="to_halfwidth narrows width forms and leaves everything else alone."></p>
-<p>The usual advice is <code>NFKC</code>, which fixes width and also rewrites ligatures, Roman numerals and circled numbers. <code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> changes width and nothing else.</p>
+<p>Two tools, and the choice is deliberate. <code><a href="reference/to_halfwidth.html">to_halfwidth()</a></code> changes width and nothing else — where the usual <code>NFKC</code> advice would also rewrite ligatures, Roman numerals and circled numbers.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 123</span></span>
@@ -204,17 +208,26 @@
 <span><span class="co">#&gt; [1] 2</span></span>
 <span><span class="fu"><a href="reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"ｶﾞ"</span><span class="op">)</span> <span class="op">==</span> <span class="st">"ガ"</span>   <span class="co"># composed into one</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code><a href="reference/cjk_normalize.html">cjk_normalize()</a></code> is the blunt instrument, for when matching rather than display is the point. Plain <code>"nfc"</code> is not a no-op on Han either: it rewrites 460 of the 472 CJK compatibility ideographs.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ga</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"\u304c"</span>, <span class="st">"\u304b\u3099"</span><span class="op">)</span>   <span class="co"># composed, then KA + voiced mark</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="va">ga</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 2</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="fu"><a href="reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="va">ga</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 1</span></span>
+<span><span class="fu"><a href="reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="st">"ＡＢ　①"</span>, form <span class="op">=</span> <span class="st">"nfkc"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "AB 1"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="segmentation">Segmentation<a class="anchor" aria-label="anchor" href="#segmentation"></a>
 </h2>
 <p>Where a word ends is a fact about a language, not about Unicode. <code>"icu"</code> is a real word segmenter — ICU’s dictionary-based break iterators, which ship inside stringi, so it costs no dependency you do not already have:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, engine <span class="op">=</span> <span class="st">"icu"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [1] "我"   "今天" "很"   "開心"</span></span></code></pre></div>
 <p>Words, not characters. <code>"character"</code> is the dictionary-free baseline, and the contrast is what a segmenter is for:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, engine <span class="op">=</span> <span class="st">"character"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [1] "我" "今" "天" "很" "開" "心"</span></span></code></pre></div>
@@ -223,7 +236,7 @@
 <div class="section level2">
 <h2 id="romanise-and-convert">Romanise and convert<a class="anchor" aria-label="anchor" href="#romanise-and-convert"></a>
 </h2>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span><span class="op">)</span>        <span class="co"># pinyin</span></span>
 <span><span class="co">#&gt; [1] "zhōng wén"</span></span>
 <span><span class="fu"><a href="reference/cjk_simplify.html">cjk_simplify</a></span><span class="op">(</span><span class="st">"漢字"</span><span class="op">)</span>        <span class="co"># traditional -&gt; simplified</span></span>
@@ -238,7 +251,7 @@
 <div class="section level2">
 <h2 id="sentences-and-n-grams">Sentences and n-grams<a class="anchor" aria-label="anchor" href="#sentences-and-n-grams"></a>
 </h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_sentences.html">cjk_sentences</a></span><span class="op">(</span><span class="st">"我今天很開心。你呢？"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [1] "我今天很開心。" "你呢？"</span></span>
@@ -246,13 +259,29 @@
 <span><span class="fu"><a href="reference/cjk_ngrams.html">cjk_ngrams</a></span><span class="op">(</span><span class="st">"中文很好"</span><span class="op">)</span>   <span class="co"># character bigrams: the dictionary-free baseline</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [1] "中文" "文很" "很好"</span></span></code></pre></div>
-<p>Sorting is its own trap. <code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> on Chinese gives code point order — which is radical order, not phonetic order, and so not what sorting a column of names calls for:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+</div>
+<div class="section level2">
+<h2 id="stripping-punctuation">Stripping punctuation<a class="anchor" aria-label="anchor" href="#stripping-punctuation"></a>
+</h2>
+<p><code>gsub("[[:punct:]]", "", x)</code> is resolved by the C library, so it removes nothing under <code>LC_ALL=C</code>; <code>perl = TRUE</code> removes nothing from CJK in any locale. <code><a href="reference/cjk_strip_punct.html">cjk_strip_punct()</a></code> tests the Unicode category instead.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/cjk_strip_punct.html">cjk_strip_punct</a></span><span class="op">(</span><span class="st">"他說（今天）。真好"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "他說 今天  真好"</span></span>
+<span></span>
+<span><span class="co"># and it keeps ー, a modifier letter rather than a dash</span></span>
+<span><span class="fu"><a href="reference/cjk_strip_punct.html">cjk_strip_punct</a></span><span class="op">(</span><span class="st">"コーヒー、ラーメン"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "コーヒー ラーメン"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="sorting">Sorting<a class="anchor" aria-label="anchor" href="#sorting"></a>
+</h2>
+<p>Sorting is its own trap. <code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> reads <code>LC_COLLATE</code>, so the order it gives Han depends on the machine: code point order under <code>C</code>, pinyin under <code>zh_CN.utf8</code>, something else again under <code>ja_JP.utf8</code>. Naming a collation is what makes the answer the same everywhere:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"張"</span>, <span class="st">"王"</span>, <span class="st">"李"</span><span class="op">)</span>   <span class="co"># Zhang, Wang, Li</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>                    <span class="co"># code point order</span></span>
-<span><span class="co">#&gt; [1] "張" "李" "王"</span></span>
-<span><span class="fu"><a href="reference/cjk_sort.html">cjk_sort</a></span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh"</span><span class="op">)</span> <span class="co"># pinyin: Li, Wang, Zhang</span></span>
-<span><span class="co">#&gt; [1] "李" "王" "張"</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/cjk_sort.html">cjk_sort</a></span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh"</span><span class="op">)</span>             <span class="co"># pinyin: Li, Wang, Zhang</span></span>
+<span><span class="co">#&gt; [1] "李" "王" "張"</span></span>
+<span><span class="fu"><a href="reference/cjk_sort.html">cjk_sort</a></span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh-u-co-stroke"</span><span class="op">)</span> <span class="co"># stroke count</span></span>
+<span><span class="co">#&gt; [1] "王" "李" "張"</span></span></code></pre></div>
 <p><code><a href="reference/cjk_blocks.html">cjk_blocks()</a></code> exports the block table the whole package is built on, so the definition of “CJK” can be read rather than guessed at.</p>
 </div>
 <div class="section level2">

@@ -87,8 +87,10 @@ means the result depends on where it is run; see Details.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A character vector the same length as <code>x</code>, each element the wrapped
-text with lines separated by <code>\n</code>. <code>NA</code> gives <code>NA</code>.</p>
+    <p>A character vector the same length as the recycled inputs, each
+element the wrapped text with lines separated by <code>\n</code>. <code>NA</code> gives <code>NA</code>.
+As in <code><a href="cjk_pad.html">cjk_pad()</a></code> and <code><a href="cjk_truncate.html">cjk_truncate()</a></code>, a <code>width</code> longer than <code>x</code>
+recycles <code>x</code> up to it rather than being an error.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -159,7 +161,8 @@ but whitespace re-flows to <code>""</code>, where <code><a href="cjk_pad.html">c
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># "I am happy today, because the weather is very good"</span></span></span>
-<span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="st">"\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d"</span></span></span>
+<span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c"</span>,</span></span>
+<span class="r-in"><span>              <span class="st">"\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">cjk_wrap</span><span class="op">(</span><span class="va">x</span>, <span class="fl">12</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 我今天很開</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 心，因為天氣</span>

@@ -29,11 +29,11 @@ rather than from heuristics:
 | Detect | [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md), [`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md), [`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md), [`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md) |
 | Summarise a column | [`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md), [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md) |
 | Segment | [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md), [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md), [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md), [`register_cjk_segmenter()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md) |
-| Sentences, n-grams | [`cjk_sentences()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sentences.md), [`cjk_ngrams()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ngrams.md) |
+| Sentences, n-grams, cleaning | [`cjk_sentences()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sentences.md), [`cjk_ngrams()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ngrams.md), [`cjk_strip_punct()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_strip_punct.md) |
 | Order | [`cjk_sort()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md), [`cjk_order()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md) |
 | Measure width | [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md) |
 | Lay out | [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md), [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md), [`cjk_wrap()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_wrap.md) |
-| Normalise width | [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md), [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md) |
+| Normalise | [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md), [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md) (width), [`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md) (Unicode forms) |
 | Romanise | [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md) |
 | Convert Han | [`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md), [`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) |
 | Convert kana | [`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md), [`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) |
@@ -231,28 +231,58 @@ cjk_ngrams("中文很好")
 ```
 
 No gram is formed across whitespace, so nothing straddles two words of a
-Latin run.
+Latin run. Punctuation is a different matter, and
+[`cjk_strip_punct()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_strip_punct.md)
+is the step that deals with it — replacing each mark with a space rather
+than deleting it, so a bigram cannot span the full stop between two
+sentences:
+
+``` r
+
+cjk_strip_punct("他說（今天）。真好")
+#> [1] "他說 今天  真好"
+
+cjk_ngrams(cjk_strip_punct("好。天"))        # nothing spans the stop
+#> [[1]]
+#> character(0)
+cjk_ngrams(cjk_strip_punct("好。天", ""))    # deleting it invents 好天
+#> [[1]]
+#> [1] "好天"
+```
+
+`gsub("[[:punct:]]", "", x)` is the spelling to avoid: R’s default
+engine resolves the class through the C library, so it removes nothing
+under `LC_ALL=C`, and `perl = TRUE` removes nothing from CJK in any
+locale.
 
 ## Sorting
 
-[`sort()`](https://rdrr.io/r/base/sort.html) on Chinese gives code point
-order, and it is worth being precise about what that is. Within the base
-block it is *not* arbitrary: the unified ideographs are arranged in
-KangXi radical-stroke order, so code point order really is radical
-order. It is simply not the order anyone sorting a name column wants,
-because it is not phonetic — and it stops being radical order across
-blocks, since every Extension A character sorts before every base-block
-one, leaving a rare character nowhere near its radical-mates:
+[`sort()`](https://rdrr.io/r/base/sort.html) reads `LC_COLLATE`, so the
+order it gives Han text is a property of the session rather than of the
+data. These three surnames come out in code point order under `C` and
+`en_US.UTF-8`, in pinyin order under `zh_CN.utf8`, and in a third order
+under `ja_JP.utf8`. Each is defensible; none is reproducible, and that
+is the trap — the same script sorts a name column differently on a
+colleague’s machine and says nothing about it.
+
+The fallback order is worth knowing, because it is not arbitrary. Within
+the base block the unified ideographs are arranged in KangXi
+radical-stroke order, so code point order really is radical order. It is
+simply not phonetic — and it stops being radical order across blocks,
+since every Extension A character sorts before every base-block one,
+leaving a rare character nowhere near its radical-mates.
+
+Naming the collation is what makes the answer the same everywhere:
 
 ``` r
 
 x <- c("張", "王", "李")   # Zhang, Wang, Li
 
-sort(x)
+x[order(vapply(x, utf8ToInt, integer(1)))]  # code point order, explicitly
 #> [1] "張" "李" "王"
-cjk_sort(x, locale = "zh")             # pinyin
+cjk_sort(x, locale = "zh")                  # pinyin
 #> [1] "李" "王" "張"
-cjk_sort(x, locale = "zh-u-co-stroke") # stroke count
+cjk_sort(x, locale = "zh-u-co-stroke")      # stroke count
 #> [1] "王" "李" "張"
 ```
 
@@ -308,8 +338,26 @@ which also rewrites ligatures, Roman numerals and circled numbers:
 
 as.numeric(to_halfwidth("１２３"))
 #> [1] 123
-to_halfwidth("½ Ⅸ ①")   # NFKC would mangle all three
+to_halfwidth("½ Ⅸ ①")   # NFKC would rewrite all three
 #> [1] "½ Ⅸ ①"
+```
+
+When the blunt instrument *is* the right one — matching rather than
+display —
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+is it, and it also answers the case a reader may not expect: plain
+`"nfc"` rewrites most of the CJK compatibility ideographs, because they
+have singleton canonical mappings.
+
+``` r
+
+ga <- c("\u304c", "\u304b\u3099")   # composed, then KA + voiced mark
+nchar(ga)
+#> [1] 1 2
+nchar(cjk_normalize(ga))
+#> [1] 1 1
+cjk_normalize("ＡＢ　①", form = "nfkc")
+#> [1] "AB 1"
 ```
 
 Romanisation, Han script conversion, kana conversion and Hangul jamo

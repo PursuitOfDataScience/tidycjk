@@ -44,8 +44,13 @@ cjk_wrap(x, width, indent = 0L, exdent = 0L, locale = NULL)
 
 ## Value
 
-A character vector the same length as `x`, each element the wrapped text
-with lines separated by `\n`. `NA` gives `NA`.
+A character vector the same length as the recycled inputs, each element
+the wrapped text with lines separated by `\n`. `NA` gives `NA`. As in
+[`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
+and
+[`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md),
+a `width` longer than `x` recycles `x` up to it rather than being an
+error.
 
 ## Details
 
@@ -132,7 +137,8 @@ for the measurement itself.
 
 ``` r
 # "I am happy today, because the weather is very good"
-x <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d"
+x <- paste0("\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c",
+              "\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d")
 cat(cjk_wrap(x, 12), "\n")
 #> 我今天很開
 #> 心，因為天氣

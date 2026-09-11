@@ -232,7 +232,16 @@ the same length as <code>x</code>, each element a character vector of
 tokens. <code>NA</code> in gives <code>NA_character_</code>; the empty
 string gives <code>character(0)</code>. <code><a href="../reference/cjk_segment.html">cjk_segment()</a></code>
 checks the shape and complains if an engine breaks the contract, rather
-than passing a malformed result downstream.</p>
+than passing a malformed result downstream — the list itself, its
+length, and the type of each element. An atomic element is coerced, so
+integers or a factor are fine; a list element is refused, because
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> deparses a list rather than coercing it and
+<code>list(c(1, 2))</code> would otherwise arrive as the single token
+<code>"c(1, 2)"</code>.</p>
+<p>A leading byte-order mark survives both built-in engines, which takes
+work: the stringi calls underneath them each read a leading U+FEFF as a
+byte-order mark and drop it. An engine you register yourself gets no
+such help — if it calls stringi, it needs the same guard.</p>
 <div class="section level3">
 <h3 id="gibasa-for-japanese">gibasa, for Japanese<a class="anchor" aria-label="anchor" href="#gibasa-for-japanese"></a>
 </h3>

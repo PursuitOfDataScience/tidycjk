@@ -15,18 +15,21 @@ turns those measurements into tibbles that slot straight into a
 columns, pads, truncates and wraps to a width rather than to a character
 count, and normalises fullwidth and halfwidth forms surgically –
 including composing halfwidth katakana voiced marks into single code
-points – without the collateral damage of a full 'NFKC' pass.
-Romanisation, conversion between simplified and traditional Han,
-conversion between the two kana syllabaries, and decomposition of Hangul
-syllables into jamo are provided on the same vectorised contract.
-Sentence segmentation, character n-grams and locale-aware ordering cover
-the preprocessing that generic tooling gets wrong on CJK, where the
-sentence terminators are ideographic and a code point sort is not an
-alphabetical one. Language detection deliberately returns NA rather than
-guessing when a text is written in Han characters only, because Japanese
-written without kana cannot be distinguished from Chinese by script
-alone. Everything is derived from the Unicode specification; the package
-makes no network requests and needs no compiled code of its own.
+points – while offering the Unicode normalisation forms separately for
+when a full 'NFKC' fold is what is wanted. Romanisation, conversion
+between simplified and traditional Han, conversion between the two kana
+syllabaries, and decomposition of Hangul syllables into jamo are
+provided on the same vectorised contract. Sentence segmentation,
+character n-grams, punctuation removal by Unicode category and
+locale-aware ordering cover the preprocessing that generic tooling gets
+wrong on CJK, where the sentence terminators are ideographic, a code
+point sort is not an alphabetical one, and the POSIX punctuation class
+is resolved by the C library rather than by Unicode. Language detection
+deliberately returns NA rather than guessing when a text is written in
+Han characters only, because Japanese written without kana cannot be
+distinguished from Chinese by script alone. Everything is derived from
+the Unicode specification; the package makes no network requests and
+needs no compiled code of its own.
 
 ## Output and naming contract
 
@@ -55,6 +58,38 @@ and
 Every vector-layer function is vectorised, propagates `NA` element-wise,
 and returns a zero-length vector of the right type for zero-length
 input.
+
+## Input encoding
+
+Text has to reach R either as UTF-8 or with its encoding declared, which
+means naming the encoding when the file is read:
+`read.csv(f, encoding = "GBK")`, `readLines(f, encoding = "Shift_JIS")`,
+or
+[`stringi::stri_encode()`](https://rdrr.io/pkg/stringi/man/stri_encode.html)
+afterwards. That is worth doing deliberately, because what happens
+otherwise is not uniform and cannot be made so.
+
+Whether a string of bytes is uninterpretable at all depends on the
+session's native encoding: GBK bytes with no declaration are an error in
+a UTF-8 locale and ordinary text in a GB18030 one, and both answers are
+right. When the bytes genuinely cannot be read, the verbs do not all
+report it the same way either – the ones that go through code points
+raise "`x` must be valid UTF-8" and name the legacy encodings, while the
+ones built on an ICU transform
+([`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md),
+[`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md),
+[`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md),
+[`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md),
+[`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md),
+[`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md),
+[`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md),
+[`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md))
+hand back U+FFFD replacement characters, because that is what the
+transform does with a byte it cannot decode.
+
+So do not rely on an error to catch a mis-read file. Declare the
+encoding on the way in; a `\uFFFD` in the output means it was not
+declared.
 
 ## What counts as CJK
 

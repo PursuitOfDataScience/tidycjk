@@ -67,6 +67,10 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>A visual tour</h1>
+                        <h4 data-toc-skip class="author">Youzhi
+Yu<br><span style="font-weight: 400; font-size: 0.85em;">University of
+Chicago</span>
+</h4>
             
       
       <small class="dont-index">Source: <a href="https://github.com/PursuitOfDataScience/tidycjk/blob/main/vignettes/articles/gallery.Rmd" class="external-link"><code>vignettes/articles/gallery.Rmd</code></a></small>
@@ -77,10 +81,12 @@
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pursuitofdatascience.github.io/tidycjk/">tidycjk</a></span><span class="op">)</span></span></code></pre></div>
-<p>Each figure below was drawn by <code>data-raw/make-figures.R</code>
-using the package itself — the terminal grids are laid out by
-<code><a href="../reference/cjk_width.html">cjk_width()</a></code>, so they cannot drift from what the functions
-actually return.</p>
+<p>Every image below is generated, and the scripts sit beside them in
+<code>data-raw/</code>: <code>make-figures.R</code> for the panels, and
+<code>make-hero.R</code> with <code>merge-hero.py</code> for the
+animation at the top. All of them call the package to lay themselves out
+— the terminal grids are positioned by <code><a href="../reference/cjk_width.html">cjk_width()</a></code> — so a
+figure cannot drift from what the functions actually return.</p>
 <div class="section level2">
 <h2 id="width-is-not-character-count">Width is not character count<a class="anchor" aria-label="anchor" href="#width-is-not-character-count"></a>
 </h2>
@@ -117,11 +123,12 @@ characters:</p>
 <span><span class="co">#&gt; [1] "han"      "hiragana" "hangul"   "han"      NA</span></span>
 <span><span class="fu"><a href="../reference/cjk_detect_language.html">cjk_detect_language</a></span><span class="op">(</span><span class="va">txt</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] NA         "japanese" "korean"   NA         NA</span></span></code></pre></div>
-<p>Rows one and four come back <code>NA</code>. Both are written
-entirely in Han characters, and nothing in the script separates Japanese
-from Chinese there. A library that answers <code>"chinese"</code> is
-guessing, and it will be wrong on Japanese input in a way you cannot
-detect downstream. Opt in if you want it:</p>
+<p>Rows one, four and five come back <code>NA</code>. Row five is
+uninteresting – it has no CJK in it at all. Rows one and four are the
+point: both are written entirely in Han characters, and nothing in the
+script separates Japanese from Chinese there. A library that answers
+<code>"chinese"</code> is guessing, and it will be wrong on Japanese
+input in a way you cannot detect downstream. Opt in if you want it:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_detect_language.html">cjk_detect_language</a></span><span class="op">(</span><span class="va">txt</span>, han_only <span class="op">=</span> <span class="st">"chinese"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "chinese"  "japanese" "korean"   "chinese"  NA</span></span></code></pre></div>
@@ -170,7 +177,7 @@ included. At the column level:</p>
 <div class="section level2">
 <h2 id="segmentation">Segmentation<a class="anchor" aria-label="anchor" href="#segmentation"></a>
 </h2>
-<p><img src="../reference/figures/fig-tokens.png" width="100%" alt="cjk_segment splitting a mixed string into tokens."></p>
+<p><img src="../reference/figures/fig-tokens.png" width="100%" alt="One sentence under both engines: four word tokens with icu, six character tokens with character."></p>
 <p><code>"icu"</code> is a real word segmenter — ICU’s dictionary-based
 break iterators, shipped inside stringi:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -225,13 +232,102 @@ follow the Unicode line breaking algorithm, so no line begins with
 <span><span class="co">#&gt; [1] 14 14 14</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="sentences-n-grams-and-cleaning">Sentences, n-grams and cleaning<a class="anchor" aria-label="anchor" href="#sentences-n-grams-and-cleaning"></a>
+</h2>
+<p>A regular expression on <code>[.!?]</code> finds no sentence boundary
+in Chinese: the terminator is <code>。</code>. Character bigrams are the
+dictionary-free baseline for Chinese retrieval, and punctuation has to
+come out first or it ends up inside a token.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_sentences.html">cjk_sentences</a></span><span class="op">(</span><span class="st">"我今天很開心。你呢？天氣很好！"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "我今天很開心。" "你呢？"         "天氣很好！"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_ngrams.html">cjk_ngrams</a></span><span class="op">(</span><span class="st">"中文很好"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "中文" "文很" "很好"</span></span></code></pre></div>
+<p><code><a href="../reference/cjk_strip_punct.html">cjk_strip_punct()</a></code> removes punctuation by Unicode
+category rather than by <code>[[:punct:]]</code>, which resolves through
+the C library and so removes nothing under <code>LC_ALL=C</code> — and
+nothing at all from CJK when <code>perl = TRUE</code>. The default
+replaces each mark with a space, so a bigram cannot span a full
+stop:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_strip_punct.html">cjk_strip_punct</a></span><span class="op">(</span><span class="st">"他說（今天）。真好"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "他說 今天  真好"</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_ngrams.html">cjk_ngrams</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_strip_punct.html">cjk_strip_punct</a></span><span class="op">(</span><span class="st">"好。天"</span><span class="op">)</span><span class="op">)</span>       <span class="co"># nothing spans the stop</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; character(0)</span></span>
+<span><span class="fu"><a href="../reference/cjk_ngrams.html">cjk_ngrams</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_strip_punct.html">cjk_strip_punct</a></span><span class="op">(</span><span class="st">"好。天"</span>, <span class="st">""</span><span class="op">)</span><span class="op">)</span>   <span class="co"># deleting it invents 好天</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] "好天"</span></span></code></pre></div>
+<p>It keeps <code>ー</code>, the prolonged sound mark, which is a
+modifier letter rather than a dash and carries the long vowel in most
+Japanese loanwords:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_strip_punct.html">cjk_strip_punct</a></span><span class="op">(</span><span class="st">"コーヒー、ラーメン"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "コーヒー ラーメン"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="sorting">Sorting<a class="anchor" aria-label="anchor" href="#sorting"></a>
+</h2>
+<p><code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> reads <code>LC_COLLATE</code>, so the order it
+gives Han depends on the machine: code point order under <code>C</code>,
+pinyin under <code>zh_CN.utf8</code>, something else again under
+<code>ja_JP.utf8</code>. Naming a collation makes the answer the same
+everywhere.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"張"</span>, <span class="st">"王"</span>, <span class="st">"李"</span><span class="op">)</span>   <span class="co"># Zhang, Wang, Li</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_sort.html">cjk_sort</a></span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh"</span><span class="op">)</span>             <span class="co"># pinyin</span></span>
+<span><span class="co">#&gt; [1] "李" "王" "張"</span></span>
+<span><span class="fu"><a href="../reference/cjk_sort.html">cjk_sort</a></span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh-u-co-stroke"</span><span class="op">)</span> <span class="co"># stroke count</span></span>
+<span><span class="co">#&gt; [1] "王" "李" "張"</span></span>
+<span><span class="fu"><a href="../reference/cjk_sort.html">cjk_order</a></span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh"</span><span class="op">)</span>            <span class="co"># the permutation, for a data frame</span></span>
+<span><span class="co">#&gt; [1] 3 2 1</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="normalisation">Normalisation<a class="anchor" aria-label="anchor" href="#normalisation"></a>
+</h2>
+<p>Two strings can render identically and still differ as data.
+<code><a href="../reference/cjk_normalize.html">cjk_normalize()</a></code> is the Unicode forms, and the surprise is
+that plain <code>"nfc"</code> is not a no-op on Han — compatibility
+ideographs have singleton canonical mappings, so it rewrites them
+exactly as <code>"nfkc"</code> does.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ga</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"\u304c"</span>, <span class="st">"\u304b\u3099"</span><span class="op">)</span>   <span class="co"># composed, then KA + voiced mark</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="va">ga</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 2</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="va">ga</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 1</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="st">"ＡＢ　①"</span>, form <span class="op">=</span> <span class="st">"nfkc"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "AB 1"</span></span>
+<span></span>
+<span><span class="va">block</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0xF900</span><span class="op">:</span><span class="fl">0xFA6D</span>, <span class="fl">0xFA70</span><span class="op">:</span><span class="fl">0xFAD9</span><span class="op">)</span>, <span class="va">intToUtf8</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="va">block</span>, <span class="st">"nfc"</span><span class="op">)</span> <span class="op">!=</span> <span class="va">block</span><span class="op">)</span>   <span class="co"># folded away by plain NFC</span></span>
+<span><span class="co">#&gt; [1] 460</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="va">block</span>, <span class="st">"nfc"</span><span class="op">)</span> <span class="op">==</span> <span class="va">block</span><span class="op">)</span>   <span class="co"># and the survivors</span></span>
+<span><span class="co">#&gt; [1] 12</span></span></code></pre></div>
+<p>Variation selectors survive every form but
+<code>"nfkc_casefold"</code>, and are dropped before the form is applied
+rather than after:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ivs</span> <span class="op">&lt;-</span> <span class="st">"辻\U000E0100"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="va">ivs</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 2</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_normalize.html">cjk_normalize</a></span><span class="op">(</span><span class="va">ivs</span>, drop_variation_selectors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="romanisation-script-and-kana">Romanisation, script and kana<a class="anchor" aria-label="anchor" href="#romanisation-script-and-kana"></a>
 </h2>
 <p>Kana conversion is a normalisation, the jamo round trip returns NFC,
 Han conversion resolves ambiguity from context but not regional
 vocabulary, and romanisation reads all Han as Chinese.
 <code><a href="../articles/transliteration.html">vignette("transliteration")</a></code> is explicit about each.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "zhōng wén"</span></span>
 <span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span>, ascii <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -251,7 +347,7 @@ vocabulary, and romanisation reads all Han as Chinese.
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [1] "ᄒ" "ᅡ"   "ᆫ"   "ᄀ" "ᅳ"   "ᆯ"</span></span></code></pre></div>
 <p>Where they break, stated plainly:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_simplify.html">cjk_traditionalize</a></span><span class="op">(</span><span class="st">"软件"</span><span class="op">)</span>   <span class="co"># characters right, Taiwanese word (軟體) wrong</span></span>
 <span><span class="co">#&gt; [1] "軟件"</span></span>
 <span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"日本語"</span><span class="op">)</span>       <span class="co"># Han read as Chinese, not nihongo</span></span>
@@ -261,7 +357,7 @@ vocabulary, and romanisation reads all Han as Chinese.
 <h2 id="width-forms">Width forms<a class="anchor" aria-label="anchor" href="#width-forms"></a>
 </h2>
 <p><img src="../reference/figures/fig-normalize.png" width="100%" alt="to_halfwidth narrows width forms and leaves everything else alone."></p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "123"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/to_halfwidth.html">to_halfwidth</a></span><span class="op">(</span><span class="st">"１２３"</span><span class="op">)</span><span class="op">)</span></span>
@@ -284,7 +380,7 @@ vocabulary, and romanisation reads all Han as Chinese.
 <h2 id="the-block-table">The block table<a class="anchor" aria-label="anchor" href="#the-block-table"></a>
 </h2>
 <p><img src="../reference/figures/fig-blocks.png" width="100%" alt="The first rows of the cjk_blocks table."></p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_blocks.html">cjk_blocks</a></span><span class="op">(</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 10 × 5</span></span></span>
 <span><span class="co">#&gt;    block                              script      start   end n_codepoints</span></span>

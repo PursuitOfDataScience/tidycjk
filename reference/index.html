@@ -113,10 +113,17 @@
 
         </dt>
         <dd>Character n-grams</dd>
+
+        <dt>
+
+          <code><a href="cjk_strip_punct.html">cjk_strip_punct()</a></code>
+
+        </dt>
+        <dd>Remove punctuation from CJK text</dd>
       </dl></div><div class="section level2">
       <h2 id="order">Order<a class="anchor" aria-label="anchor" href="#order"></a></h2>
 
-      <div class="section-desc"><p>ICU collation. R’s sort() puts Han in code point order, which is not pronunciation, stroke or frequency.</p></div>
+      <div class="section-desc"><p>ICU collation. R’s sort() reads LC_COLLATE, so the order it gives Han depends on the machine it runs on; naming a collation makes it not.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -204,9 +211,9 @@
         </dt>
         <dd>Wrap text to a display width</dd>
       </dl></div><div class="section level2">
-      <h2 id="normalise-width-variants">Normalise width variants<a class="anchor" aria-label="anchor" href="#normalise-width-variants"></a></h2>
+      <h2 id="normalise">Normalise<a class="anchor" aria-label="anchor" href="#normalise"></a></h2>
 
-
+      <div class="section-desc"><p>Making strings that look the same compare the same. The width verbs move text along one axis and touch nothing else; <code><a href="../reference/cjk_normalize.html">cjk_normalize()</a></code> is the Unicode forms, including the fact that plain NFC rewrites most of the CJK compatibility ideographs.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -219,6 +226,13 @@
 
         </dt>
         <dd>Normalise fullwidth and halfwidth forms</dd>
+
+        <dt>
+
+          <code><a href="cjk_normalize.html">cjk_normalize()</a></code>
+
+        </dt>
+        <dd>Apply Unicode normalisation</dd>
       </dl></div><div class="section level2">
       <h2 id="transliterate">Transliterate<a class="anchor" aria-label="anchor" href="#transliterate"></a></h2>
 

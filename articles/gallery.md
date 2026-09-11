@@ -5,10 +5,12 @@
 library(tidycjk)
 ```
 
-Each figure below was drawn by `data-raw/make-figures.R` using the
-package itself — the terminal grids are laid out by
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
-so they cannot drift from what the functions actually return.
+Every image below is generated, and the scripts sit beside them in
+`data-raw/`: `make-figures.R` for the panels, and `make-hero.R` with
+`merge-hero.py` for the animation at the top. All of them call the
+package to lay themselves out — the terminal grids are positioned by
+[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
+— so a figure cannot drift from what the functions actually return.
 
 ## Width is not character count
 
@@ -58,11 +60,12 @@ cjk_detect_language(txt)
 #> [1] NA         "japanese" "korean"   NA         NA
 ```
 
-Rows one and four come back `NA`. Both are written entirely in Han
-characters, and nothing in the script separates Japanese from Chinese
-there. A library that answers `"chinese"` is guessing, and it will be
-wrong on Japanese input in a way you cannot detect downstream. Opt in if
-you want it:
+Rows one, four and five come back `NA`. Row five is uninteresting – it
+has no CJK in it at all. Rows one and four are the point: both are
+written entirely in Han characters, and nothing in the script separates
+Japanese from Chinese there. A library that answers `"chinese"` is
+guessing, and it will be wrong on Japanese input in a way you cannot
+detect downstream. Opt in if you want it:
 
 ``` r
 
@@ -120,8 +123,8 @@ cjk_char_counts(posts, text)
 
 ## Segmentation
 
-![cjk_segment splitting a mixed string into
-tokens.](../reference/figures/fig-tokens.png)
+![One sentence under both engines: four word tokens with icu, six
+character tokens with character.](../reference/figures/fig-tokens.png)
 
 `"icu"` is a real word segmenter — ICU’s dictionary-based break
 iterators, shipped inside stringi:
@@ -188,6 +191,110 @@ cat(cjk_wrap("他說（今天天氣很好）。我們去公園散步。", 12))
 x <- "我今天很開心，因為天氣非常好而且朋友來看我"
 cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
 #> [1] 14 14 14
+```
+
+## Sentences, n-grams and cleaning
+
+A regular expression on `[.!?]` finds no sentence boundary in Chinese:
+the terminator is `。`. Character bigrams are the dictionary-free
+baseline for Chinese retrieval, and punctuation has to come out first or
+it ends up inside a token.
+
+``` r
+
+cjk_sentences("我今天很開心。你呢？天氣很好！")
+#> [[1]]
+#> [1] "我今天很開心。" "你呢？"         "天氣很好！"
+
+cjk_ngrams("中文很好")
+#> [[1]]
+#> [1] "中文" "文很" "很好"
+```
+
+[`cjk_strip_punct()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_strip_punct.md)
+removes punctuation by Unicode category rather than by `[[:punct:]]`,
+which resolves through the C library and so removes nothing under
+`LC_ALL=C` — and nothing at all from CJK when `perl = TRUE`. The default
+replaces each mark with a space, so a bigram cannot span a full stop:
+
+``` r
+
+cjk_strip_punct("他說（今天）。真好")
+#> [1] "他說 今天  真好"
+
+cjk_ngrams(cjk_strip_punct("好。天"))       # nothing spans the stop
+#> [[1]]
+#> character(0)
+cjk_ngrams(cjk_strip_punct("好。天", ""))   # deleting it invents 好天
+#> [[1]]
+#> [1] "好天"
+```
+
+It keeps `ー`, the prolonged sound mark, which is a modifier letter
+rather than a dash and carries the long vowel in most Japanese
+loanwords:
+
+``` r
+
+cjk_strip_punct("コーヒー、ラーメン")
+#> [1] "コーヒー ラーメン"
+```
+
+## Sorting
+
+[`sort()`](https://rdrr.io/r/base/sort.html) reads `LC_COLLATE`, so the
+order it gives Han depends on the machine: code point order under `C`,
+pinyin under `zh_CN.utf8`, something else again under `ja_JP.utf8`.
+Naming a collation makes the answer the same everywhere.
+
+``` r
+
+x <- c("張", "王", "李")   # Zhang, Wang, Li
+
+cjk_sort(x, locale = "zh")             # pinyin
+#> [1] "李" "王" "張"
+cjk_sort(x, locale = "zh-u-co-stroke") # stroke count
+#> [1] "王" "李" "張"
+cjk_order(x, locale = "zh")            # the permutation, for a data frame
+#> [1] 3 2 1
+```
+
+## Normalisation
+
+Two strings can render identically and still differ as data.
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+is the Unicode forms, and the surprise is that plain `"nfc"` is not a
+no-op on Han — compatibility ideographs have singleton canonical
+mappings, so it rewrites them exactly as `"nfkc"` does.
+
+``` r
+
+ga <- c("\u304c", "\u304b\u3099")   # composed, then KA + voiced mark
+nchar(ga)
+#> [1] 1 2
+nchar(cjk_normalize(ga))
+#> [1] 1 1
+
+cjk_normalize("ＡＢ　①", form = "nfkc")
+#> [1] "AB 1"
+
+block <- vapply(c(0xF900:0xFA6D, 0xFA70:0xFAD9), intToUtf8, character(1))
+sum(cjk_normalize(block, "nfc") != block)   # folded away by plain NFC
+#> [1] 460
+sum(cjk_normalize(block, "nfc") == block)   # and the survivors
+#> [1] 12
+```
+
+Variation selectors survive every form but `"nfkc_casefold"`, and are
+dropped before the form is applied rather than after:
+
+``` r
+
+ivs <- "辻\U000E0100"
+nchar(cjk_normalize(ivs))
+#> [1] 2
+nchar(cjk_normalize(ivs, drop_variation_selectors = TRUE))
+#> [1] 1
 ```
 
 ## Romanisation, script and kana

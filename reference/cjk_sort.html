@@ -78,14 +78,19 @@ usefully, so name one.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> on Chinese gives code point order, which is a real order and the
-wrong one. The unified ideographs are laid out in KangXi radical-stroke
-order, so within the base block sorting by code point sorts by radical.
-What it is not is phonetic, which is what someone sorting a column of
-names is after. It also stops being radical order across blocks: every
-Extension A character (U+3400-U+4DBF) sorts ahead of every base-block one,
-so a rare character lands nowhere near the common characters sharing its
-radical.</p>
+    <p><code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> reads <code>LC_COLLATE</code>, so the order it gives Han text is a property
+of the session rather than of the data. Under <code>C</code> or <code>en_US.UTF-8</code> it
+falls back to code point order; under <code>zh_CN.utf8</code> glibc supplies a pinyin
+collation and the answer changes; under <code>ja_JP.utf8</code> it changes again.
+None of those is wrong in itself, and that is the difficulty: the same
+script sorts a name column differently on two machines and says nothing.</p>
+<p>The fallback order is worth knowing, because it is not arbitrary. The
+unified ideographs are laid out in KangXi radical-stroke order, so within
+the base block sorting by code point sorts by radical. What it is not is
+phonetic, which is what someone sorting names is after. It also stops
+being radical order across blocks: every Extension A character
+(U+3400-U+4DBF) sorts ahead of every base-block one, so a rare character
+lands nowhere near the common characters sharing its radical.</p>
 <p>ICU carries real collations. With <code>locale = "zh"</code> Han sorts by pinyin, so a
 column of Chinese surnames comes out in the order a Chinese reader expects.</p>
     </div>
@@ -119,9 +124,9 @@ can use where no ICU locale is available.</p></div>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Chinese surnames: Zhang, Wang, Li</span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"\u5f35"</span>, <span class="st">"\u738b"</span>, <span class="st">"\u674e"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>                        <span class="co"># code point order: not an order</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>                        <span class="co"># depends on LC_COLLATE</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "張" "李" "王"</span>
-<span class="r-in"><span><span class="fu">cjk_sort</span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh"</span><span class="op">)</span>     <span class="co"># pinyin: Li, Wang, Zhang</span></span></span>
+<span class="r-in"><span><span class="fu">cjk_sort</span><span class="op">(</span><span class="va">x</span>, locale <span class="op">=</span> <span class="st">"zh"</span><span class="op">)</span>     <span class="co"># pinyin: Li, Wang, Zhang -- on any machine</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "李" "王" "張"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># stroke order instead</span></span></span>

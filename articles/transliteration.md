@@ -127,12 +127,16 @@ already NFC.
 
 Jamo are the right unit for questions the syllable hides — which initial
 consonants a corpus favours, or whether two spellings differ only in a
-final consonant. `한` is one character to
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
+final consonant. The same syllable counts three different ways, each
+right for a different question — `한` is one character to
+[`nchar()`](https://rdrr.io/r/base/nchar.html), two terminal columns to
+[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
 and three jamo here:
 
 ``` r
 
+nchar("한")
+#> [1] 1
 cjk_width("한")
 #> [1] 2
 lengths(cjk_jamo("한"))
@@ -251,8 +255,10 @@ and
 [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
 change width and nothing else. The usual advice for fullwidth text is an
 `NFKC` pass, which does fix width — and also rewrites ligatures, Roman
-numerals, circled numbers and compatibility ideographs, none of which
-you asked for:
+numerals and circled numbers, none of which a change of width asked for.
+When that wider fold *is* what you want, it is
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+in the next section rather than a side effect here:
 
 ``` r
 
@@ -279,6 +285,71 @@ to_halfwidth(x) == "ガ"
 #> [1] TRUE
 ```
 
+## Normalisation is the fourth axis
+
+Width, script, syllabary — and then the code points themselves.
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+applies the Unicode normalisation forms (Whistler 2024), which is what
+decides whether two strings that render identically compare equal:
+
+``` r
+
+both <- c("\u304c", "\u304b\u3099")   # composed, then KA + voiced mark
+nchar(both)
+#> [1] 1 2
+nchar(cjk_normalize(both))
+#> [1] 1 1
+```
+
+`"nfkc"` is the blunt instrument the width verbs exist to avoid, and it
+is the right tool when matching rather than display is the goal:
+
+``` r
+
+cjk_normalize("ＡＢ　①", form = "nfkc")
+#> [1] "AB 1"
+cjk_normalize("ＡＢ　①", form = "nfc")
+#> [1] "ＡＢ　①"
+```
+
+**Canonical normalisation is not a no-op on Han.** Compatibility
+ideographs have singleton canonical mappings, so `"nfc"` rewrites them
+just as `"nfkc"` does — this is the part that surprises people who reach
+for NFC because it is supposed to be the safe one:
+
+``` r
+
+block <- vapply(c(0xF900:0xFA6D, 0xFA70:0xFAD9), intToUtf8, character(1))
+sum(cjk_normalize(block, "nfc") != block)   # folded away by plain NFC
+#> [1] 460
+sum(cjk_normalize(block, "nfc") == block)   # and the survivors
+#> [1] 12
+```
+
+The twelve survivors are unified ideographs that were encoded in the
+compatibility block by accident and have no mapping to apply. So the
+block is neither preserved nor uniformly folded: if the distinction
+between a compatibility ideograph and its unified form means something
+in your data, as it can in Korean and Japanese name records, keep the
+original column.
+
+Variation selectors are the other thing that defeats an exact match, and
+four of the five forms leave them alone:
+
+``` r
+
+ivs <- "辻\U000E0100"
+nchar(cjk_normalize(ivs))
+#> [1] 2
+nchar(cjk_normalize(ivs, drop_variation_selectors = TRUE))
+#> [1] 1
+```
+
+They are dropped *before* the form is applied, not after — a selector
+has combining class zero and blocks canonical composition across itself,
+so stripping one afterwards can leave text that is no longer in the form
+you just asked for.
+
 ## References
 
 Gagolewski, Marek. 2022. “stringi: Fast and Portable Character String
@@ -298,3 +369,7 @@ Kuo, Carbo. 2024. *OpenCC: Open Chinese Convert*.
 
 Unicode Consortium. 2024. *International Components for Unicode*.
 <https://icu.unicode.org/>.
+
+Whistler, Ken. 2024. *Unicode Standard Annex \#15: Unicode Normalization
+Forms*. Unicode Standard Annex No. 15. The Unicode Consortium.
+<https://www.unicode.org/reports/tr15/>.

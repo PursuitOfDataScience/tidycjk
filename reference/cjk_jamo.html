@@ -90,8 +90,10 @@ that is what NFC is for.</p>
 NFC. Normalise first if you need to be certain.</p>
 <p>That makes jamo the right unit for questions the syllable hides: which
 initial consonants a corpus favours, whether two spellings differ only in
-a final consonant, or how to sort by consonant. U+D55C is one character to
-<code><a href="cjk_width.html">cjk_width()</a></code> and three jamo here.</p>
+a final consonant, or how to sort by consonant. U+D55C counts three ways,
+each right for a different question: one character to <code><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar()</a></code>, two
+terminal columns to <code><a href="cjk_width.html">cjk_width()</a></code> – a Hangul syllable is East Asian
+Wide – and three jamo here.</p>
 <p>Text that is not Hangul passes through unchanged, so it is safe to run over
 a mixed column.</p>
     </div>

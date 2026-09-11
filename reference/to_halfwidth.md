@@ -114,6 +114,9 @@ folded into the syllable and no bare mark survives either way.
 
 ## See also
 
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+for the Unicode normalisation forms, which fold width along with much
+else,
 [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
 for measuring the result.
 

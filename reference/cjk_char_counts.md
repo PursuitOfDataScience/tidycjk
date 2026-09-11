@@ -44,6 +44,10 @@ Rows are ordered by descending count, and ties are broken by first
 appearance in the column rather than by the session's collation, so the
 output does not change with the locale.
 
+Grouping is ignored: the counts are always for the whole column. Use
+[`dplyr::group_modify()`](https://dplyr.tidyverse.org/reference/group_map.html)
+if you need them per group.
+
 ## See also
 
 [`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md)
