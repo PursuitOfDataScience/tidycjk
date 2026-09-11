@@ -39,12 +39,13 @@ install.packages("tidycjk")
 | **Detect** | `has_cjk()` · `cjk_script()` · `cjk_detect_language()` · `cjk_ratio()` |
 | **Measure** | `cjk_width()` · `cjk_char_counts()` · `cjk_summary()` |
 | **Lay out** | `cjk_pad()` · `cjk_truncate()` · `cjk_wrap()` |
-| **Normalise** | `to_halfwidth()` · `to_fullwidth()` |
+| **Normalise** | `to_halfwidth()` · `to_fullwidth()` · `cjk_normalize()` |
 | **Segment** | `cjk_tokens()` · `cjk_segment()` · `cjk_segmenters()` · `register_cjk_segmenter()` |
-| **NLP prep** | `cjk_sentences()` · `cjk_ngrams()` |
+| **NLP prep** | `cjk_sentences()` · `cjk_ngrams()` · `cjk_strip_punct()` |
 | **Order** | `cjk_sort()` · `cjk_order()` |
 | **Transliterate** | `cjk_romanize()` · `cjk_simplify()` · `cjk_traditionalize()` |
 | **Kana & jamo** | `to_hiragana()` · `to_katakana()` · `cjk_jamo()` · `cjk_compose_jamo()` |
+| **Reference** | `cjk_blocks()` |
 
 Most verbs take a character vector, are vectorised and propagate `NA`.
 Three — `cjk_summary()`, `cjk_char_counts()` and `cjk_tokens()` — take
@@ -98,19 +99,30 @@ cjk_width(labels)  # they are not
 cat(paste0("|", cjk_pad(labels, 8), "|"), sep = "\n")
 ```
 
-## Fullwidth and halfwidth
+## Normalise: surgical or blunt
 
 <img src="man/figures/fig-normalize.png" width="100%" alt="to_halfwidth narrows width forms and leaves everything else alone." />
 
-The usual advice is `NFKC`, which fixes width and also rewrites ligatures,
-Roman numerals and circled numbers. `to_halfwidth()` changes width and nothing
-else.
+Two tools, and the choice is deliberate. `to_halfwidth()` changes width and
+nothing else — where the usual `NFKC` advice would also rewrite ligatures,
+Roman numerals and circled numbers.
 
 ```{r normalize}
 as.numeric(to_halfwidth("１２３"))
 
 nchar("ｶﾞ")                 # U+FF76 U+FF9E, two code points
 to_halfwidth("ｶﾞ") == "ガ"   # composed into one
+```
+
+`cjk_normalize()` is the blunt instrument, for when matching rather than
+display is the point. Plain `"nfc"` is not a no-op on Han either: it rewrites
+460 of the 472 CJK compatibility ideographs.
+
+```{r cjk-normalize}
+ga <- c("\u304c", "\u304b\u3099")   # composed, then KA + voiced mark
+nchar(ga)
+nchar(cjk_normalize(ga))
+cjk_normalize("ＡＢ　①", form = "nfkc")
 ```
 
 ## Segmentation
@@ -162,14 +174,30 @@ cjk_sentences("我今天很開心。你呢？")
 cjk_ngrams("中文很好")   # character bigrams: the dictionary-free baseline
 ```
 
-Sorting is its own trap. `sort()` on Chinese gives code point order — which
-is radical order, not phonetic order, and so not what sorting a column of
-names calls for:
+## Stripping punctuation
+
+`gsub("[[:punct:]]", "", x)` is resolved by the C library, so it removes
+nothing under `LC_ALL=C`; `perl = TRUE` removes nothing from CJK in any
+locale. `cjk_strip_punct()` tests the Unicode category instead.
+
+```{r strip}
+cjk_strip_punct("他說（今天）。真好")
+
+# and it keeps ー, a modifier letter rather than a dash
+cjk_strip_punct("コーヒー、ラーメン")
+```
+
+## Sorting
+
+Sorting is its own trap. `sort()` reads `LC_COLLATE`, so the order it gives
+Han depends on the machine: code point order under `C`, pinyin under
+`zh_CN.utf8`, something else again under `ja_JP.utf8`. Naming a collation is
+what makes the answer the same everywhere:
 
 ```{r sort}
 x <- c("張", "王", "李")   # Zhang, Wang, Li
-sort(x)                    # code point order
-cjk_sort(x, locale = "zh") # pinyin: Li, Wang, Zhang
+cjk_sort(x, locale = "zh")             # pinyin: Li, Wang, Zhang
+cjk_sort(x, locale = "zh-u-co-stroke") # stroke count
 ```
 
 `cjk_blocks()` exports the block table the whole package is built on, so the

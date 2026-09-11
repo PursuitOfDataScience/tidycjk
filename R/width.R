@@ -30,7 +30,14 @@
   if (length(width) == 0L) {
     stop("`width` must have at least one element.", call. = FALSE)
   }
-  if (!is.numeric(width) && !all(is.na(width))) {
+  # is.atomic() before is.na(), and that ordering is the point: the second
+  # test exists so that an all-NA logical vector passes and propagates, but
+  # is.na() on a closure or an environment warns before the error is
+  # reached, which leaks R's internals into a plain argument mistake.
+  # Every other validator in the package gets this free by checking the
+  # type first and letting `||` short-circuit; this one needs `&&`, so the
+  # guard is explicit.
+  if (!is.numeric(width) && !(is.atomic(width) && all(is.na(width)))) {
     stop("`width` must be numeric.", call. = FALSE)
   }
   # Inf and anything beyond the integer range are numeric, so they clear the
@@ -175,7 +182,7 @@ cjk_width <- function(x) {
 #' @export
 cjk_pad <- function(x, width, side = "right", pad = " ") {
   x <- as.character(x)
-  side <- match.arg(side, c("right", "left", "both"))
+  side <- .cjk_arg_match(side, c("right", "left", "both"), "side")
   if (!is.character(pad) || length(pad) != 1L || is.na(pad) ||
       nchar(pad) != 1L) {
     stop("`pad` must be a single, non-missing character.", call. = FALSE)
@@ -240,11 +247,15 @@ cjk_pad <- function(x, width, side = "right", pad = " ") {
 #' @seealso [cjk_pad()] for the other direction; [cjk_width()] for the measure
 #'   both use.
 #' @examples
-#' # six columns is three ideographs
+#' # six columns would be three ideographs, but "..." is counted against
+#' # the budget and costs three of them, so one ideograph is what fits
 #' cjk_truncate("\u4e2d\u6587\u4e2d\u6587\u4e2d\u6587", 6)
 #'
-#' # ASCII, same budget
+#' # the same six columns hold three ASCII characters plus the ellipsis
 #' cjk_truncate("abcdefghij", 6)
+#'
+#' # drop the ellipsis and all six columns are available again
+#' cjk_truncate("\u4e2d\u6587\u4e2d\u6587\u4e2d\u6587", 6, ellipsis = "")
 #'
 #' # already fits, so nothing happens
 #' cjk_truncate("\u4e2d\u6587", 10)
@@ -323,6 +334,10 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
   if (w <= 0L) {
     return("")
   }
+  # Not reachable through cjk_truncate(): an empty string has width 0 and
+  # is returned by the fits-already test above, and NA is caught before
+  # that. Kept because this takes code points from a caller that may not
+  # have made those checks.
   if (is.null(cp) || length(cp) == 0L) {
     return("")
   }
@@ -413,13 +428,16 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 #'   `"ja@lb=strict"`. `NULL`, the default, uses the session default -- which
 #'   means the result depends on where it is run; see Details.
 #'
-#' @return A character vector the same length as `x`, each element the wrapped
-#'   text with lines separated by `\n`. `NA` gives `NA`.
+#' @return A character vector the same length as the recycled inputs, each
+#'   element the wrapped text with lines separated by `\n`. `NA` gives `NA`.
+#'   As in [cjk_pad()] and [cjk_truncate()], a `width` longer than `x`
+#'   recycles `x` up to it rather than being an error.
 #' @seealso [cjk_pad()] and [cjk_truncate()] for the fixed-width forms,
 #'   [cjk_width()] for the measurement itself.
 #' @examples
 #' # "I am happy today, because the weather is very good"
-#' x <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d"
+#' x <- paste0("\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c",
+#'               "\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d")
 #' cat(cjk_wrap(x, 12), "\n")
 #'
 #' # every line is within the budget, measured in columns

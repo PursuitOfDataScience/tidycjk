@@ -77,13 +77,44 @@
         # tokenised differently on two machines. ICU's WHITE_SPACE is the same
         # set everywhere, which is the property the rest of the package holds
         # to -- see the note on strsplit() in .cjk_take_width().
-        unlist(
-          stringi::stri_split_charclass(pieces[[i]], "\\p{WHITE_SPACE}",
+        #
+        # The BOM guard the rest of the package takes, needed here too:
+        # stri_split_charclass() reads a leading U+FEFF in its *input* as a
+        # byte-order mark and drops it, and omit_empty = TRUE then discards
+        # the emptied piece -- so a mark beginning a non-CJK run vanished
+        # altogether. It is the only character this happened to. U+200B,
+        # U+200D, U+00AD, U+2060 and a combining mark are all zero-width,
+        # all non-whitespace, and all became tokens of their own; U+FEFF
+        # did not, which made the engine inconsistent with its own rule
+        # rather than deliberately quiet about format characters.
+        piece <- pieces[[i]]
+        nb <- if (startsWith(piece, "\uFEFF")) {
+          .cjk_leading_bom(piece)
+        } else {
+          0L
+        }
+        tok <- unlist(
+          stringi::stri_split_charclass(.cjk_strip_bom(piece, nb),
+                                        "\\p{WHITE_SPACE}",
                                         omit_empty = TRUE),
           use.names = FALSE
         )
+        if (nb == 0L) {
+          tok
+        } else {
+          mark <- strrep("\uFEFF", nb)
+          if (length(tok) == 0L) {
+            mark
+          } else {
+            c(paste0(mark, tok[[1L]]), tok[-1L])
+          }
+        }
       }
     }), use.names = FALSE)
+    # unlist() answers NULL for an empty list rather than character(0).
+    # Not reachable today -- the two exits above take the only inputs that
+    # leave `pieces` empty -- but the engine contract is a character vector
+    # per element, and NULL is not one.
     if (is.null(out)) character(0) else out
   })
 }
@@ -113,6 +144,22 @@
 # not because it switches models.
 .cjk_engine_icu <- function(x, locale = NULL, ...) {
   x <- as.character(x)
+  # stri_split_boundaries() drops a leading U+FEFF, while ICU keeps one in
+  # the middle of a string and attaches it to the adjacent word. That made
+  # the engine treat the same character two ways depending on where it sat,
+  # so the leading run is counted off and restored onto the first token --
+  # the position ICU itself puts an interior one in.
+  #
+  # Do NOT generalise this to the other zero-width characters. They look
+  # like the same case and are not, and skip_word_none = FALSE is what
+  # separates them: a leading U+200B, U+200D, U+00AD, U+2060, U+0301 or
+  # U+FE00 comes back as a token of its own, so ICU saw it and the engine's
+  # own documented rule is what removes it. A leading U+FEFF is absent even
+  # then -- stringi strips it before ICU is ever called. One is a policy
+  # this engine opted into; the other is a character disappearing. Only the
+  # second is ours to put back.
+  bom <- .cjk_leading_bom(x)
+  x <- .cjk_strip_bom(x, bom)
   # skip_word_none drops everything ICU classifies as "none" -- whitespace,
   # punctuation and symbols alike. Note that this is NOT the same rule the
   # "character" engine follows: that one drops whitespace but keeps CJK
@@ -128,9 +175,26 @@
   # stringi already returns NA for NA input and character(0) for "", which is
   # the engine contract; the coercion is only so an NA element is typed
   # NA_character_ rather than the logical NA a zero-token split can produce.
-  lapply(out, function(tok) {
+  out <- lapply(out, function(tok) {
     if (length(tok) == 1L && is.na(tok)) NA_character_ else as.character(tok)
   })
+  for (i in which(bom > 0L)) {
+    mark <- strrep("\uFEFF", bom[[i]])
+    t_i <- out[[i]]
+    out[[i]] <- if (length(t_i) == 0L) {
+      # the whole string was marks: they are the only tokens there are
+      mark
+    } else if (is.na(t_i[[1L]])) {
+      # Not reachable: .cjk_leading_bom() counts 0 for NA, so this loop
+      # never visits an NA element. Kept for the reason the identical
+      # branch in cjk_sentences() is kept -- the NA case and this one are
+      # the same contract, and neither should have to be rediscovered.
+      t_i
+    } else {
+      c(paste0(mark, t_i[[1L]]), t_i[-1L])
+    }
+  }
+  out
 }
 
 
@@ -187,6 +251,17 @@
 #' An emoji is dropped by `"icu"` and kept by `"character"` for the same
 #' reason. Filter or compare accordingly.
 #'
+#' Zero-width characters divide the same way, in three groups.
+#' `"character"` keeps all of them wherever they sit. `"icu"` drops U+200B
+#' everywhere, because ICU classifies the zero-width space as "none" in
+#' every position and this engine asks for "none" to be skipped; it drops
+#' U+200D, U+00AD, U+2060, a combining mark and a variation selector only
+#' when one begins the string, which is the one position ICU calls "none"
+#' for those. A byte-order mark survives both engines, and for a different
+#' reason worth keeping straight: stringi removes a leading U+FEFF before
+#' ICU is called at all, so that one is data loss rather than policy, and
+#' both engines put it back.
+#'
 #' # Registering another segmenter
 #'
 #' For Japanese, [gibasa](https://CRAN.R-project.org/package=gibasa) binds
@@ -224,6 +299,21 @@
 #' contract. A plain list is required: a data frame is a list too, but
 #' `length()` on one counts columns rather than elements, so it is refused
 #' rather than quietly mistaken for a list of tokens.
+#'
+#' A leading byte-order mark is preserved by both built-in engines, and by
+#' neither of the stringi calls underneath them: `stri_split_charclass()`
+#' and `stri_split_boundaries()` each read a leading U+FEFF as a byte-order
+#' mark and drop it. Both engines count it off and put it back, so a column
+#' read from a BOM-carrying CSV tokenises without losing a character. An
+#' engine you register yourself gets no such treatment -- if it calls
+#' stringi, it needs the same guard.
+#'
+#' The elements are checked too, for the same reason one level down. An
+#' atomic element is coerced with [as.character()], so an engine returning
+#' integers or a factor works; a list element is refused, because
+#' `as.character()` deparses a list rather than coercing it and
+#' `list(c(1, 2))` would otherwise arrive as the single token `"c(1, 2)"` --
+#' R code spelled out as data.
 #'
 #' # Passing arguments to an engine
 #'
@@ -400,8 +490,25 @@ cjk_segment <- function(x, engine, ...) {
          length(x), " element(s), the engine returned ", length(out), ".",
          call. = FALSE)
   }
-  lapply(out, function(tok) {
-    if (is.null(tok)) character(0) else as.character(tok)
+  # Four, then: the element type too. as.character() on a list does not
+  # coerce it, it *deparses* it, so an engine handing back list(c(1, 2))
+  # produced the literal token "c(1, 2)" -- a bogus token instead of an
+  # error, which is the same failure the data frame check above exists to
+  # stop, one level down. An atomic vector or a factor is coerced as before,
+  # because as.character() means the obvious thing for both.
+  lapply(seq_along(out), function(i) {
+    tok <- out[[i]]
+    if (is.null(tok)) {
+      return(character(0))
+    }
+    if (!is.atomic(tok)) {
+      stop("The segmentation engine must return a character vector for ",
+           "each element of `x`: element ", i, " is ", class(tok)[[1L]],
+           ". as.character() deparses a list rather than coercing it, so ",
+           "this would have become a token spelling out R code.",
+           call. = FALSE)
+    }
+    as.character(tok)
   })
 }
 
@@ -421,8 +528,12 @@ cjk_segment <- function(x, engine, ...) {
 #' vanish from the output.
 #'
 #' The token column is called `token` and is added to `data`; an existing
-#' column of that name is replaced. As with [cjk_segment()], `engine` is
-#' required.
+#' column of that name is replaced. Set `output` to put the tokens
+#' somewhere else when `data` already has a column worth keeping under that
+#' name -- the same escape hatch \pkg{tidytext}'s `unnest_tokens()` gives
+#' you. It comes after `...` and so has to be named in full, which is what
+#' stops it competing with an engine argument for a prefix. As with
+#' [cjk_segment()], `engine` is required.
 #'
 #' Grouping is dropped, as it is by [cjk_summary()]: the result is a plain
 #' tibble even when `data` is a `grouped_df`. Regroup it afterwards if you need
@@ -430,6 +541,8 @@ cjk_segment <- function(x, engine, ...) {
 #'
 #' @inheritParams cjk_summary
 #' @inheritParams cjk_segment
+#' @param output Name for the token column. Defaults to `"token"`. It
+#'   follows `...`, so it has to be given by its full name.
 #'
 #' @return `data`, as a tibble, with one row per token and an added `token`
 #'   column. Row order follows the input, and tokens within a row follow the
@@ -443,7 +556,16 @@ cjk_segment <- function(x, engine, ...) {
 #' )
 #' cjk_tokens(df, text, engine = "character")
 #' @export
-cjk_tokens <- function(data, col, engine, ...) {
+cjk_tokens <- function(data, col, engine, ..., output = "token") {
+  # `output` sits after the dots deliberately, so it has to be given by its
+  # full name. An argument before them can be claimed by R's partial
+  # matching from a prefix -- the hazard "Passing arguments to an engine"
+  # describes -- and an engine argument abbreviated to `out` would
+  # otherwise be swallowed by this one instead of reaching the engine.
+  if (!is.character(output) || length(output) != 1L || is.na(output) ||
+        !nzchar(output)) {
+    stop("`output` must be a single, non-empty string.", call. = FALSE)
+  }
   if (missing(engine)) {
     stop("`engine` must be given; there is no safe default. Use ",
          "engine = \"character\" for character tokenisation, or register a ",
@@ -463,6 +585,6 @@ cjk_tokens <- function(data, col, engine, ...) {
   flat <- unlist(toks, use.names = FALSE)
   # unlist() of nothing is NULL, and assigning NULL would drop the column
   # rather than create an empty one
-  out$token <- if (is.null(flat)) character(0) else flat
+  out[[output]] <- if (is.null(flat)) character(0) else flat
   out
 }

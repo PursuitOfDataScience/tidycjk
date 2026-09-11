@@ -49,13 +49,21 @@ how it is said.
 }
 
 \section{It is slow, by a wide margin}{
+The figures below were measured on one machine and will move with the
+CPU, the load and the ICU build; the ratios are the durable part. Nothing
+in the test suite asserts them, deliberately, because a timing assertion
+on a CRAN build machine fails for reasons that have nothing to do with
+this package.
+
 ICU's transliterator is the most expensive thing this package calls.
-Measured here, romanising runs at roughly thirty thousand characters a
-second, and it degrades on a single very long string: 200,000 characters
-took about eight seconds and a million took over two minutes. For scale,
-\code{cjk_segment(engine = "icu")} gets through that same million in a third
-of a second, so romanisation can be several hundred times the cost of
-everything around it.
+Measured here, romanising a column of short documents runs at roughly
+sixty thousand characters a second, and it degrades on a single very long
+string: the same volume in one string runs at nearer forty thousand,
+200,000 characters take about five seconds, and a million takes over two
+minutes. For scale, \code{cjk_segment(engine = "icu")} gets through that same
+million in under half a second, so romanisation can be a few hundred
+times the cost of everything around it -- measured at about 320 times on
+the million.
 
 None of that is this package's doing -- a bare
 \code{stringi::stri_trans_general(x, "Any-Latin")} takes the same time -- and

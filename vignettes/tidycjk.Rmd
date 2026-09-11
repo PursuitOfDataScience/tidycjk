@@ -46,11 +46,11 @@ Unicode specification [@uax11; @uax14; @uax29] rather than from heuristics:
 | Detect | `has_cjk()`, `cjk_script()`, `cjk_detect_language()`, `cjk_ratio()` |
 | Summarise a column | `cjk_summary()`, `cjk_char_counts()` |
 | Segment | `cjk_segment()`, `cjk_tokens()`, `cjk_segmenters()`, `register_cjk_segmenter()` |
-| Sentences, n-grams | `cjk_sentences()`, `cjk_ngrams()` |
+| Sentences, n-grams, cleaning | `cjk_sentences()`, `cjk_ngrams()`, `cjk_strip_punct()` |
 | Order | `cjk_sort()`, `cjk_order()` |
 | Measure width | `cjk_width()` |
 | Lay out | `cjk_pad()`, `cjk_truncate()`, `cjk_wrap()` |
-| Normalise width | `to_halfwidth()`, `to_fullwidth()` |
+| Normalise | `to_halfwidth()`, `to_fullwidth()` (width), `cjk_normalize()` (Unicode forms) |
 | Romanise | `cjk_romanize()` |
 | Convert Han | `cjk_simplify()`, `cjk_traditionalize()` |
 | Convert kana | `to_hiragana()`, `to_katakana()` |
@@ -181,24 +181,45 @@ cjk_ngrams("中文很好")
 ```
 
 No gram is formed across whitespace, so nothing straddles two words of a
-Latin run.
+Latin run. Punctuation is a different matter, and `cjk_strip_punct()` is the
+step that deals with it — replacing each mark with a space rather than
+deleting it, so a bigram cannot span the full stop between two sentences:
+
+```{r strip-punct}
+cjk_strip_punct("他說（今天）。真好")
+
+cjk_ngrams(cjk_strip_punct("好。天"))        # nothing spans the stop
+cjk_ngrams(cjk_strip_punct("好。天", ""))    # deleting it invents 好天
+```
+
+`gsub("[[:punct:]]", "", x)` is the spelling to avoid: R's default engine
+resolves the class through the C library, so it removes nothing under
+`LC_ALL=C`, and `perl = TRUE` removes nothing from CJK in any locale.
 
 ## Sorting
 
-`sort()` on Chinese gives code point order, and it is worth being precise
-about what that is. Within the base block it is *not* arbitrary: the unified
-ideographs are arranged in KangXi radical-stroke order, so code point order
-really is radical order. It is simply not the order anyone sorting a name
-column wants, because it is not phonetic — and it stops being radical order
-across blocks, since every Extension A character sorts before every
-base-block one, leaving a rare character nowhere near its radical-mates:
+`sort()` reads `LC_COLLATE`, so the order it gives Han text is a property of
+the session rather than of the data. These three surnames come out in code
+point order under `C` and `en_US.UTF-8`, in pinyin order under `zh_CN.utf8`,
+and in a third order under `ja_JP.utf8`. Each is defensible; none is
+reproducible, and that is the trap — the same script sorts a name column
+differently on a colleague's machine and says nothing about it.
+
+The fallback order is worth knowing, because it is not arbitrary. Within the
+base block the unified ideographs are arranged in KangXi radical-stroke
+order, so code point order really is radical order. It is simply not
+phonetic — and it stops being radical order across blocks, since every
+Extension A character sorts before every base-block one, leaving a rare
+character nowhere near its radical-mates.
+
+Naming the collation is what makes the answer the same everywhere:
 
 ```{r sort}
 x <- c("張", "王", "李")   # Zhang, Wang, Li
 
-sort(x)
-cjk_sort(x, locale = "zh")             # pinyin
-cjk_sort(x, locale = "zh-u-co-stroke") # stroke count
+x[order(vapply(x, utf8ToInt, integer(1)))]  # code point order, explicitly
+cjk_sort(x, locale = "zh")                  # pinyin
+cjk_sort(x, locale = "zh-u-co-stroke")      # stroke count
 ```
 
 ## Width, and why your tables are ragged
@@ -237,7 +258,19 @@ numbers:
 
 ```{r halfwidth}
 as.numeric(to_halfwidth("１２３"))
-to_halfwidth("½ Ⅸ ①")   # NFKC would mangle all three
+to_halfwidth("½ Ⅸ ①")   # NFKC would rewrite all three
+```
+
+When the blunt instrument *is* the right one — matching rather than display —
+`cjk_normalize()` is it, and it also answers the case a reader may not expect:
+plain `"nfc"` rewrites most of the CJK compatibility ideographs, because they
+have singleton canonical mappings.
+
+```{r normalize}
+ga <- c("\u304c", "\u304b\u3099")   # composed, then KA + voiced mark
+nchar(ga)
+nchar(cjk_normalize(ga))
+cjk_normalize("ＡＢ　①", form = "nfkc")
 ```
 
 Romanisation, Han script conversion, kana conversion and Hangul jamo

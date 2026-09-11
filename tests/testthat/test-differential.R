@@ -30,6 +30,28 @@ make_corpus <- function(n, seed = 20260909) {
 
 X <- make_corpus(300)
 
+test_that("the corpus actually exercises what the properties below assume", {
+  # Every test in this file asserts a property over X. Each of them would
+  # pass on a corpus of empty strings, so the corpus itself has to be
+  # checked -- otherwise a change to the pool, or a generator that quietly
+  # stopped working, would leave the whole file green and testing nothing.
+  # Lower bounds rather than exact counts, so tuning the pool does not
+  # break this spuriously while degeneracy still would.
+  expect_length(X, 300L)
+  expect_gt(sum(nzchar(X)), 250L)              # not mostly empty
+  expect_gt(sum(nchar(X) >= 2L), 200L)         # long enough for bigrams
+  expect_gt(sum(has_cjk(X), na.rm = TRUE), 200L)
+  expect_gt(sum(lengths(cjk_ngrams(X)) > 0L), 200L)
+  expect_gt(sum(lengths(cjk_sentences(X)) > 1L), 20L)   # some split
+  # the byte-order mark is in the pool deliberately: adding it is what
+  # exposed four verbs silently deleting one
+  expect_gt(sum(grepl("\uFEFF", X, fixed = TRUE)), 5L)
+  # and supplementary-plane ideographs, which are two code units apiece
+  expect_true(any(vapply(X, function(s) {
+    nzchar(s) && any(utf8ToInt(s) > 0xFFFF)
+  }, logical(1))))
+})
+
 test_that("cjk_ngrams agrees with a brute-force reference", {
   ref <- function(s, n) {
     # utf8ToInt(), not stri_sub(): stringi's own substring drops a leading
@@ -57,11 +79,27 @@ test_that("cjk_wrap preserves content, ignoring whitespace", {
   # re-flow can leave one at the start of a segment, where stringi reads it
   # as a byte-order mark and drops it. A *leading* one is preserved, and
   # test-wrap.R pins that separately.
+  #
+  # The removal is base gsub(), not stri_replace_all_fixed(): stringi strips
+  # a leading byte-order mark from the *pattern* as well, so a pattern of
+  # U+FEFF alone arrives empty, warns, and returns NA for every element --
+  # which made both sides of this comparison NA and the assertion vacuous.
+  # R/ranges.R says the same about the production path. base gsub() does no
+  # such stripping.
   strip <- function(z) {
     stringi::stri_replace_all_charclass(
-      stringi::stri_replace_all_fixed(z, "\uFEFF", ""),
+      gsub("\uFEFF", "", z, fixed = TRUE),
       "\\p{WHITE_SPACE}", "")
   }
+  # strip() is the whole assertion here, so it gets the same degeneracy
+  # check the corpus gets above: a helper that returns NA, or the input
+  # untouched, would make the comparison below pass without testing
+  # anything. That is not hypothetical -- it is what this test did.
+  expect_false(any(is.na(strip(X))))
+  expect_gt(sum(nzchar(strip(X))), 250L)
+  expect_equal(strip("\uFEFF\u4e2d \u3000\uFEFF\u6587"), "\u4e2d\u6587")
+  expect_lt(sum(nchar(strip(X))), sum(nchar(X)))
+
   for (w in c(4, 9, 20)) {
     got <- cjk_wrap(X, w)
     expect_equal(strip(gsub("\n", "", got, fixed = TRUE)), strip(X))

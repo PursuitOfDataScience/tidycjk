@@ -176,3 +176,46 @@ test_that("the jamo round trip returns NFC, not necessarily the input", {
     stringi::stri_trans_nfc(decomposed)
   )
 })
+
+test_that("stringi's zero-length and NA shapes are what the guards assume", {
+  # Four guards in this package restore nothing on the current stringi: the
+  # zero-length exits in .cjk_trans_verb(), cjk_normalize() and
+  # cjk_strip_punct(), and the NA coercion in cjk_sentences(). They are
+  # kept because the contract is ours and the
+  # stringi version is unpinned. Pinning the assumption here means a change
+  # in stringi shows up as a failure rather than as a verb returning the
+  # wrong shape -- the same treatment .cjk_rewidth()'s NULL guard gets.
+  expect_identical(stringi::stri_trans_general(character(0), "Any-Latin"),
+                   character(0))
+  expect_identical(
+    stringi::stri_split_boundaries(c("a. b.", NA), type = "sentence")[[2]],
+    NA_character_
+  )
+  for (f in list(stringi::stri_trans_nfc, stringi::stri_trans_nfd,
+                 stringi::stri_trans_nfkc, stringi::stri_trans_nfkd,
+                 stringi::stri_trans_nfkc_casefold)) {
+    expect_identical(f(character(0)), character(0))
+  }
+  expect_identical(
+    stringi::stri_replace_all_regex(character(0), "\\p{Variation_Selector}",
+                                    ""),
+    character(0)
+  )
+  expect_identical(
+    stringi::stri_replace_all_charclass(character(0), "\\p{P}", " "),
+    character(0)
+  )
+})
+
+test_that("the three counts of one Hangul syllable are what the docs say", {
+  # ?cjk_jamo and the transliteration vignette both state these three
+  # numbers for U+D55C. A Hangul syllable is East Asian Wide, so the column
+  # count is two, not one -- which the help page got wrong once.
+  han <- "\ud55c"
+  expect_equal(nchar(han), 1L)
+  expect_equal(cjk_width(han), 2L)
+  expect_equal(lengths(cjk_jamo(han)), 3L)
+  # and the whole Hangul Syllables block is two columns wide
+  blk <- vapply(c(0xAC00, 0xB000, 0xC000, 0xD7A3), intToUtf8, character(1))
+  expect_true(all(cjk_width(blk) == 2L))
+})

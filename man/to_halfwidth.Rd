@@ -122,5 +122,7 @@ to_halfwidth(to_fullwidth("abc 123"))
 to_fullwidth("abc")
 }
 \seealso{
-\code{\link[=cjk_width]{cjk_width()}} for measuring the result.
+\code{\link[=cjk_normalize]{cjk_normalize()}} for the Unicode normalisation forms, which
+fold width along with much else, \code{\link[=cjk_width]{cjk_width()}} for measuring the
+result.
 }

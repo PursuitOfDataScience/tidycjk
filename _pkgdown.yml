@@ -50,10 +50,11 @@ reference:
   contents:
   - cjk_sentences
   - cjk_ngrams
+  - cjk_strip_punct
 - title: Order
   desc: >
-    ICU collation. R's sort() puts Han in code point order, which is not
-    pronunciation, stroke or frequency.
+    ICU collation. R's sort() reads LC_COLLATE, so the order it gives Han
+    depends on the machine it runs on; naming a collation makes it not.
   contents:
   - cjk_sort
 - title: Detect & classify
@@ -70,10 +71,16 @@ reference:
   - cjk_pad
   - cjk_truncate
   - cjk_wrap
-- title: Normalise width variants
+- title: Normalise
+  desc: >
+    Making strings that look the same compare the same. The width verbs
+    move text along one axis and touch nothing else; `cjk_normalize()` is
+    the Unicode forms, including the fact that plain NFC rewrites most of
+    the CJK compatibility ideographs.
   contents:
   - to_halfwidth
   - to_fullwidth
+  - cjk_normalize
 - title: Transliterate
   desc: >
     Romanisation, Han script conversion, the kana syllabaries and Hangul

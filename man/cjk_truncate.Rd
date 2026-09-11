@@ -43,11 +43,15 @@ zero-width character immediately after the cut point is carried along with
 it.
 }
 \examples{
-# six columns is three ideographs
+# six columns would be three ideographs, but "..." is counted against
+# the budget and costs three of them, so one ideograph is what fits
 cjk_truncate("\u4e2d\u6587\u4e2d\u6587\u4e2d\u6587", 6)
 
-# ASCII, same budget
+# the same six columns hold three ASCII characters plus the ellipsis
 cjk_truncate("abcdefghij", 6)
+
+# drop the ellipsis and all six columns are available again
+cjk_truncate("\u4e2d\u6587\u4e2d\u6587\u4e2d\u6587", 6, ellipsis = "")
 
 # already fits, so nothing happens
 cjk_truncate("\u4e2d\u6587", 10)

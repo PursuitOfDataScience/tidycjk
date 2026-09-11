@@ -25,8 +25,10 @@ measure numbers; these verbs are for text.}
 means the result depends on where it is run; see Details.}
 }
 \value{
-A character vector the same length as \code{x}, each element the wrapped
-text with lines separated by \verb{\\n}. \code{NA} gives \code{NA}.
+A character vector the same length as the recycled inputs, each
+element the wrapped text with lines separated by \verb{\\n}. \code{NA} gives \code{NA}.
+As in \code{\link[=cjk_pad]{cjk_pad()}} and \code{\link[=cjk_truncate]{cjk_truncate()}}, a \code{width} longer than \code{x}
+recycles \code{x} up to it rather than being an error.
 }
 \description{
 Breaks each string into lines no wider than \code{width} terminal columns,
@@ -99,7 +101,8 @@ but whitespace re-flows to \code{""}, where \code{cjk_pad()} would have kept it.
 
 \examples{
 # "I am happy today, because the weather is very good"
-x <- "\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d"
+x <- paste0("\u6211\u4eca\u5929\u5f88\u958b\u5fc3\uff0c",
+              "\u56e0\u70ba\u5929\u6c23\u975e\u5e38\u597d")
 cat(cjk_wrap(x, 12), "\n")
 
 # every line is within the budget, measured in columns

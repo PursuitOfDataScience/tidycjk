@@ -182,6 +182,23 @@
   })
 }
 
+# One place to match an enumerated argument.
+#
+# match.arg() reports a value that is not character at all as "'arg' must be
+# NULL or a character vector" -- naming a variable the caller never wrote,
+# and never mentioning the argument they did. Every other argument in this
+# package is rejected by name, so the two enumerated ones are held to the
+# same standard. The matching itself stays match.arg's, including its
+# partial matching and its NULL-means-the-first-choice contract, so only the
+# opaque message changes and no accepted value becomes rejected.
+.cjk_arg_match <- function(value, choices, name) {
+  if (!is.null(value) && (!is.character(value) || anyNA(value))) {
+    stop("`", name, "` must be one of ",
+         paste0("\"", choices, "\"", collapse = ", "), ".", call. = FALSE)
+  }
+  match.arg(value, choices)
+}
+
 # ICU falls back to the root locale when it has no data for the one asked
 # for, and the fallback is a different answer wearing the right answer's
 # clothes: a sort that is not by pronunciation, a break iterator that is not

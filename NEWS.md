@@ -29,6 +29,23 @@ Four vignettes are new, and there were none before.
   bundled option, when one had been linked into a hard dependency the whole
   time.
 
+* **`cjk_tokens()` gains `output`**, naming the token column. The default
+  is still `"token"` and an existing column of that name is still
+  replaced, as the help page has always said -- but a caller whose data
+  already has a `token` column worth keeping now has somewhere else to put
+  the tokens, which is the escape hatch
+  [tidytext](https://CRAN.R-project.org/package=tidytext)'s
+  `unnest_tokens()` provides and this did not. It follows `...` and so has
+  to be given by its full name; an abbreviation is an engine argument, not
+  this one.
+
+* **A segmentation engine's element types are checked**, not only the list
+  and its length. `as.character()` deparses a list rather than coercing it,
+  so an engine returning `list(c(1, 2))` used to yield the single token
+  `"c(1, 2)"` -- R code spelled out as data. That is the same failure the
+  data frame check already caught at the outer level, one level down. An
+  atomic element is still coerced, so integers and factors work as before.
+
 ## Transliteration
 
 * **`cjk_romanize()`** romanises Han, kana and Hangul to the Latin alphabet.
@@ -80,6 +97,36 @@ help page and in `vignette("transliteration")`:
   gracefully on the names and coinages where a segmenter is least reliable.
   No gram is formed across whitespace.
 
+* **`cjk_ngrams()` is about four times faster.** The inner loop built each
+  gram with its own `paste()` call; it now pastes `n` shifted slices of the
+  character vector column-wise, so the work is `n` vectorised calls per
+  document rather than one closure call per gram. Output is byte-identical,
+  which the differential test against a brute-force reference checks over
+  300 random strings.
+
+## Cleaning
+
+* **`cjk_strip_punct()` removes punctuation by Unicode category**, not by a
+  POSIX class. The usual spelling is unreliable on CJK twice over:
+  `gsub("[[:punct:]]", "", x)` is resolved through the C library, so it
+  removes nothing under `LC_ALL=C` and everything under a UTF-8 locale --
+  the same script, two answers, no warning -- while `perl = TRUE` looks
+  safer and is worse, PCRE's POSIX classes being ASCII-only unless `(*UCP)`
+  is set, so it silently removes no CJK punctuation in any locale at all.
+* **It keeps U+30FC.** The katakana-hiragana prolonged sound mark looks like
+  a dash and is a modifier letter, carrying the long vowel in most Japanese
+  loanwords. Testing the General_Category keeps it; any rule phrased about
+  dashes removes it and quietly changes the words for coffee and ramen into
+  something else.
+* **`replacement` defaults to a space rather than `""`.** Deleting a full
+  stop closes the gap, and the characters that flanked it become adjacent --
+  `cjk_ngrams()` then reports a bigram spanning a sentence boundary, a word
+  that was never written. A space keeps the boundary, and every verb here
+  that walks a string already declines to cross whitespace.
+* `symbols = TRUE` additionally removes General_Category `S`: the fullwidth
+  tilde, currency signs and mathematical operators. It is off by default
+  because a currency sign is often content.
+
 ## Ordering
 
 * **`cjk_sort()` and `cjk_order()`** sort CJK text by an ICU collation.
@@ -97,6 +144,34 @@ help page and in `vignette("transliteration")`:
   order. An unrecognised *region* is not an error: `"zh-CH"` resolves to
   `"zh"` and still sorts by pinyin.
 
+## Normalisation
+
+* **`cjk_normalize()` applies the Unicode normalisation forms** -- `"nfc"`,
+  `"nfd"`, `"nfkc"`, `"nfkd"` and `"nfkc_casefold"` -- so that strings which
+  look the same compare the same. The package had been telling callers to
+  "normalise first" without giving them a way to do it.
+* **Plain NFC is not a no-op on Han, and the help page says so.** Compatibility
+  ideographs have singleton canonical mappings, so `"nfc"` rewrites them
+  exactly as `"nfkc"` does: 460 of the 472 characters in the CJK Compatibility
+  Ideographs block are folded away, along with all 542 of the Supplement
+  block. The 12 survivors are listed. If that distinction carries meaning in
+  your data -- it can in Korean and Japanese name records -- keep the original
+  column, because no form preserves it.
+* **`drop_variation_selectors = TRUE` removes them first.** Before,
+  not after: a variation selector has combining class zero and blocks
+  canonical composition across itself, so stripping one *after* normalising
+  can leave text that is no longer in the form just requested. `A` U+FE00
+  U+0300 normalises to itself under NFC and to U+00C0 once the selector is
+  gone.
+* **`"nfkc_casefold"` deletes every `Default_Ignorable` code point**, which
+  the other four forms keep: the variation selectors, the zero-width joiner
+  and non-joiner, the zero-width space, the soft hyphen, the tag characters
+  and U+FEFF. So a byte-order mark survives the other four and not this one.
+  Documented rather than worked around -- it is what the form is defined to
+  do, and every other verb in the package preserves a leading U+FEFF.
+* `to_halfwidth()` and `to_fullwidth()` are unchanged and remain the narrow
+  alternative: they move text along the width axis and touch nothing else.
+
 ## Layout
 
 * **`cjk_wrap()`** wraps text to a width in terminal columns, completing the
@@ -107,11 +182,101 @@ help page and in `vignette("transliteration")`:
   come back joined by `\n`, so the result is the same length as `x`.
   `indent` and `exdent` are supported.
 
+## Messages and validation
+
+* **An enumerated argument is now rejected by name.** `match.arg()` reports
+  a value that is not character at all as `'arg' must be NULL or a
+  character vector`, which names a variable the caller never wrote and
+  never mentions the one they did. `cjk_pad(side = )` and
+  `cjk_normalize(form = )` were the only two arguments in the package that
+  could produce it; both now say `` `side` must be one of "right", "left",
+  "both" `` and list the choices. Every value `match.arg()` accepted before
+  is still accepted, including partial matching and `NULL` meaning the
+  first choice.
+* **`cjk_pad(width = )` no longer warns before erroring** on a closure or
+  an environment. The check has to call `is.na()` so that an all-`NA`
+  logical width can pass and propagate, and `is.na()` on a function warns;
+  testing `is.atomic()` first keeps both properties.
+
 ## Documentation
+
+* **The `Description` field had gone stale, and self-contradictory.** It
+  described the package as normalising width forms "without the collateral
+  damage of a full `NFKC` pass" -- which stopped being the whole story the
+  moment `cjk_normalize()` was added, since a full NFKC fold is now exactly
+  one of the things on offer. It also listed the preprocessing verbs
+  without `cjk_strip_punct()`. Both are corrected; this is the text CRAN
+  and every package index shows, so it should describe what the release
+  actually contains.
+* **An example comment in `?cjk_truncate` contradicted its own output.**
+  "six columns is three ideographs" sat above a call returning `"\u4e2d..."`
+  -- one ideograph, because the ellipsis is counted against the budget and
+  costs three of the six columns. The arithmetic was right and read as a
+  prediction of the output, which is the worst way for a comment to be
+  right. It now says what the output shows, and a third call with
+  `ellipsis = ""` demonstrates the original point properly.
+* **`?cjk_romanize`'s timings were re-measured and two were wrong.** The
+  passage quoted about thirty thousand characters a second as the general
+  rate, which is in fact the *degraded* rate for one very long string; a
+  column of short documents runs at nearer sixty thousand. And 200,000
+  characters in one string take about five seconds rather than the eight
+  stated. The ratios were all correct and are the durable part: a million
+  characters still takes over two minutes, `cjk_segment(engine = "icu")`
+  still gets through the same million in under half a second (about 320
+  times cheaper), splitting a corpus into one row per document is still
+  worth about a factor of two, and a bare
+  `stringi::stri_trans_general()` still takes the same time to within one
+  per cent. The section now says outright that the absolute figures are
+  from one machine and that nothing in the test suite asserts them, because
+  a timing assertion on a build machine fails for reasons unrelated to this
+  package.
+* **`?cjk_wrap` described its return length wrongly.** It said "the same
+  length as `x`"; like `cjk_pad()` and `cjk_truncate()` it returns the
+  length of the recycled inputs, so a `width` longer than `x` recycles `x`
+  up to it.
+* **`?tidycjk` gains an "Input encoding" section.** Text has to arrive as
+  UTF-8 or with its encoding declared, and the release now says plainly
+  what happens when it does not -- because it is not uniform and cannot be
+  made so. Whether bytes are undecodable at all depends on the session's
+  native encoding: undeclared GBK is an error in a UTF-8 locale and
+  ordinary text in a GB18030 one, and both answers are correct. When the
+  bytes genuinely cannot be read, the code-point verbs raise "`x` must be
+  valid UTF-8" and name the legacy encodings, while the ICU-transform verbs
+  return U+FFFD replacement characters, because that is what an ICU
+  transform does with a byte it cannot decode. The advice is therefore to
+  declare the encoding on the way in rather than rely on an error: a
+  `\uFFFD` in the output means it was not declared.
+* **`?cjk_segmenters` now states how the two engines divide zero-width
+  characters**, which is in three groups rather than two and was previously
+  left to be discovered. `"character"` keeps them all. `"icu"` drops U+200B
+  in every position, because ICU calls the zero-width space "none"
+  wherever it sits and the engine asks for "none" to be skipped, and drops
+  U+200D, U+00AD, U+2060, a combining mark and a variation selector only
+  when one begins the string. U+FEFF survives both, and the distinction
+  matters: for that one the character is removed by stringi before ICU is
+  called, so it is data loss rather than policy, which is why it is the
+  only one the engines put back.
 
 * **Four vignettes**, where there were none: `vignette("tidycjk")`,
   `vignette("segmentation")`, `vignette("width-and-layout")` and
   `vignette("transliteration")`.
+* **The same contradiction was in the transliteration vignette.** "Width
+  forms are a separate concern" said an `NFKC` pass rewrites ligatures,
+  Roman numerals and circled numbers, "none of which you asked for" -- and
+  the section immediately after it introduces `cjk_normalize()` and calls
+  `"nfkc"` the right tool for matching. The absolute phrasing is now scoped
+  to the task it belongs to, a change of width, and points forward to the
+  section that offers the wider fold deliberately. That makes four places
+  where the same appended-text contradiction had to be unpicked: the
+  `Description` field, `R/normalize.R`, the README and here.
+* **The README's normalisation section had gone self-contradictory**, in
+  the same way the `Description` field had: it opened by framing `NFKC` as
+  the thing to avoid and then, three lines later, offered it. The two tools
+  are now introduced together as one deliberate choice -- surgical or blunt
+  -- under a heading that names both. Punctuation stripping and sorting also
+  had no headings of their own, so a reader scanning the README found
+  neither; both now do, and `cjk_blocks()` has joined the table that
+  enumerates the API.
 * **A hex logo**, and a README rebuilt around six generated figures and an
   animated comparison rather than 210 lines of prose. The figures are drawn by
   `data-raw/make-figures.R` using the package itself -- the terminal grids are
@@ -121,7 +286,7 @@ help page and in `vignette("transliteration")`:
 
 ## Fixes to 0.1.0
 
-Only two things in this release are fixes in the sense a 0.1.0 user cares
+Three things in this release are fixes in the sense a 0.1.0 user cares
 about. The rest of what changed during development concerned code that had
 never shipped, and is described under the features it belongs to rather
 than dressed up as a fix.
@@ -133,6 +298,20 @@ than dressed up as a fix.
   `is.na(list(NA))` is `TRUE` while `as.character(list(NA))` is the *string*
   `"NA"` -- not a missing value, so a downstream `is.na()` would have called
   it a real answer. Both are now errors.
+* **`cjk_segment()` and `cjk_tokens()` no longer delete a byte-order
+  mark.** `stri_split_charclass()` reads a leading U+FEFF in its own input
+  as a byte-order mark and drops it, and `omit_empty = TRUE` then discards
+  the emptied piece -- so a mark beginning a non-CJK run disappeared from
+  the `"character"` engine's output. `stri_split_boundaries()` drops a
+  leading one, so the `"icu"` engine lost it at the start of a string while
+  keeping one in the middle. This was not a policy about format
+  characters: U+200B, U+200D, U+00AD and U+2060 are all zero-width and
+  non-whitespace, and all four were already returned as tokens of their
+  own. U+FEFF alone vanished, which made the engine disagree with its own
+  documented rule. Both engines now count the leading run off and restore
+  it, as five other verbs already did. Over a 611-string corpus this
+  changes 15 results and adds 12 rows to `cjk_tokens()`; every one of them
+  is a mark 0.1.0 had silently removed.
 * **Every published URL now points at `tidycjk`.** The repository had been
   created as `tidyckj`, with the last two letters transposed, and the typo
   reached the `URL` and `BugReports` fields, the pkgdown site, the
@@ -202,6 +381,31 @@ you, gathered in one place.
   takes one.
 
 ## Notes
+
+* **Two of the new tests were not portable to an older ICU, and the release
+  notes had claimed otherwise.** Re-running the current suite on
+  R 3.6.3 / stringi 1.5.3 / ICU 60.3 -- a configuration the submission
+  notes said passed, but which had not been retried since the new verbs
+  went in -- produced four failures. Two pinned the number of variation
+  selectors at 260, which is a fact about the Unicode version rather than
+  about the package: U+180F arrived in Unicode 14.0, so an ICU built
+  against 10.0 knows 259. The set is now taken from ICU's own
+  `Variation_Selector` property and the assertions are about every member
+  of it, which is the standard the rest of the suite already held to. The
+  other two asserted that an exported verb raises on undecodable bytes,
+  which stringi 1.5.3 does not do -- it warns -- and which the test
+  immediately above them in the same file already warned was not a
+  portable assertion. That test now skips when stringi only warns. Both
+  older stacks pass.
+* **A test asserted nothing, four lines below a comment warning against
+  exactly that.** `expect_identical(cjk_blocks(), cjk_blocks())` holds for
+  any deterministic function and says nothing about the memoisation it sat
+  inside -- which the surrounding comment had already said in so many
+  words. It is replaced by the other half of what "the cache must be
+  invisible" means: a caller who edits the tibble they were handed must not
+  reach the table every other verb reads. Both new assertions were checked
+  against a deliberately poisoned cache to confirm they fail when they
+  should.
 
 * `RoxygenNote` replaces `Config/roxygen2/version`: `man/` is generated by
   roxygen2 7.3.2, and the file now records what actually built it.

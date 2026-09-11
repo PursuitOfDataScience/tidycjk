@@ -4,7 +4,7 @@
 \alias{cjk_tokens}
 \title{One row per token}
 \usage{
-cjk_tokens(data, col, engine, ...)
+cjk_tokens(data, col, engine, ..., output = "token")
 }
 \arguments{
 \item{data}{A data frame or tibble containing a text column.}
@@ -19,6 +19,9 @@ one. Required; see \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
 \item{...}{Passed to the engine. Name these so they are not a prefix of
 \code{engine} (or of \code{data}/\code{col} in \code{\link[=cjk_tokens]{cjk_tokens()}}); see "Passing arguments to
 an engine" in \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
+
+\item{output}{Name for the token column. Defaults to \code{"token"}. It
+follows \code{...}, so it has to be given by its full name.}
 }
 \value{
 \code{data}, as a tibble, with one row per token and an added \code{token}
@@ -39,8 +42,12 @@ yields one row with an \code{NA} token, so a missing document does not silently
 vanish from the output.
 
 The token column is called \code{token} and is added to \code{data}; an existing
-column of that name is replaced. As with \code{\link[=cjk_segment]{cjk_segment()}}, \code{engine} is
-required.
+column of that name is replaced. Set \code{output} to put the tokens
+somewhere else when \code{data} already has a column worth keeping under that
+name -- the same escape hatch \pkg{tidytext}'s \code{unnest_tokens()} gives
+you. It comes after \code{...} and so has to be named in full, which is what
+stops it competing with an engine argument for a prefix. As with
+\code{\link[=cjk_segment]{cjk_segment()}}, \code{engine} is required.
 
 Grouping is dropped, as it is by \code{\link[=cjk_summary]{cjk_summary()}}: the result is a plain
 tibble even when \code{data} is a \code{grouped_df}. Regroup it afterwards if you need

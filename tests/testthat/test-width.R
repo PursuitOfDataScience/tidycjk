@@ -355,3 +355,22 @@ test_that("cjk_truncate() validates its arguments", {
   expect_error(cjk_truncate("abc", 5, ellipsis = c("a", "b")), "single")
   expect_error(cjk_truncate(c("a", "b", "c"), c(1, 2)), "recyclable")
 })
+
+
+test_that("a non-atomic width errors without warning first", {
+  # is.na() on a closure or an environment warns, and .cjk_as_width() has
+  # to call it so that an all-NA logical vector can pass and propagate.
+  # Testing is.atomic() first keeps both properties: the error is the
+  # package's, and R's internals do not leak into a plain argument mistake.
+  for (v in list(mean, globalenv(), list(1), data.frame(a = 1), "abc")) {
+    expect_error(cjk_pad("a", v), "`width` must be numeric", fixed = TRUE)
+    expect_silent(try(cjk_pad("a", v), silent = TRUE))
+    expect_error(cjk_truncate("a", v), "`width` must be numeric",
+                 fixed = TRUE)
+    expect_error(cjk_wrap("a", v), "`width` must be numeric", fixed = TRUE)
+  }
+  # and the all-NA case the ordering exists for still passes through
+  expect_equal(cjk_pad(c("a", "b"), NA), c(NA_character_, NA_character_))
+  expect_equal(cjk_pad("a", NA_integer_), NA_character_)
+  expect_equal(cjk_truncate("a", c(NA, NA))[1], NA_character_)
+})

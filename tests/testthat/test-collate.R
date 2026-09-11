@@ -93,3 +93,29 @@ test_that("sorting reorders the input and never rewrites it", {
   expect_equal(x[cjk_order(x, locale = "zh")], cjk_sort(x, locale = "zh"))
   expect_true(any(startsWith(cjk_sort(x, locale = "zh"), "\ufeff")))
 })
+
+
+test_that("cjk_sort is stable under LC_COLLATE where sort() is not", {
+  # ?cjk_sort, the README and the introduction vignette all now say that
+  # sort() reads LC_COLLATE and cjk_sort() does not. That is the whole
+  # reason the verb exists, so it is pinned rather than asserted in prose.
+  zhang_wang_li <- c("\u5f35", "\u738b", "\u674e")
+  pinyin <- c("\u674e", "\u738b", "\u5f35")
+
+  old <- Sys.getlocale("LC_COLLATE")
+  on.exit(suppressWarnings(Sys.setlocale("LC_COLLATE", old)), add = TRUE)
+
+  usable <- character(0)
+  for (loc in c("C", "en_US.UTF-8", "zh_CN.utf8", "ja_JP.utf8")) {
+    got <- suppressWarnings(Sys.setlocale("LC_COLLATE", loc))
+    if (!nzchar(got)) next
+    usable <- c(usable, loc)
+    # the collation named in the call wins in every locale
+    expect_equal(cjk_sort(zhang_wang_li, locale = "zh"), pinyin, info = loc)
+    expect_equal(cjk_order(zhang_wang_li, locale = "zh"), c(3L, 2L, 1L),
+                 info = loc)
+  }
+  suppressWarnings(Sys.setlocale("LC_COLLATE", old))
+  # C is always available, so this never silently tests nothing
+  expect_true("C" %in% usable)
+})

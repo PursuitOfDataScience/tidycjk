@@ -34,6 +34,9 @@ thought was clean is full of fullwidth spaces.
 Rows are ordered by descending count, and ties are broken by first
 appearance in the column rather than by the session's collation, so the
 output does not change with the locale.
+
+Grouping is ignored: the counts are always for the whole column. Use
+\code{\link[dplyr:group_map]{dplyr::group_modify()}} if you need them per group.
 }
 \examples{
 df <- data.frame(

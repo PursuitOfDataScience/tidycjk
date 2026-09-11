@@ -14,6 +14,28 @@
 #' Every vector-layer function is vectorised, propagates `NA` element-wise,
 #' and returns a zero-length vector of the right type for zero-length input.
 #'
+#' @section Input encoding:
+#' Text has to reach R either as UTF-8 or with its encoding declared, which
+#' means naming the encoding when the file is read: `read.csv(f, encoding =
+#' "GBK")`, `readLines(f, encoding = "Shift_JIS")`, or
+#' [stringi::stri_encode()] afterwards. That is worth doing deliberately,
+#' because what happens otherwise is not uniform and cannot be made so.
+#'
+#' Whether a string of bytes is uninterpretable at all depends on the
+#' session's native encoding: GBK bytes with no declaration are an error in
+#' a UTF-8 locale and ordinary text in a GB18030 one, and both answers are
+#' right. When the bytes genuinely cannot be read, the verbs do not all
+#' report it the same way either -- the ones that go through code points
+#' raise "`x` must be valid UTF-8" and name the legacy encodings, while the
+#' ones built on an ICU transform ([cjk_normalize()], [cjk_romanize()],
+#' [cjk_simplify()], [cjk_traditionalize()], [to_hiragana()],
+#' [to_katakana()], [cjk_jamo()], [cjk_compose_jamo()]) hand back U+FFFD
+#' replacement characters, because that is what the transform does with a
+#' byte it cannot decode.
+#'
+#' So do not rely on an error to catch a mis-read file. Declare the encoding
+#' on the way in; a `\uFFFD` in the output means it was not declared.
+#'
 #' @section What counts as CJK:
 #' A character is CJK when its code point falls in one of the Unicode blocks
 #' listed by [cjk_blocks()]. That set is deliberately wide: it includes the

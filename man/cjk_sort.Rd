@@ -27,14 +27,20 @@ usefully, so name one.}
 the permutation that would do it, for reordering a data frame.
 }
 \details{
-\code{sort()} on Chinese gives code point order, which is a real order and the
-wrong one. The unified ideographs are laid out in KangXi radical-stroke
-order, so within the base block sorting by code point sorts by radical.
-What it is not is phonetic, which is what someone sorting a column of
-names is after. It also stops being radical order across blocks: every
-Extension A character (U+3400-U+4DBF) sorts ahead of every base-block one,
-so a rare character lands nowhere near the common characters sharing its
-radical.
+\code{sort()} reads \code{LC_COLLATE}, so the order it gives Han text is a property
+of the session rather than of the data. Under \code{C} or \code{en_US.UTF-8} it
+falls back to code point order; under \code{zh_CN.utf8} glibc supplies a pinyin
+collation and the answer changes; under \code{ja_JP.utf8} it changes again.
+None of those is wrong in itself, and that is the difficulty: the same
+script sorts a name column differently on two machines and says nothing.
+
+The fallback order is worth knowing, because it is not arbitrary. The
+unified ideographs are laid out in KangXi radical-stroke order, so within
+the base block sorting by code point sorts by radical. What it is not is
+phonetic, which is what someone sorting names is after. It also stops
+being radical order across blocks: every Extension A character
+(U+3400-U+4DBF) sorts ahead of every base-block one, so a rare character
+lands nowhere near the common characters sharing its radical.
 
 ICU carries real collations. With \code{locale = "zh"} Han sorts by pinyin, so a
 column of Chinese surnames comes out in the order a Chinese reader expects.
@@ -66,8 +72,8 @@ silently shorten a column.
 # Chinese surnames: Zhang, Wang, Li
 x <- c("\u5f35", "\u738b", "\u674e")
 
-sort(x)                        # code point order: not an order
-cjk_sort(x, locale = "zh")     # pinyin: Li, Wang, Zhang
+sort(x)                        # depends on LC_COLLATE
+cjk_sort(x, locale = "zh")     # pinyin: Li, Wang, Zhang -- on any machine
 
 # stroke order instead
 cjk_sort(x, locale = "zh-u-co-stroke")

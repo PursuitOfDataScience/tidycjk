@@ -21,20 +21,21 @@ Description: A tidy toolkit for text that is written in Chinese, Japanese or
     'tidyverse' workflow. It also measures display width in terminal columns,
     pads, truncates and wraps to a width rather than to a character
     count, and normalises fullwidth and halfwidth forms surgically -- including
-    composing halfwidth katakana voiced marks into single code points -- without
-    the collateral damage of a full 'NFKC' pass. Romanisation, conversion
+    composing halfwidth katakana voiced marks into single code points -- while
+    offering the Unicode normalisation forms separately for when a full 'NFKC'
+    fold is what is wanted. Romanisation, conversion
     between simplified and traditional Han, conversion between the two kana
     syllabaries, and decomposition of Hangul syllables into jamo are provided
-    on the same vectorised contract. Sentence segmentation, character n-grams
-    and locale-aware ordering cover the preprocessing that generic tooling
-    gets wrong on CJK, where the sentence terminators are ideographic and a
-    code point sort is not an alphabetical one. Language detection
-    deliberately
-    returns NA rather than guessing when a text is written in Han characters
-    only, because Japanese written without kana cannot be distinguished from
-    Chinese by script alone. Everything is derived from the Unicode
-    specification; the package makes no network requests and needs no compiled
-    code of its own.
+    on the same vectorised contract. Sentence segmentation, character n-grams,
+    punctuation removal by Unicode category and locale-aware ordering cover the
+    preprocessing that generic tooling gets wrong on CJK, where the sentence
+    terminators are ideographic, a code point sort is not an alphabetical one,
+    and the POSIX punctuation class is resolved by the C library rather than by
+    Unicode. Language detection deliberately returns NA rather than guessing
+    when a text is written in Han characters only, because Japanese written
+    without kana cannot be distinguished from Chinese by script alone.
+    Everything is derived from the Unicode specification; the package makes no
+    network requests and needs no compiled code of its own.
 License: GPL (>= 3)
 URL: https://pursuitofdatascience.github.io/tidycjk/,
     https://github.com/PursuitOfDataScience/tidycjk

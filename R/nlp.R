@@ -59,6 +59,19 @@
 #'
 #' # ASCII terminators work too, and mixed text is fine
 #' cjk_sentences("First one. \u4e2d\u6587\u4e5f\u53ef\u4ee5\u3002")
+#'
+#' # One row per sentence, the way cjk_tokens() gives one row per token.
+#' # There is no tidy verb for this because the list is already the hard
+#' # part; rep() over lengths() is the whole of the rest.
+#' docs <- data.frame(
+#'   id = 1:2,
+#'   text = c("\u6211\u5f88\u958b\u5fc3\u3002\u4f60\u5462\uff1f", "One. Two.")
+#' )
+#' sents <- cjk_sentences(docs$text)
+#' data.frame(
+#'   id = rep(docs$id, lengths(sents)),
+#'   sentence = unlist(sents, use.names = FALSE)
+#' )
 #' @export
 cjk_sentences <- function(x, locale = NULL) {
   x <- as.character(x)
@@ -77,7 +90,10 @@ cjk_sentences <- function(x, locale = NULL) {
     locale, "break data", "Use a language such as \"zh\", \"ja\" or \"ko\"."
   )
   # As in the icu engine: stringi already returns NA for NA and character(0)
-  # for "", and the coercion only fixes the type of an NA element.
+  # for "". On the current stringi that NA is already NA_character_, so the
+  # coercion below changes nothing; it is kept because the type is part of
+  # this verb's contract and stringi's version is unpinned, and the
+  # assumption is pinned by a test.
   out <- lapply(out, function(s) {
     if (length(s) == 1L && is.na(s)) NA_character_ else as.character(s)
   })
@@ -85,9 +101,19 @@ cjk_sentences <- function(x, locale = NULL) {
   for (i in hit) {
     mark <- strrep("\uFEFF", bom[[i]])
     s_i <- out[[i]]
-    out[[i]] <- if (length(s_i) == 0L) mark
-                else if (is.na(s_i[[1]])) s_i
-                else c(paste0(mark, s_i[[1]]), s_i[-1L])
+    out[[i]] <- if (length(s_i) == 0L) {
+      # A string that was nothing but marks: the split returns nothing, so
+      # the marks are the whole result.
+      mark
+    } else if (is.na(s_i[[1]])) {
+      # Not reachable: .cjk_leading_bom() counts 0 for NA, so this loop
+      # never visits an NA element. Kept because the NA branch above and
+      # this one are the same contract, and a future change to either
+      # counting or splitting should not have to rediscover it.
+      s_i
+    } else {
+      c(paste0(mark, s_i[[1]]), s_i[-1L])
+    }
   }
   out
 }
@@ -183,8 +209,125 @@ cjk_ngrams <- function(x, n = 2L) {
     if (!any(keep)) {
       return(character(0))
     }
-    vapply(starts[keep],
-           function(i) paste(chars[i:(i + n - 1L)], collapse = ""),
-           character(1))
+    # n vectorised paste0() calls rather than one closure call per gram.
+    # The k-th gram is chars[i] ... chars[i + n - 1], so pasting n shifted
+    # slices column-wise builds every gram at once; measured about five
+    # times faster than the per-window vapply() on a corpus of short
+    # documents, with byte-identical output.
+    hit <- starts[keep]
+    do.call(paste0, lapply(seq_len(n) - 1L, function(k) chars[hit + k]))
   })
+}
+
+
+# Punctuation removal.
+#
+# The obvious spelling of this is gsub("[[:punct:]]", "", x), and it is
+# wrong twice over. TRE resolves [:punct:] through the C library, so under
+# LC_ALL=C it matches no CJK punctuation at all and under a UTF-8 locale it
+# matches all of it -- the same script, two answers, no warning. perl = TRUE
+# is worse rather than better: PCRE's POSIX classes are ASCII-only unless
+# (*UCP) is set, so it silently removes nothing from Chinese or Japanese in
+# any locale. ICU's \p{P} is the same set on every machine, which is the
+# property the rest of this package holds to.
+#
+# What is removed is a Unicode General_Category, not a list of characters,
+# and that matters most for what it leaves alone: U+30FC, the prolonged
+# sound mark in every Japanese loanword, is a modifier letter rather than
+# punctuation, so a category test keeps it where any rule about dashes
+# would have eaten the middle of every long vowel.
+
+#' Remove punctuation from CJK text
+#'
+#' `cjk_strip_punct()` removes punctuation using Unicode's own category
+#' rather than a POSIX class, so the same call removes the same characters
+#' on every machine. It is the step before [cjk_ngrams()] or
+#' [cjk_segment()] that stops punctuation becoming part of a token.
+#'
+#' @details
+#' The usual spelling, `gsub("[[:punct:]]", "", x)`, is unreliable on CJK in
+#' two separate ways. R's default engine resolves `[:punct:]` through the C
+#' library, so under `LC_ALL=C` it removes no CJK punctuation and under a
+#' UTF-8 locale it removes all of it -- the same script gives two answers on
+#' two machines. Passing `perl = TRUE` does not fix it but hides it: PCRE's
+#' POSIX classes are ASCII-only unless `(*UCP)` is set, so that spelling
+#' silently removes nothing from Chinese or Japanese in any locale at all.
+#'
+#' This removes Unicode General_Category `P`, which is the ideographic full
+#' stop U+3002, the ideographic comma U+3001, the fullwidth comma, question
+#' mark and exclamation mark, the corner and fullwidth brackets, and the
+#' katakana middle dot U+30FB that separates the parts of a transliterated
+#' name -- along with ASCII punctuation, so mixed text needs only one pass.
+#'
+#' # What it deliberately keeps
+#'
+#' U+30FC, the katakana-hiragana prolonged sound mark, is a *modifier
+#' letter* and not punctuation. It looks like a dash and is not one: it
+#' carries the long vowel in most Japanese loanwords, so removing it turns
+#' the words for coffee and ramen into something else. Testing the category
+#' keeps it; any rule phrased about dashes does not.
+#'
+#' The ideographic space U+3000 is whitespace rather than punctuation and is
+#' left alone too. [cjk_segment()] and [cjk_ngrams()] already ignore
+#' whitespace, so there is nothing to do about it here.
+#'
+#' # Why the default replaces rather than deletes
+#'
+#' `replacement` defaults to a space, not `""`. Deleting a full stop closes
+#' the gap it left, and the two characters that were on either side of it
+#' become adjacent: `cjk_ngrams()` then reports a bigram spanning a sentence
+#' boundary, a "word" that was never written. A space keeps the boundary,
+#' and every verb here that walks a string already declines to cross
+#' whitespace. Pass `replacement = ""` when you want the characters closed
+#' up -- for a display string rather than for tokenising.
+#'
+#' @inheritParams has_cjk
+#' @param replacement A single string to put in place of each removed
+#'   character. Defaults to `" "`; see above for why it is not `""`.
+#' @param symbols Also remove General_Category `S`: the fullwidth tilde
+#'   U+FF5E, currency signs including U+FFE5, and mathematical operators.
+#'   Defaults to `FALSE`, because a currency sign is often content.
+#'
+#' @return A character vector the same length as `x`. `NA` gives `NA`, and a
+#'   leading byte-order mark is preserved.
+#' @seealso [cjk_ngrams()] and [cjk_segment()], the verbs this feeds;
+#'   [cjk_normalize()] for folding width and compatibility variants.
+#' @examples
+#' x <- "\u4ed6\u8aaa\uff08\u4eca\u5929\uff09\u3002\u771f\u597d"
+#' cjk_strip_punct(x)
+#' cjk_strip_punct(x, replacement = "")
+#'
+#' # the prolonged sound mark is a letter, not a dash, and survives
+#' cjk_strip_punct("\u30b3\u30fc\u30d2\u30fc\u3001\u30e9\u30fc\u30e1\u30f3")
+#'
+#' # a space keeps n-grams from spanning the full stop
+#' cjk_ngrams(cjk_strip_punct("\u597d\u3002\u5929"))
+#' cjk_ngrams(cjk_strip_punct("\u597d\u3002\u5929", replacement = ""))
+#' @export
+cjk_strip_punct <- function(x, replacement = " ", symbols = FALSE) {
+  if (!is.character(replacement) || length(replacement) != 1L ||
+        is.na(replacement)) {
+    stop("`replacement` must be a single string.", call. = FALSE)
+  }
+  if (!is.logical(symbols) || length(symbols) != 1L || is.na(symbols)) {
+    stop("`symbols` must be TRUE or FALSE.", call. = FALSE)
+  }
+  x <- as.character(x)
+  # Restores nothing on the current stringi, which already answers
+  # character(0) here; kept for the reason the identical exits in
+  # .cjk_trans_verb() and cjk_normalize() are kept, and pinned by the same
+  # test, so a change in stringi surfaces as a failure rather than as a
+  # verb quietly returning the wrong shape.
+  if (length(x) == 0L) {
+    return(character(0))
+  }
+  # stri_replace_all_charclass() reads a leading U+FEFF as a byte-order mark
+  # and drops it, so it is counted off and put back -- the same guard the
+  # other verbs here take, and the reason ?cjk_strip_punct promises the mark
+  # survives. An interior one is not touched by either stringi or the class.
+  bom <- .cjk_leading_bom(x)
+  x <- .cjk_strip_bom(x, bom)
+  cls <- if (symbols) "[\\p{P}\\p{S}]" else "\\p{P}"
+  out <- .cjk_stri(stringi::stri_replace_all_charclass(x, cls, replacement))
+  .cjk_restore_bom(out, bom)
 }

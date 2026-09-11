@@ -61,6 +61,19 @@ cjk_sentences("\u6211\u4eca\u5929\u5f88\u958b\u5fc3\u3002\u4f60\u5462\uff1f")
 
 # ASCII terminators work too, and mixed text is fine
 cjk_sentences("First one. \u4e2d\u6587\u4e5f\u53ef\u4ee5\u3002")
+
+# One row per sentence, the way cjk_tokens() gives one row per token.
+# There is no tidy verb for this because the list is already the hard
+# part; rep() over lengths() is the whole of the rest.
+docs <- data.frame(
+  id = 1:2,
+  text = c("\u6211\u5f88\u958b\u5fc3\u3002\u4f60\u5462\uff1f", "One. Two.")
+)
+sents <- cjk_sentences(docs$text)
+data.frame(
+  id = rep(docs$id, lengths(sents)),
+  sentence = unlist(sents, use.names = FALSE)
+)
 }
 \seealso{
 \code{\link[=cjk_segment]{cjk_segment()}} for words, \code{\link[=cjk_ngrams]{cjk_ngrams()}} for character n-grams.

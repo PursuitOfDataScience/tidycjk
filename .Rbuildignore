@@ -16,3 +16,4 @@
 ^tidycjk\.Rcheck$
 ^tidycjk_.*\.tar\.gz$
 ^vignettes/articles$
+^Rplots\.pdf$

@@ -201,7 +201,15 @@ test_that("the cached block table is stable across calls", {
   first <- .cjk_ranges()
   expect_identical(ls(.cjk_cache), "ranges")
   expect_identical(.cjk_ranges(), first)
-  expect_identical(cjk_blocks(), cjk_blocks())
+  # cjk_blocks() is the exported view of the same table. Comparing it to
+  # itself was the assertion the comment above warns against -- it holds
+  # for any deterministic function and says nothing about the cache. What
+  # matters is the other half of "invisible": a caller who edits the tibble
+  # they were handed must not reach the table everything else reads.
+  handed_out <- cjk_blocks()
+  handed_out$block[[1L]] <- "MUTATED"
+  expect_false(identical(cjk_blocks()$block[[1L]], "MUTATED"))
+  expect_false(any(.cjk_ranges()$block == "MUTATED"))
   before <- .cjk_ranges()
   invisible(cjk_char_counts(data.frame(text = ZH), text))
   invisible(cjk_script(ZH))
@@ -415,4 +423,78 @@ test_that("the fixtures are what helper-fixtures.R says they are", {
 test_that("supplementary-plane characters are one code point, not two", {
   expect_equal(length(.cjk_codepoints(EXT_B)[[1]]), 1L)
   expect_equal(.cjk_codepoints(EXT_B)[[1]], 0x20000L)
+})
+
+
+test_that("the two reported shapes for undecodable bytes are what ?tidycjk says", {
+  # ?tidycjk states that a byte sequence R cannot decode is reported two
+  # ways: the code-point path raises our message, the ICU-transform path
+  # returns U+FFFD. Both are stringi's behaviour rather than ours, so this
+  # pins the claim the documentation rests on.
+  #
+  # Skipped outside a UTF-8 locale on purpose, and this is the point of the
+  # documented caveat: in a GB18030 or C locale these same bytes are
+  # interpretable in the native encoding and nothing is wrong with them.
+  skip_if_not(grepl("UTF-8|utf8", Sys.getlocale("LC_CTYPE"), ignore.case = TRUE),
+              "needs a UTF-8 locale; see ?tidycjk on input encoding")
+  zh <- "\u4e2d\u6587"
+  gbk <- rawToChar(iconv(zh, "UTF-8", "GBK", toRaw = TRUE)[[1]])
+  skip_if(is.na(gbk) || !nzchar(gbk), "iconv has no GBK on this build")
+  expect_false(validUTF8(gbk))
+
+  # And skipped unless stringi actually raises, which is the caveat the
+  # test above this one already records: stringi 1.5.3 only *warns* on
+  # invalid UTF-8 in stri_enc_toutf32(), so on that build nothing reaches
+  # our handler and there is no error to assert. Writing the sweep without
+  # this guard is what made the test fail on R 3.6.3.
+  raises <- tryCatch({
+    suppressWarnings(stringi::stri_enc_toutf32(gbk)); FALSE
+  }, error = function(e) TRUE)
+  skip_if_not(raises, "this stringi warns rather than raises on invalid UTF-8")
+
+  # the code-point path raises, and names the legacy encodings
+  expect_error(suppressWarnings(has_cjk(gbk)), "must be valid UTF-8")
+  expect_error(suppressWarnings(has_cjk(gbk)), "GBK")
+
+  # the ICU-transform path returns replacement characters instead
+  out <- suppressWarnings(cjk_normalize(gbk))
+  expect_false(grepl("must be valid", out, fixed = TRUE))
+  expect_true(grepl("\ufffd", out, fixed = TRUE))
+  expect_true(grepl("\ufffd", suppressWarnings(cjk_romanize(gbk)), fixed = TRUE))
+
+  # and text whose encoding IS declared goes through untouched
+  declared <- iconv(gbk, "GBK", "UTF-8")
+  expect_equal(declared, zh)
+  expect_true(has_cjk(declared))
+  expect_equal(cjk_normalize(declared), zh)
+})
+
+
+test_that("an enumerated argument is rejected by name, not as 'arg'", {
+  # match.arg() reports a non-character value as "'arg' must be NULL or a
+  # character vector", which names a variable the caller never wrote. The
+  # other 34 messages in this package all name their argument, so the two
+  # enumerated ones are held to the same standard.
+  for (v in list(NA, 1, list(1), TRUE, data.frame(a = 1))) {
+    expect_error(cjk_pad("a", 8, side = v), "`side` must be one of",
+                 fixed = TRUE)
+    expect_error(cjk_normalize("a", form = v), "`form` must be one of",
+                 fixed = TRUE)
+  }
+  # and the message lists the choices
+  expect_error(cjk_pad("a", 8, side = NA), "\"right\", \"left\", \"both\"",
+               fixed = TRUE)
+  expect_error(cjk_normalize("a", form = NA), "\"nfkc_casefold\"",
+               fixed = TRUE)
+
+  # every value match.arg() accepted before is still accepted, unchanged:
+  # partial matching, NULL meaning the first choice, and the defaults
+  expect_equal(cjk_pad("ab", 6, side = "l"), cjk_pad("ab", 6, side = "left"))
+  expect_equal(cjk_pad("ab", 6, side = "b"), cjk_pad("ab", 6, side = "both"))
+  expect_equal(cjk_pad("ab", 6, side = NULL), cjk_pad("ab", 6))
+  expect_equal(cjk_normalize("a", form = NULL), cjk_normalize("a"))
+  expect_equal(cjk_normalize("\uff21", form = "nfkc"), "A")
+  # an unmatched value keeps match.arg's own wording, which lists the choices
+  expect_error(cjk_pad("a", 8, side = "middle"), "should be one of")
+  expect_error(cjk_normalize("a", form = "NFC"), "should be one of")
 })

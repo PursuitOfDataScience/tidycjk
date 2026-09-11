@@ -50,9 +50,28 @@ test_that("cjk_wrap applies exdent to continuation lines only", {
 })
 
 test_that("cjk_wrap recycles width against x", {
-  out <- cjk_wrap(c(strrep("\u4e2d", 4), strrep("\u4e2d", 4)), c(2, 8))
-  expect_equal(length(strsplit(out[[1]], "\n", fixed = TRUE)[[1]]), 4L)
-  expect_equal(length(strsplit(out[[2]], "\n", fixed = TRUE)[[1]]), 1L)
+  # Assert the content, not just the line count. Counting alone passed
+  # vacuously: if an element is never processed it stays NA, and
+  # strsplit(NA) has length 1 -- exactly what the narrow-width case
+  # expects. Mutation testing caught it.
+  x <- c(strrep("\u4e2d", 4), strrep("\u4e2d", 4))
+  out <- cjk_wrap(x, c(2, 8))
+  expect_false(anyNA(out))
+  expect_equal(out[[1]], paste(rep("\u4e2d", 4), collapse = "\n"))  # width 2
+  expect_equal(out[[2]], strrep("\u4e2d", 4))                       # width 8, one line
+  # and every element must still hold its own text
+  expect_equal(gsub("\n", "", out, fixed = TRUE), x)
+})
+
+test_that("a leading run of byte-order marks survives in full", {
+  # The count-based helper exists because stripping one mark leaves another
+  # for stringi to drop. A single-mark test cannot tell the two apart.
+  two <- paste0("\uFEFF\uFEFF", "\u4e2d\u6587")
+  expect_equal(nchar(cjk_wrap(two, 20)), nchar(two))
+  expect_true(startsWith(cjk_wrap(two, 20), "\uFEFF\uFEFF"))
+  expect_equal(paste(cjk_sentences(two)[[1]], collapse = ""), two)
+  expect_equal(cjk_compose_jamo(paste(cjk_jamo(two)[[1]], collapse = "")), two)
+  expect_setequal(cjk_sort(c(two, "a"), locale = "zh"), c(two, "a"))
 })
 
 test_that("cjk_wrap respects the line-break rules the vignette promises", {
@@ -124,4 +143,28 @@ test_that("short strings keep stringi's optimal fit", {
   expect_equal(cjk_wrap(s, 8),
                paste(stringi::stri_wrap(s, 8, simplify = TRUE),
                      collapse = "\n"))
+})
+
+test_that("the greedy switch happens exactly where the help page says", {
+  # ?cjk_wrap promises "strings longer than 10,000 characters" use the greedy
+  # fit. Nothing else pins the comparison, so changing `>` to `>=` would make
+  # the documentation wrong with every test still passing. The unit below is
+  # one where the two algorithms genuinely disagree, which is what makes the
+  # switch observable at all.
+  thresh <- .CJK_WRAP_GREEDY_ABOVE
+  unit <- "aa bbbbbbbb c "
+  mk <- function(n) {
+    substr(strrep(unit, ceiling(n / nchar(unit)) + 1L), 1L, n)
+  }
+  wrapped <- function(s, cost) {
+    paste(stringi::stri_wrap(s, 10, cost_exponent = cost, simplify = TRUE),
+          collapse = "\n")
+  }
+  at <- mk(thresh)
+  over <- mk(thresh + 1L)
+  # the premise: the two fits differ on this input, so the choice is visible
+  expect_false(identical(wrapped(at, 2), wrapped(at, 0)))
+
+  expect_equal(cjk_wrap(at, 10), wrapped(at, 2))       # at the threshold: optimal
+  expect_equal(cjk_wrap(over, 10), wrapped(over, 0))   # one past it: greedy
 })

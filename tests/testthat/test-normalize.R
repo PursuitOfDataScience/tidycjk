@@ -225,3 +225,178 @@ test_that("compose is validated", {
   expect_error(to_halfwidth("a", compose = NA), "TRUE or FALSE")
   expect_error(to_halfwidth("a", compose = "yes"), "TRUE or FALSE")
 })
+
+
+# --------------------------------------------------------------------------
+# cjk_normalize(): Unicode normalisation forms.
+
+KANA_GA_C <- "\u304c"            # composed GA, one code point
+KANA_GA_D <- "\u304b\u3099"      # KA + combining voiced mark, two
+COMPAT_WU <- "\ufa0c"            # compatibility ideograph, unified is U+5140
+IVS_TSUJI <- "\u8fbb\U000E0100"  # ideographic variation sequence
+
+test_that("the canonical forms compose and decompose", {
+  expect_equal(cjk_normalize(KANA_GA_D, "nfc"), KANA_GA_C)
+  expect_equal(cjk_normalize(KANA_GA_C, "nfd"), KANA_GA_D)
+  expect_equal(nchar(cjk_normalize(c(KANA_GA_C, KANA_GA_D), "nfc")), c(1L, 1L))
+  expect_equal(nchar(cjk_normalize(c(KANA_GA_C, KANA_GA_D), "nfd")), c(2L, 2L))
+})
+
+test_that("nfc is the default form", {
+  expect_equal(cjk_normalize(KANA_GA_D), cjk_normalize(KANA_GA_D, "nfc"))
+})
+
+test_that("the compatibility forms fold what the canonical ones keep", {
+  # fullwidth ASCII, ideographic space, circled number, squared kana
+  expect_equal(cjk_normalize("\uff21\uff22", "nfkc"), "AB")
+  expect_equal(cjk_normalize("\uff21\uff22", "nfc"), "\uff21\uff22")
+  expect_equal(cjk_normalize(IDEOGRAPHIC_SPACE, "nfkc"), " ")
+  expect_equal(cjk_normalize(IDEOGRAPHIC_SPACE, "nfc"), IDEOGRAPHIC_SPACE)
+  expect_equal(cjk_normalize("\u2460", "nfkc"), "1")
+  expect_equal(cjk_normalize("\u2460", "nfc"), "\u2460")
+  expect_equal(cjk_normalize("\u3314", "nfkc"), "\u30ad\u30ed")
+  expect_equal(cjk_normalize("\u00a0", "nfkc"), " ")
+})
+
+test_that("nfkc_casefold is nfkc plus case folding", {
+  expect_equal(cjk_normalize("AB\uff21\uff22", "nfkc_casefold"), "abab")
+  # katakana has no case, so it is untouched by the folding half
+  expect_equal(cjk_normalize("\u30ab", "nfkc_casefold"), "\u30ab")
+})
+
+test_that("every form is idempotent", {
+  x <- c(KANA_GA_C, KANA_GA_D, "\uff21\u2460", IDEOGRAPHIC_SPACE, "abc", "")
+  for (f in c("nfc", "nfd", "nfkc", "nfkd", "nfkc_casefold")) {
+    once <- cjk_normalize(x, f)
+    expect_equal(cjk_normalize(once, f), once, info = f)
+  }
+})
+
+test_that("NFC rewrites compatibility ideographs, and the count is the 12", {
+  # The documented claim, pinned: canonical normalisation is not a no-op on
+  # Han. If a future Unicode changes this the docs are wrong, not just stale.
+  expect_equal(utf8ToInt(cjk_normalize(COMPAT_WU, "nfc")), 0x5140L)
+  expect_equal(utf8ToInt(cjk_normalize("\uf900", "nfc")), 0x8c48L)
+
+  block <- c(0xF900:0xFA6D, 0xFA70:0xFAD9)
+  chars <- vapply(block, intToUtf8, character(1))
+  kept <- block[cjk_normalize(chars, "nfc") == chars]
+  expect_equal(length(block), 472L)
+  expect_equal(kept, c(0xFA0E, 0xFA0F, 0xFA11, 0xFA13, 0xFA14, 0xFA1F,
+                       0xFA21, 0xFA23, 0xFA24, 0xFA27, 0xFA28, 0xFA29))
+  # nfkc folds no more of this block than nfc does
+  expect_equal(sum(cjk_normalize(chars, "nfkc") == chars), length(kept))
+
+  supp <- 0x2F800:0x2FA1D
+  schars <- vapply(supp, intToUtf8, character(1))
+  expect_equal(length(supp), 542L)
+  expect_equal(sum(cjk_normalize(schars, "nfc") == schars), 0L)
+})
+
+test_that("variation selectors survive every form but nfkc_casefold", {
+  for (f in c("nfc", "nfd", "nfkc", "nfkd")) {
+    expect_equal(nchar(cjk_normalize(IVS_TSUJI, f)), 2L, info = f)
+  }
+  # nfkc_casefold deletes them as Default_Ignorable, which is documented
+  expect_equal(cjk_normalize(IVS_TSUJI, "nfkc_casefold"), "\u8fbb")
+  expect_equal(cjk_normalize(IVS_TSUJI, drop_variation_selectors = TRUE),
+               "\u8fbb")
+  # both ranges, and the default keeps them
+  expect_equal(cjk_normalize("\u904b\ufe00", drop_variation_selectors = TRUE),
+               "\u904b")
+  expect_equal(nchar(cjk_normalize(IVS_TSUJI)), 2L)
+})
+
+test_that("selectors are dropped before the form, so the output is in it", {
+  # A selector has combining class zero and blocks composition across itself.
+  # Normalising first and stripping afterwards would leave A + combining
+  # grave -- not NFC, although it was just normalised.
+  blocked <- "A\ufe00\u0300"
+  expect_equal(cjk_normalize(blocked, "nfc"), blocked)
+  expect_equal(cjk_normalize(blocked, "nfc", drop_variation_selectors = TRUE),
+               "\u00c0")
+  expect_true(stringi::stri_trans_isnfc(
+    cjk_normalize(blocked, "nfc", drop_variation_selectors = TRUE)
+  ))
+  # the wrong order, spelled out, so the difference is the test
+  wrong <- stringi::stri_replace_all_regex(
+    stringi::stri_trans_nfc(blocked), "\\p{Variation_Selector}", ""
+  )
+  expect_false(stringi::stri_trans_isnfc(wrong))
+})
+
+test_that("nfkc_casefold deletes the other Default_Ignorable code points", {
+  # The four forms above keep them; this one does not. Pinned because the
+  # difference decides whether a byte-order mark survives normalisation.
+  keep <- c("nfc", "nfd", "nfkc", "nfkd")
+  for (cp in c(0x200D, 0x200C, 0x200B, 0x00AD, 0xFEFF, 0xE0041)) {
+    s <- intToUtf8(c(0x8FBB, cp))
+    for (f in keep) expect_equal(cjk_normalize(s, f), s, info = f)
+    expect_equal(cjk_normalize(s, "nfkc_casefold"), "\u8fbb",
+                 info = sprintf("U+%04X", cp))
+  }
+})
+
+test_that("the dropped set is Unicode's Variation_Selector property", {
+  # The set is taken from ICU rather than written out, because how many
+  # there are is a property of the Unicode version: U+180F arrived in
+  # Unicode 14.0, so an ICU built against 10.0 knows 259 where a current
+  # one knows 260. Hard-coding the total made this fail on ICU 60.3 --
+  # which is the practice the package avoids everywhere else, asserting
+  # what must hold on any ICU instead of what this one happens to say.
+  candidates <- c(0x180B:0x180F, 0xFE00:0xFE0F, 0xE0100:0xE01EF)
+  is_vs <- stringi::stri_detect_charclass(
+    vapply(candidates, intToUtf8, character(1)), "\\p{Variation_Selector}")
+  vs <- candidates[is_vs]
+
+  # the two ranges that have been variation selectors since Unicode 4.0
+  expect_true(all(c(0xFE00:0xFE0F, 0xE0100:0xE01EF) %in% vs))
+  expect_gte(length(vs), 256L)
+
+  chars <- vapply(vs, function(cp) intToUtf8(c(0x8FBB, cp)), character(1))
+  expect_true(all(
+    cjk_normalize(chars, drop_variation_selectors = TRUE) == "\u8fbb"
+  ))
+  # the four canonical/compatibility forms keep every one of them ...
+  for (f in c("nfc", "nfd", "nfkc", "nfkd")) {
+    expect_equal(sum(cjk_normalize(chars, f) == "\u8fbb"), 0L, info = f)
+  }
+  # ... and nfkc_casefold removes every one, so the flag is then redundant
+  expect_equal(sum(cjk_normalize(chars, "nfkc_casefold") == "\u8fbb"),
+               length(vs))
+  expect_equal(cjk_normalize(chars, "nfkc_casefold"),
+               cjk_normalize(chars, "nfkc_casefold",
+                             drop_variation_selectors = TRUE))
+})
+
+test_that("cjk_normalize agrees with to_halfwidth only on the width axis", {
+  agree <- c("\uff21\uff22", IDEOGRAPHIC_SPACE, "\uff76\uff9e")
+  expect_equal(cjk_normalize(agree, "nfkc"), to_halfwidth(agree))
+  # and parts company everywhere else
+  differ <- c("\u2460", "\u3314", "\u00a0", "\ufe10")
+  expect_equal(to_halfwidth(differ), differ)
+  expect_false(any(cjk_normalize(differ, "nfkc") == differ))
+})
+
+test_that("cjk_normalize keeps the vector contract", {
+  expect_equal(cjk_normalize(character(0)), character(0))
+  expect_equal(cjk_normalize(NA_character_), NA_character_)
+  expect_equal(cjk_normalize(c(KANA_GA_D, NA, "")), c(KANA_GA_C, NA, ""))
+  expect_length(cjk_normalize(c(KANA_GA_D, NA, "abc")), 3L)
+  expect_equal(cjk_normalize(factor(KANA_GA_D)), KANA_GA_C)
+  expect_equal(cjk_normalize(123), "123")
+  # a zero-length input short-circuits before the selector strip too
+  expect_equal(cjk_normalize(character(0), drop_variation_selectors = TRUE),
+               character(0))
+})
+
+test_that("cjk_normalize rejects a bad form or flag", {
+  expect_error(cjk_normalize("a", "NFC"), "arg")
+  expect_error(cjk_normalize("a", "nfkc_cf"), "arg")
+  expect_error(cjk_normalize("a", drop_variation_selectors = 1),
+               "must be TRUE or FALSE")
+  expect_error(cjk_normalize("a", drop_variation_selectors = NA),
+               "must be TRUE or FALSE")
+  expect_error(cjk_normalize("a", drop_variation_selectors = c(TRUE, TRUE)),
+               "must be TRUE or FALSE")
+})

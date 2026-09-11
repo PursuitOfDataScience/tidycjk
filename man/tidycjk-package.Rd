@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is a pluggable engine, with dictionary-based segmentation for Chinese and Japanese supplied through 'ICU' and further engines registrable by the caller, because where a word ends is a fact about a language and not about Unicode. 'tidycjk' classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a 'tidyverse' workflow. It also measures display width in terminal columns, pads, truncates and wraps to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- without the collateral damage of a full 'NFKC' pass. Romanisation, conversion between simplified and traditional Han, conversion between the two kana syllabaries, and decomposition of Hangul syllables into jamo are provided on the same vectorised contract. Sentence segmentation, character n-grams and locale-aware ordering cover the preprocessing that generic tooling gets wrong on CJK, where the sentence terminators are ideographic and a code point sort is not an alphabetical one. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.
+A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most text tooling in R assumes that words are separated by whitespace, which CJK writing does not use, so ordinary summaries of a text column either treat a sentence as one undifferentiated blob or split it into isolated characters. Word segmentation is a pluggable engine, with dictionary-based segmentation for Chinese and Japanese supplied through 'ICU' and further engines registrable by the caller, because where a word ends is a fact about a language and not about Unicode. 'tidycjk' classifies characters by Unicode block, reports which script and which language a text is written in, measures how much of a text is CJK, and turns those measurements into tibbles that slot straight into a 'tidyverse' workflow. It also measures display width in terminal columns, pads, truncates and wraps to a width rather than to a character count, and normalises fullwidth and halfwidth forms surgically -- including composing halfwidth katakana voiced marks into single code points -- while offering the Unicode normalisation forms separately for when a full 'NFKC' fold is what is wanted. Romanisation, conversion between simplified and traditional Han, conversion between the two kana syllabaries, and decomposition of Hangul syllables into jamo are provided on the same vectorised contract. Sentence segmentation, character n-grams, punctuation removal by Unicode category and locale-aware ordering cover the preprocessing that generic tooling gets wrong on CJK, where the sentence terminators are ideographic, a code point sort is not an alphabetical one, and the POSIX punctuation class is resolved by the C library rather than by Unicode. Language detection deliberately returns NA rather than guessing when a text is written in Han characters only, because Japanese written without kana cannot be distinguished from Chinese by script alone. Everything is derived from the Unicode specification; the package makes no network requests and needs no compiled code of its own.
 }
 \section{Output and naming contract}{
 
@@ -23,6 +23,29 @@ returns a tibble: \code{\link[=cjk_summary]{cjk_summary()}}, \code{\link[=cjk_ch
 
 Every vector-layer function is vectorised, propagates \code{NA} element-wise,
 and returns a zero-length vector of the right type for zero-length input.
+}
+
+\section{Input encoding}{
+
+Text has to reach R either as UTF-8 or with its encoding declared, which
+means naming the encoding when the file is read: \code{read.csv(f, encoding = "GBK")}, \code{readLines(f, encoding = "Shift_JIS")}, or
+\code{\link[stringi:stri_encode]{stringi::stri_encode()}} afterwards. That is worth doing deliberately,
+because what happens otherwise is not uniform and cannot be made so.
+
+Whether a string of bytes is uninterpretable at all depends on the
+session's native encoding: GBK bytes with no declaration are an error in
+a UTF-8 locale and ordinary text in a GB18030 one, and both answers are
+right. When the bytes genuinely cannot be read, the verbs do not all
+report it the same way either -- the ones that go through code points
+raise "\code{x} must be valid UTF-8" and name the legacy encodings, while the
+ones built on an ICU transform (\code{\link[=cjk_normalize]{cjk_normalize()}}, \code{\link[=cjk_romanize]{cjk_romanize()}},
+\code{\link[=cjk_simplify]{cjk_simplify()}}, \code{\link[=cjk_traditionalize]{cjk_traditionalize()}}, \code{\link[=to_hiragana]{to_hiragana()}},
+\code{\link[=to_katakana]{to_katakana()}}, \code{\link[=cjk_jamo]{cjk_jamo()}}, \code{\link[=cjk_compose_jamo]{cjk_compose_jamo()}}) hand back U+FFFD
+replacement characters, because that is what the transform does with a
+byte it cannot decode.
+
+So do not rely on an error to catch a mis-read file. Declare the encoding
+on the way in; a \verb{\\uFFFD} in the output means it was not declared.
 }
 
 \section{What counts as CJK}{

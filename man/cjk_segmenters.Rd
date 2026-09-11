@@ -64,6 +64,17 @@ The upshot is that the same sentence yields different token counts, and
 the gap is punctuation rather than a disagreement about where words end.
 An emoji is dropped by \code{"icu"} and kept by \code{"character"} for the same
 reason. Filter or compare accordingly.
+
+Zero-width characters divide the same way, in three groups.
+\code{"character"} keeps all of them wherever they sit. \code{"icu"} drops U+200B
+everywhere, because ICU classifies the zero-width space as "none" in
+every position and this engine asks for "none" to be skipped; it drops
+U+200D, U+00AD, U+2060, a combining mark and a variation selector only
+when one begins the string, which is the one position ICU calls "none"
+for those. A byte-order mark survives both engines, and for a different
+reason worth keeping straight: stringi removes a leading U+FEFF before
+ICU is called at all, so that one is data loss rather than policy, and
+both engines put it back.
 }
 
 \section{Registering another segmenter}{
@@ -101,6 +112,21 @@ each element a character vector of tokens. \code{NA} input should give
 contract. A plain list is required: a data frame is a list too, but
 \code{length()} on one counts columns rather than elements, so it is refused
 rather than quietly mistaken for a list of tokens.
+
+A leading byte-order mark is preserved by both built-in engines, and by
+neither of the stringi calls underneath them: \code{stri_split_charclass()}
+and \code{stri_split_boundaries()} each read a leading U+FEFF as a byte-order
+mark and drop it. Both engines count it off and put it back, so a column
+read from a BOM-carrying CSV tokenises without losing a character. An
+engine you register yourself gets no such treatment -- if it calls
+stringi, it needs the same guard.
+
+The elements are checked too, for the same reason one level down. An
+atomic element is coerced with \code{\link[=as.character]{as.character()}}, so an engine returning
+integers or a factor works; a list element is refused, because
+\code{as.character()} deparses a list rather than coercing it and
+\code{list(c(1, 2))} would otherwise arrive as the single token \code{"c(1, 2)"} --
+R code spelled out as data.
 }
 
 \section{Passing arguments to an engine}{

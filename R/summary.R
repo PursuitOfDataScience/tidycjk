@@ -132,6 +132,9 @@ cjk_summary <- function(data, col) {
 #' appearance in the column rather than by the session's collation, so the
 #' output does not change with the locale.
 #'
+#' Grouping is ignored: the counts are always for the whole column. Use
+#' [dplyr::group_modify()] if you need them per group.
+#'
 #' @inheritParams cjk_summary
 #'
 #' @return A tibble with one row per distinct character and columns `char`,
