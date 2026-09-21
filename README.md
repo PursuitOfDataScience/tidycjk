@@ -11,6 +11,7 @@ output: github_document
 <!-- badges: start -->
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![CRAN status](https://www.r-pkg.org/badges/version/tidycjk)](https://CRAN.R-project.org/package=tidycjk)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/tidycjk)](https://CRAN.R-project.org/package=tidycjk)
 [![R-CMD-check](https://github.com/PursuitOfDataScience/tidycjk/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/PursuitOfDataScience/tidycjk/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
