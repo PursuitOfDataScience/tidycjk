@@ -1,4 +1,5 @@
-# The tidy layer: two verbs that take (data, column) and return a tibble.
+# The tidy layer: verbs that take (data, column) and return a tibble. The
+# two summaries live here; cjk_tokens(), the third, lives in segment.R.
 #
 # This is the part of the package that does not exist anywhere else. The
 # Unicode primitives are available -- stringi has had them for years -- but

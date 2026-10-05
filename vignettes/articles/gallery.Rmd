@@ -16,8 +16,8 @@ library(tidycjk)
 Every image below is generated, and the scripts sit beside them in
 `data-raw/`: `make-figures.R` for the panels, and `make-hero.R` with
 `merge-hero.py` for the animation at the top. All of them call the package
-to lay themselves out — the terminal grids are positioned by `cjk_width()`
-— so a figure cannot drift from what the functions actually return.
+to lay themselves out (the terminal grids are positioned by `cjk_width()`),
+so a figure cannot drift from what the functions actually return.
 
 ## Width is not character count
 
@@ -35,8 +35,8 @@ cjk_width(labels)
 cat(paste0("|", cjk_pad(labels, 8), "|"), sep = "\n")
 ```
 
-Truncation follows the same rule — a cut at eight columns, not eight
-characters:
+Truncation follows the same rule: a cut at eight columns, not eight
+characters.
 
 ```{r truncate}
 cjk_truncate("我今天很開心", 8)
@@ -53,7 +53,7 @@ cjk_script(txt)
 cjk_detect_language(txt)
 ```
 
-Rows one, four and five come back `NA`. Row five is uninteresting -- it has
+Rows one, four and five come back `NA`. Row five is uninteresting: it has
 no CJK in it at all. Rows one and four are the point: both are written
 entirely in Han characters, and nothing in the script separates Japanese
 from Chinese there.
@@ -86,8 +86,8 @@ cjk_char_counts(posts, text)
 
 <img src="../reference/figures/fig-tokens.png" width="100%" alt="One sentence under both engines: four word tokens with icu, six character tokens with character." />
 
-`"icu"` is a real word segmenter — ICU's dictionary-based break iterators,
-shipped inside stringi:
+`"icu"` is a real word segmenter, built on ICU's dictionary-based break
+iterators, which ship inside stringi:
 
 ```{r segment-icu}
 cjk_segment("我今天很開心", engine = "icu")
@@ -142,7 +142,7 @@ cjk_ngrams("中文很好")
 
 `cjk_strip_punct()` removes punctuation by Unicode category rather than by
 `[[:punct:]]`, which resolves through the C library and so removes nothing
-under `LC_ALL=C` — and nothing at all from CJK when `perl = TRUE`. The
+under `LC_ALL=C`, and nothing at all from CJK when `perl = TRUE`. The
 default replaces each mark with a space, so a bigram cannot span a full
 stop:
 
@@ -179,7 +179,7 @@ cjk_order(x, locale = "zh")            # the permutation, for a data frame
 
 Two strings can render identically and still differ as data.
 `cjk_normalize()` is the Unicode forms, and the surprise is that plain
-`"nfc"` is not a no-op on Han — compatibility ideographs have singleton
+`"nfc"` is not a no-op on Han: compatibility ideographs have singleton
 canonical mappings, so it rewrites them exactly as `"nfkc"` does.
 
 ```{r normalize}
@@ -205,9 +205,9 @@ nchar(cjk_normalize(ivs, drop_variation_selectors = TRUE))
 
 ## Romanisation, script and kana
 
-Kana conversion is a normalisation, the jamo round trip returns NFC, Han
+Kana conversion is a normalisation, the jamo round trip is exact, Han
 conversion resolves ambiguity from context but not regional vocabulary, and
-romanisation reads all Han as Chinese. `vignette("transliteration")` is
+romanisation reads each Han character alone, and as Chinese. `vignette("transliteration")` is
 explicit about each.
 
 ```{r translit}

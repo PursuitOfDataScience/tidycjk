@@ -8,15 +8,25 @@
 # if the table is ever left unsorted or allowed to overlap. There is a test
 # that asserts both.
 #
-# Two of the ranges overlap: the halfwidth katakana (U+FF65-U+FF9F) sit inside
-# the Halfwidth and Fullwidth Forms block (U+FF00-U+FFEF). The katakana is the
-# more informative label, so the enclosing block is split around it.
+# Some blocks are split into more than one row, because a row carries one
+# script label and these blocks hold two. The halfwidth katakana
+# (U+FF65-U+FF9F) sit inside the Halfwidth and Fullwidth Forms block
+# (U+FF00-U+FFEF), and the katakana is the more informative label, so the
+# enclosing block is split around it. The kana extension blocks are split where
+# Unicode's Script property changes between hiragana and katakana: Kana
+# Supplement after its first code point, Kana Extended-A at U+1B120 and Small
+# Kana Extension at U+1B155. One code point lands on the wrong side: U+1B123,
+# HIRAGANA DIGRAPH KOTO, which Unicode 18.0 placed among the katakana of Kana
+# Extended-A. Splitting a row out for one archaic digraph is not worth it, and
+# for language detection the two labels mean the same thing.
 #
-# A script that has an extension block needs both halves, or the verbs answer
-# FALSE for a real character: Bopomofo Extended (U+31A0-U+31BF) holds 32 of the
-# 75 bopomofo letters Unicode has assigned so far, so omitting it made has_cjk()
-# wrong for the Minnan and Hakka letters. Blocks holding radicals, strokes or
-# circled and squared compatibility symbols are deliberately out of scope --
+# A script that has an extension block needs every one of them, or the verbs
+# answer FALSE for a real character: Bopomofo Extended (U+31A0-U+31BF) holds 32
+# of the 75 bopomofo letters Unicode has assigned so far, so omitting it made
+# has_cjk() wrong for the Minnan and Hakka letters, and the four kana extension
+# blocks (hentaigana, archaic and small kana, the Minnan tone letters) were
+# missing for the same reason until 0.2.0. Blocks holding radicals, strokes or
+# circled and squared compatibility symbols are deliberately out of scope;
 # see ?cjk_blocks.
 #
 # The ideographic extensions are NOT in alphabetical order and must not be put
@@ -24,13 +34,13 @@
 # Extension G (U+30000), so code point order puts I before G and H. Sorting the
 # table by name would break the findInterval() invariant above.
 #
-# The table is current to Unicode 16.0. Unicode 17.0 added Extension J at
-# U+323B0-U+3347F; adding it is a coverage change rather than a fix, so it is
-# documented as a known limit in ?cjk_blocks and left for a later version.
+# The table is current to Unicode 18.0, which added no block in scope here;
+# Extension J (U+323B0-U+3347F) arrived in 17.0. data-raw/verify-tables.py is
+# the cross-check to run after each Unicode release.
 #
-# Every range is a Unicode block bound except Hangul Syllables, which stops at
-# U+D7A3 rather than U+D7AF because U+D7A4-U+D7AF are unassigned. Do not
-# "correct" that to the block bound -- see ?cjk_blocks.
+# Every range is a Unicode block bound, or a split inside one, except Hangul
+# Syllables, which stops at U+D7A3 rather than U+D7AF because U+D7A4-U+D7AF are
+# unassigned. Do not "correct" that to the block bound; see ?cjk_blocks.
 
 # The table is a constant, but .cjk_block_index() is called once per element of
 # the input vector, so rebuilding it there means rebuilding it for every string
@@ -63,6 +73,13 @@
     c(0xFF00,  0xFF64),
     c(0xFF65,  0xFF9F),
     c(0xFFA0,  0xFFEF),
+    c(0x1AFF0, 0x1AFFF),
+    c(0x1B000, 0x1B000),
+    c(0x1B001, 0x1B0FF),
+    c(0x1B100, 0x1B11F),
+    c(0x1B120, 0x1B12F),
+    c(0x1B130, 0x1B154),
+    c(0x1B155, 0x1B16F),
     c(0x20000, 0x2A6DF),
     c(0x2A700, 0x2B73F),
     c(0x2B740, 0x2B81F),
@@ -71,7 +88,8 @@
     c(0x2EBF0, 0x2EE5F),
     c(0x2F800, 0x2FA1F),
     c(0x30000, 0x3134F),
-    c(0x31350, 0x323AF)
+    c(0x31350, 0x323AF),
+    c(0x323B0, 0x3347F)
   )
   tab <- list(
     start = m[, 1],
@@ -95,6 +113,13 @@
       "Halfwidth and Fullwidth Forms",
       "Halfwidth Katakana",
       "Halfwidth and Fullwidth Forms",
+      "Kana Extended-B",
+      "Kana Supplement",
+      "Kana Supplement",
+      "Kana Extended-A",
+      "Kana Extended-A",
+      "Small Kana Extension",
+      "Small Kana Extension",
       "CJK Unified Ideographs Extension B",
       "CJK Unified Ideographs Extension C",
       "CJK Unified Ideographs Extension D",
@@ -103,7 +128,8 @@
       "CJK Unified Ideographs Extension I",
       "CJK Compatibility Ideographs Supplement",
       "CJK Unified Ideographs Extension G",
-      "CJK Unified Ideographs Extension H"
+      "CJK Unified Ideographs Extension H",
+      "CJK Unified Ideographs Extension J"
     ),
     script = c(
       "hangul",
@@ -124,6 +150,14 @@
       "fullwidth",
       "katakana",
       "fullwidth",
+      "katakana",
+      "katakana",
+      "hiragana",
+      "hiragana",
+      "katakana",
+      "hiragana",
+      "katakana",
+      "han",
       "han",
       "han",
       "han",
@@ -170,16 +204,46 @@
 # named, is much the likeliest way to arrive here, and saying so states the fix
 # as well as the fault. Anything else stringi raises is re-thrown untouched,
 # so this cannot relabel an unrelated failure.
-.cjk_stri <- function(expr) {
+.cjk_stri <- function(expr, name = "x") {
   tryCatch(expr, error = function(e) {
     if (!grepl("UTF-8", conditionMessage(e), fixed = TRUE)) {
       stop(e)
     }
-    stop("`x` must be valid UTF-8. Text read from a file written in a legacy ",
-         "CJK encoding -- GBK, Big5, Shift_JIS, EUC-KR -- needs that encoding ",
-         "named when the file is read, or converting afterwards with ",
-         "stringi::stri_encode().", call. = FALSE)
+    stop("`", name, "` must be valid UTF-8. Text read from a file written in ",
+         "a legacy CJK encoding (GBK, Big5, Shift_JIS, EUC-KR) needs that ",
+         "encoding named when the file is read, or converting afterwards ",
+         "with stringi::stri_encode().", call. = FALSE)
   })
+}
+
+# Refuse text that cannot be decoded, before any verb does work on it.
+#
+# Left to stringi, undecodable bytes were reported five different ways
+# depending on which entry point a verb happened to reach first: our message
+# from the code-point verbs, U+FFFD replacement characters from the ICU
+# transforms, the raw bytes handed back by cjk_sentences() and cjk_sort(), a
+# bare "invalid multibyte string" from nchar() in cjk_wrap(), and the bad byte
+# silently dropped by the "icu" engine. Only the first is an answer. So every
+# verb now checks once, on the way in, with a call that raises on invalid
+# UTF-8 (stri_length() does; stri_numbytes() and stri_enc_isutf8() do not), and
+# the message names the argument.
+#
+# What counts as undecodable still depends on the session, and has to: the
+# same GBK bytes are invalid UTF-8 in a UTF-8 locale and ordinary native text
+# in a GB18030 one. A string marked "bytes" is refused outright, because
+# stringi cannot read one at all and its own message says only that the
+# encoding is unsupported.
+.cjk_check_encoding <- function(x, name = "x") {
+  if (length(x) == 0L) {
+    return(invisible(x))
+  }
+  if (any(Encoding(x) == "bytes")) {
+    stop("`", name, "` is marked as \"bytes\", so its characters cannot be ",
+         "read. Declare the encoding it was written in, with iconv() or ",
+         "stringi::stri_encode(), before passing it here.", call. = FALSE)
+  }
+  .cjk_stri(stringi::stri_length(x), name)
+  invisible(x)
 }
 
 # Coerce the text argument, rejecting what as.character() would deparse.
@@ -206,24 +270,32 @@
          "unlist() to flatten it, or vapply(x, paste, character(1), ",
          "collapse = \"\") to keep one string per element.", call. = FALSE)
   }
-  as.character(x)
+  x <- as.character(x)
+  .cjk_check_encoding(x, name)
+  x
 }
 
 # One place to match an enumerated argument.
 #
-# match.arg() reports a value that is not character at all as "'arg' must be
-# NULL or a character vector" -- naming a variable the caller never wrote,
-# and never mentioning the argument they did. Every other argument in this
-# package is rejected by name, so the two enumerated ones are held to the
-# same standard. The matching itself stays match.arg's, including its
-# partial matching and its NULL-means-the-first-choice contract, so only the
-# opaque message changes and no accepted value becomes rejected.
+# match.arg() names a variable the caller never wrote: a value that is not
+# character at all is "'arg' must be NULL or a character vector", and a string
+# that matches no choice is "'arg' should be one of ...", with match.arg()'s
+# own call attached. Every other argument in this package is rejected by
+# name, so the two enumerated ones are held to the same standard. The
+# matching itself stays match.arg's, including its partial matching and its
+# NULL-means-the-first-choice contract, so only the message changes and no
+# accepted value becomes rejected. (The first version of this guard caught
+# only the non-character case, so `side = "top"` still reached the reader as
+# 'arg'.)
 .cjk_arg_match <- function(value, choices, name) {
-  if (!is.null(value) && (!is.character(value) || anyNA(value))) {
+  refuse <- function() {
     stop("`", name, "` must be one of ",
          paste0("\"", choices, "\"", collapse = ", "), ".", call. = FALSE)
   }
-  match.arg(value, choices)
+  if (!is.null(value) && (!is.character(value) || anyNA(value))) {
+    refuse()
+  }
+  tryCatch(match.arg(value, choices), error = function(e) refuse())
 }
 
 # ICU falls back to the root locale when it has no data for the one asked
@@ -243,34 +315,47 @@
 # language and still gives the right answer -- "zh-CH", a typo for "zh-CN",
 # sorts by pinyin -- and BCP 47 extensions such as "zh-u-co-stroke" and
 # "ja@lb=strict" are the documented way to pick a variant, so neither may be
-# rejected.
+# rejected. The language is compared without case, because BCP 47 subtags are
+# case-insensitive and ICU treats them so: "ZH" and "Zh-Hant" sort exactly as
+# "zh" and "zh-Hant" do. "root" and "und" are ICU's names for the root locale
+# itself, so asking for one by name is not the fallback this guard prevents.
 #
 # `locale = NULL` means the session default and is not checked; that is not
-# the caller's typo to answer for.
+# the caller's typo to answer for. stringi reads "" the same way, so it is
+# treated as NULL rather than reported as a locale ICU lacks.
+#
+# The check runs before a verb does anything else, the zero-length and all-NA
+# exits included, so a bad locale is an error whatever the length of `x`;
+# checking inside the call to stringi let cjk_sort(character(0), locale =
+# "xx") and cjk_wrap(NA, 5, locale = "xx") through.
 .cjk_locale_langs <- local({
   langs <- NULL
   function() {
     if (is.null(langs)) {
-      langs <<- unique(sub("[-_@].*$", "", stringi::stri_locale_list()))
+      langs <<- unique(tolower(sub("[-_@].*$", "",
+                                   stringi::stri_locale_list())))
     }
     langs
   }
 })
 
-.cjk_locale_guard <- function(expr, locale, what, hint) {
+.cjk_check_locale <- function(locale, what, hint) {
   if (is.null(locale)) {
-    return(expr)
+    return(NULL)
   }
   if (!is.character(locale) || length(locale) != 1L || is.na(locale)) {
     stop("`locale` must be a single string, or NULL.", call. = FALSE)
   }
-  lang <- sub("[-_@].*$", "", locale)
-  if (!nzchar(lang) || !(lang %in% .cjk_locale_langs())) {
+  if (!nzchar(locale)) {
+    return(NULL)
+  }
+  lang <- tolower(sub("[-_@].*$", "", locale))
+  if (!(lang %in% c(.cjk_locale_langs(), "root", "und"))) {
     stop("ICU has no ", what, " for locale \"", locale, "\". It would fall ",
          "back to the root locale, which is a different answer that looks ",
          "like the one you asked for. ", hint, call. = FALSE)
   }
-  expr
+  locale
 }
 
 # How many U+FEFF each element begins with.
@@ -373,41 +458,53 @@
 #' what allows a whole corpus of code points to be classified with a single
 #' [findInterval()] call rather than a per-character regular expression.
 #'
-#' Two of the rows deserve comment. Halfwidth Katakana (U+FF65-U+FF9F) is a
-#' sub-range of the Halfwidth and Fullwidth Forms block; because the katakana
-#' label is the more useful one, the enclosing block appears as two rows either
-#' side of it. And the halfwidth Hangul jamo at U+FFA0-U+FFDC are reported as
-#' `"fullwidth"` rather than `"hangul"`, because this table follows the block
-#' boundaries rather than the Unicode Script property; use [cjk_char_counts()]
-#' if you need to see exactly which code points a text contains.
+#' A block appears as more than one row where a single script label would be
+#' wrong for part of it. Halfwidth Katakana (U+FF65-U+FF9F) is a sub-range of
+#' the Halfwidth and Fullwidth Forms block; because the katakana label is the
+#' more useful one, the enclosing block appears as two rows either side of it.
+#' Kana Supplement, Kana Extended-A and Small Kana Extension each hold both
+#' hiragana and katakana, so each is split where the script changes.
+#' Otherwise the labels follow block boundaries rather than the Unicode Script
+#' property: the halfwidth Hangul jamo at U+FFA0-U+FFDC are reported as
+#' `"fullwidth"` rather than `"hangul"`, and the one hiragana digraph among the
+#' katakana of Kana Extended-A (U+1B123) as `"katakana"`. Use
+#' [cjk_char_counts()] if you need to see exactly which code points a text
+#' contains.
 #'
-#' All ten blocks of unified ideographs are covered -- the base block and
-#' Extensions A through I. They are not in alphabetical order, because Unicode
+#' All eleven blocks of unified ideographs are covered: the base block and
+#' Extensions A through J. They are not in alphabetical order, because Unicode
 #' allocated Extension I (U+2EBF0) below Extension G (U+30000) rather than after
 #' Extension H, and this table is in code point order.
 #'
-#' Ten is every block there was as of Unicode 16.0, which is what this table is
-#' current to. Unicode 17.0 added Extension J at U+323B0-U+3347F, and it is not
-#' here, so [has_cjk()] answers `FALSE` for an Extension J ideograph. That is a
-#' known limit of this version of the table rather than a judgement about the
-#' block, and it is the same gap the table once had at Extensions G, H and I.
+#' The table is current to Unicode 18.0. A block Unicode adds after that is
+#' not here until the table is updated, and [has_cjk()] answers `FALSE` for its
+#' characters in the meantime; that is how Extension J, added in Unicode 17.0,
+#' came to be missing from 0.1.0.
 #'
 #' Ranges are Unicode block bounds, with one exception. Hangul Syllables stops
 #' at U+D7A3, the last assigned syllable, rather than at U+D7AF where the block
 #' ends; the twelve code points in between are unassigned, and calling them
 #' hangul would be reporting text that cannot exist. Elsewhere the block bound
 #' is used as-is, so a handful of unassigned code points inside a covered block
-#' -- U+3100 to U+3104 at the head of Bopomofo, for instance -- do count.
+#' (U+3100 to U+3104 at the head of Bopomofo, for instance) do count.
 #'
-#' Each phonetic script is covered in full, extension blocks included, so
-#' Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
-#' deliberately absent is everything that is neither a letter, an ideograph, CJK
-#' punctuation nor a width variant: the radical blocks (U+2E80-U+2EFF and the
-#' Kangxi radicals at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF), and the
-#' parenthesised, circled and squared compatibility symbols in Enclosed CJK
-#' Letters and Months and CJK Compatibility. Those are typographic presentation
-#' forms rather than text, and counting them as CJK would inflate
-#' [cjk_ratio()] on a column that contains no CJK writing at all.
+#' Each phonetic script is covered in full, extension blocks included: Bopomofo
+#' Extended (U+31A0-U+31BF) alongside Bopomofo, and the hentaigana, archaic and
+#' small kana and the Minnan tone letters of Kana Supplement, Kana Extended-A,
+#' Kana Extended-B and Small Kana Extension alongside Hiragana and Katakana.
+#' What is deliberately absent is everything that is neither a letter, an
+#' ideograph, CJK punctuation nor a width variant: the radical blocks
+#' (U+2E80-U+2EFF and the Kangxi radicals at U+2F00-U+2FDF), CJK Strokes
+#' (U+31C0-U+31EF) and the Ideographic Description Characters (U+2FF0-U+2FFF);
+#' the vertical presentation forms in Vertical Forms (U+FE10-U+FE1F) and CJK
+#' Compatibility Forms (U+FE30-U+FE4F); and the parenthesised, circled and
+#' squared compatibility symbols in Enclosed CJK Letters and Months, CJK
+#' Compatibility and Enclosed Ideographic Supplement. Those are typographic
+#' presentation forms rather than text, and counting them as CJK would inflate
+#' [cjk_ratio()] on a column that contains no CJK writing at all. Also outside
+#' are the specialist marks of Ideographic Symbols and Punctuation
+#' (U+16FE0-U+16FFF), and the two bopomofo tone marks Unicode placed in
+#' Spacing Modifier Letters, U+02EA and U+02EB, far from any CJK block.
 #'
 #' The `script` column takes one of eight values. Six of them name a writing
 #' system -- `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`, `"bopomofo"`,

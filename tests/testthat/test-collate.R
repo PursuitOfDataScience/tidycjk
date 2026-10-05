@@ -77,6 +77,38 @@ test_that("an unknown region falls back to the language, which is correct", {
 test_that("locale = NULL is allowed and does not trigger the guard", {
   expect_length(cjk_sort(ZH), 3L)
   expect_length(cjk_order(ZH), 3L)
+  # stringi reads "" as the session default too, so it is not an error
+  expect_identical(cjk_sort(ZH, locale = ""), cjk_sort(ZH))
+})
+
+test_that("the locale guard reads the language without regard to case", {
+  # BCP 47 subtags are case-insensitive and ICU treats them so; the guard
+  # compared against ICU's lower-case list and rejected "ZH" outright.
+  x <- c("\u5f35", "\u738b", "\u674e", "\u8d99", "\u9673")
+  expect_identical(cjk_sort(x, locale = "ZH"), cjk_sort(x, locale = "zh"))
+  expect_identical(cjk_sort(x, locale = "Zh-Hant"),
+                   cjk_sort(x, locale = "zh-Hant"))
+  # ICU's own names for the root locale are an explicit request for it,
+  # not the silent fallback the guard exists to prevent
+  expect_identical(cjk_sort(c("b", "a"), locale = "root"), c("a", "b"))
+  expect_identical(cjk_sort(c("b", "a"), locale = "und"), c("a", "b"))
+})
+
+test_that("a bad locale is an error whatever the input, empty and NA too", {
+  # Checked inside the call to stringi, the guard never ran for input the
+  # verbs answer without calling stringi at all.
+  verbs <- list(
+    function(z) cjk_sort(z, locale = "xx"),
+    function(z) cjk_order(z, locale = "xx"),
+    function(z) cjk_wrap(z, 5, locale = "xx"),
+    function(z) cjk_sentences(z, locale = "xx"),
+    function(z) cjk_segment(z, engine = "icu", locale = "xx")
+  )
+  for (f in verbs) {
+    expect_error(f(character(0)), "ICU has no")
+    expect_error(f(NA), "ICU has no")
+    expect_error(f(""), "ICU has no")
+  }
 })
 
 test_that("a malformed locale is rejected by every verb that takes one", {

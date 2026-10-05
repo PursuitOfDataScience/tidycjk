@@ -97,6 +97,10 @@ check_invariants <- function(cps) {
   expect_identical(to_fullwidth(to_halfwidth(fw)), fw)
   hw <- to_halfwidth(x)
   expect_identical(to_halfwidth(hw), hw)
+  # the jamo round trip is the identity on every single code point: a lone
+  # code point never composes, and only a syllable decomposes
+  joined <- vapply(cjk_jamo(x), paste, character(1), collapse = "")
+  expect_identical(cjk_compose_jamo(joined), x)
   # kana conversion is idempotent in both directions
   expect_identical(to_hiragana(to_hiragana(x)), to_hiragana(x))
   expect_identical(to_katakana(to_katakana(x)), to_katakana(x))

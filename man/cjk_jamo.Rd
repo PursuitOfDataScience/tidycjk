@@ -22,8 +22,9 @@ frame or a function is an error naming what to do instead.}
 }
 \value{
 \code{cjk_jamo()} returns a list the same length as \code{x}, each element a
-character vector of jamo; \code{NA} gives \code{NA_character_} and the empty string
-gives \code{character(0)}. \code{cjk_compose_jamo()} takes a character vector and
+character vector of jamo and of the other characters, one per code
+point; \code{NA} gives \code{NA_character_} and the empty string gives
+\code{character(0)}. \code{cjk_compose_jamo()} takes a character vector and
 returns one.
 }
 \description{
@@ -34,56 +35,59 @@ returns one.
 A modern Hangul syllable is a composite. Unicode encodes 11,172 of them
 precomposed in the Hangul Syllables block, each one algorithmically derived
 from a leading consonant, a vowel and an optional trailing consonant:
-\code{SIndex = (LIndex * 21 + VIndex) * 28 + TIndex}. Because the relationship
-is arithmetic rather than tabulated, the decomposition is exact for
-Hangul: no table can be out of date and no syllable is missed.
+\code{SIndex = (LIndex * 21 + VIndex) * 28 + TIndex}. Both verbs apply that
+arithmetic directly, so the decomposition is exact: no table can be out of
+date and no syllable is missed.
 }
-\section{The round trip returns NFC, which is not always the input}{
-\code{cjk_compose_jamo()} is normalisation form C, so it composes everything
-composable and not only the jamo it was handed. If \code{x} was already in
-NFC -- which text from almost any source is -- the round trip returns it
-unchanged. If it was not, the result is \code{x} normalised: an \code{e} followed by
-a combining acute comes back as the single character \code{U+00E9}, because
-that is what NFC is for.
+\section{Only Hangul is touched}{
+A character that is not a Hangul syllable passes through \code{cjk_jamo()} as
+itself, and \code{cjk_compose_jamo()} joins conjoining jamo into syllables and
+changes nothing else, so both are safe to run over a mixed column. That is
+deliberately narrower than Unicode normalisation. NFD would also split an
+accented Latin letter, and NFD and NFC alike replace a CJK compatibility
+ideograph with its unified form, which in a Korean column means silently
+rewriting Hanja: the compatibility ideographs exist so that the Korean
+legacy encodings round-trip. Use \code{\link[=cjk_normalize]{cjk_normalize()}} when normalisation is
+what you want.
+}
 
-So the guarantee is that re-joining the jamo and composing them equals
-\code{stringi::stri_trans_nfc(x)}, which equals \code{x} exactly when \code{x} is already
-NFC. Normalise first if you need to be certain.
+\section{The round trip}{
+\code{cjk_jamo()} returns a \strong{list}, one character vector of jamo per element
+of \code{x}, and \code{cjk_compose_jamo()} takes a character vector, so the two do
+not compose directly: join each element first, as the \code{rt()} helper in the
+examples does. Writing \code{cjk_compose_jamo(cjk_jamo(x))} is an error rather
+than a silent wrong answer, because \code{as.character()} would deparse the list
+and hand back the literal string \code{c("\\u1112", "\\u1161", "\\u11ab")}.
 
-Note the re-joining step, which the \code{rt()} helper in the examples below
-spells out. \code{cjk_jamo()} returns a \strong{list} -- one character vector of
-jamo per element of \code{x} -- and \code{cjk_compose_jamo()} takes a character
-vector, so the two do not compose directly. Writing
-\code{cjk_compose_jamo(cjk_jamo(x))} is an error rather than a silent wrong
-answer, which it was until 0.2.0: \code{as.character()} deparses a list, so
-the jamo came back as the literal string \code{c("\\u1112", "\\u1161", "\\u11ab")} -- R code spelled out as text.
+Joined and composed, the jamo give back \code{x} exactly, with one exception
+that is the point of \code{cjk_compose_jamo()}: conjoining jamo that \code{x}
+already held as separate code points come back composed into their
+syllable.
 
 That makes jamo the right unit for questions the syllable hides: which
 initial consonants a corpus favours, whether two spellings differ only in
 a final consonant, or how to sort by consonant. U+D55C counts three ways,
 each right for a different question: one character to \code{nchar()}, two
-terminal columns to \code{\link[=cjk_width]{cjk_width()}} -- a Hangul syllable is East Asian
-Wide -- and three jamo here.
-
-Text that is not Hangul passes through unchanged, so it is safe to run over
-a mixed column.
+terminal columns to \code{\link[=cjk_width]{cjk_width()}} (a Hangul syllable is East Asian Wide),
+and three jamo here.
 }
 
 \examples{
 # U+D55C U+AE00, "Hangul"
 cjk_jamo("\ud55c\uae00")
 
-# the round trip returns NFC, so already-NFC input comes back unchanged
+# join each element and compose it: the round trip is exact
 rt <- function(x) {
   cjk_compose_jamo(vapply(cjk_jamo(x), paste, character(1), collapse = ""))
 }
 rt("\ud55c\uae00")
 
-# input that was not NFC comes back normalised: "e" plus a combining
-# acute becomes the single character U+00E9
-rt("e\u0301")
+# text that is not Hangul is left alone: the accent stays where it was,
+# and the compatibility ideograph U+F900 is not swapped for U+8C48
+cjk_jamo("e\u0301")
+rt("\uf900") == "\uf900"
 }
 \seealso{
 \code{\link[=cjk_script]{cjk_script()}} to detect Hangul, \code{\link[=cjk_blocks]{cjk_blocks()}} for the blocks
-involved.
+involved, \code{\link[=cjk_normalize]{cjk_normalize()}} for the Unicode normalisation forms.
 }

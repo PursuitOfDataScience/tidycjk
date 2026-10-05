@@ -33,6 +33,9 @@ it contains, and returns \code{NA} when the scripts do not settle the question.
 The rules are applied in order:
 \enumerate{
 \item Hiragana or katakana present: \code{"japanese"}. Only Japanese uses kana.
+The katakana middle dot U+30FB, and its halfwidth form U+FF65, do not
+count: they are punctuation that Chinese and Korean text use too, to
+separate the parts of a transliterated name.
 \item Kanbun annotation marks present: \code{"japanese"}. They exist to make
 Classical Chinese readable as Japanese.
 \item Hangul present: \code{"korean"}.

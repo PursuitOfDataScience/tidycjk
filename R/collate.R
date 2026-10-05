@@ -48,6 +48,9 @@
 #' you, because that fallback produces a plausible-looking wrong order. An
 #' unrecognised *region* is not an error: `"zh-CH"`, a typo for `"zh-CN"`,
 #' resolves to `"zh"` and still sorts by pinyin, which is the right answer.
+#' The language is matched without regard to case, as BCP 47 specifies, so
+#' `"ZH"` is `"zh"`; and `"root"` asks for ICU's root collation by name,
+#' which is a choice rather than a fallback.
 #'
 #' # Missing values
 #'
@@ -85,6 +88,9 @@ cjk_sort <- function(x, locale = NULL, decreasing = FALSE) {
       is.na(decreasing)) {
     stop("`decreasing` must be TRUE or FALSE.", call. = FALSE)
   }
+  # Here as well as in cjk_order(), because the zero-length exit below returns
+  # before cjk_order() is reached.
+  locale <- .cjk_check_locale(locale, "collation data", .CJK_COLLATION_HINT)
   if (length(x) == 0L) {
     return(character(0))
   }
@@ -106,13 +112,13 @@ cjk_order <- function(x, locale = NULL, decreasing = FALSE) {
       is.na(decreasing)) {
     stop("`decreasing` must be TRUE or FALSE.", call. = FALSE)
   }
+  locale <- .cjk_check_locale(locale, "collation data", .CJK_COLLATION_HINT)
   if (length(x) == 0L) {
     return(integer(0))
   }
-  .cjk_locale_guard(
-    .cjk_stri(stringi::stri_order(x, decreasing = decreasing, na_last = TRUE,
-                                  locale = locale)),
-    locale, "collation data",
-    "Use \"zh\", \"ja\", \"ko\", or a variant such as \"zh-u-co-stroke\"."
-  )
+  .cjk_stri(stringi::stri_order(x, decreasing = decreasing, na_last = TRUE,
+                                locale = locale))
 }
+
+.CJK_COLLATION_HINT <-
+  "Use \"zh\", \"ja\", \"ko\", or a variant such as \"zh-u-co-stroke\"."

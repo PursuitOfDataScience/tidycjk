@@ -72,10 +72,9 @@
   }
   # The scan below walks the string one code point at a time in R, and
   # to_fullwidth() always composes, so without this guard a column of plain
-  # ASCII pays that cost on every character it holds -- measurably, about ten
-  # times the rest of the width mapping put together. Nothing can compose
-  # unless a mark is actually present, and testing for one is a single
-  # vectorised pass.
+  # ASCII pays that cost on every character it holds, which outweighs the
+  # rest of the width mapping. Nothing can compose unless a mark is actually
+  # present, and testing for one is a single vectorised pass.
   if (!any(cp %in% c(.CJK_VOICED_MARKS, .CJK_SEMIVOICED_MARKS))) {
     return(cp)
   }

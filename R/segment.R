@@ -64,8 +64,8 @@
     # what guarantees that, and it is what this line depends on.
     #
     # Dropping the second split() is the point: split() coerces the run ids to
-    # a factor, which sorts and stringifies them once per string, and profiling
-    # a corpus of 30,000 put split()/as.factor() at about a third of the total.
+    # a factor, which sorts and stringifies them once per string, and that
+    # was among the largest costs when this engine was profiled.
     cjk_piece <- is_cjk[!duplicated(run)]
     out <- unlist(lapply(seq_along(pieces), function(i) {
       if (cjk_piece[[i]]) {
@@ -121,9 +121,9 @@
 
 # ICU's dictionary-based word segmenter, reached through stringi. This is a
 # real segmenter -- it splits a six-character Chinese sentence into its four
-# words rather than into
-# six characters -- and it costs no new dependency, because stringi is already
-# an Import and ICU ships the Chinese and Japanese dictionaries inside it.
+# words rather than into six characters -- and it costs no new dependency,
+# because stringi is already an Import and ICU ships the Chinese and Japanese
+# dictionaries inside it.
 #
 # That is worth stating plainly, because the package shipped 0.1.0 saying no
 # segmenter could be bundled. jiebaR being archived from CRAN was true and is
@@ -144,6 +144,8 @@
 # not because it switches models.
 .cjk_engine_icu <- function(x, locale = NULL, ...) {
   x <- .cjk_as_text(x)
+  locale <- .cjk_check_locale(locale, "break data",
+                              "Use a language such as \"zh\", \"ja\" or \"ko\".")
   # stri_split_boundaries() drops a leading U+FEFF, while ICU keeps one in
   # the middle of a string and attaches it to the adjacent word. That made
   # the engine treat the same character two ways depending on where it sat,
@@ -166,12 +168,9 @@
   # punctuation, because U+3002 and friends sit in a block cjk_blocks()
   # lists. The two engines therefore return different token counts for the
   # same string, and the difference is punctuation, not segmentation.
-  out <- .cjk_locale_guard(
-    .cjk_stri(stringi::stri_split_boundaries(
-      x, type = "word", skip_word_none = TRUE, locale = locale
-    )),
-    locale, "break data", "Use a language such as \"zh\", \"ja\" or \"ko\"."
-  )
+  out <- .cjk_stri(stringi::stri_split_boundaries(
+    x, type = "word", skip_word_none = TRUE, locale = locale
+  ))
   # stringi already returns NA for NA input and character(0) for "", which is
   # the engine contract; the coercion is only so an NA element is typed
   # NA_character_ rather than the logical NA a zero-token split can produce.
@@ -463,10 +462,18 @@ cjk_segment <- function(x, engine, ...) {
          call. = FALSE)
   }
   x <- .cjk_as_text(x)
-  if (length(x) == 0L) {
+  # Resolved before the zero-length exit, so an unknown engine is an error
+  # whatever the length of `x`; looked up after it, cjk_segment(character(0),
+  # engine = "nope") and a zero-row cjk_tokens() returned quietly. A built-in
+  # engine is then called even on empty input, which is how the "icu"
+  # engine's `locale` gets checked there too. An engine registered by the
+  # caller is not, because 0.1.0 never asked one to handle an empty vector
+  # and nothing in the contract warned that it might.
+  fn <- .cjk_get_engine(engine)
+  if (length(x) == 0L &&
+      !any(vapply(.cjk_builtin_engines(), identical, logical(1), fn))) {
     return(list())
   }
-  fn <- .cjk_get_engine(engine)
   out <- fn(x, ...)
   # Three failures rather than one. ?cjk_segmenters invites callers to write
   # their own engine, so this is the error they are most likely to meet, and

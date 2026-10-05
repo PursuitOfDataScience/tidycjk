@@ -36,10 +36,11 @@ columns but counts as **one** character, so `nchar()` and the width of a
 printed table disagree, and every console table containing CJK text comes out
 ragged. Fullwidth digits `１２３` look like digits and do not parse as a
 number. A Japanese place name written only in Han characters cannot be told
-from Chinese by script alone — and most libraries guess anyway.
+from Chinese by script alone, and most libraries guess anyway.
 
-**tidycjk** addresses these as separate, honest problems, each derived from the
-Unicode specification [@uax11; @uax14; @uax29] rather than from heuristics:
+**tidycjk** addresses these as separate, honest problems, each built on the
+Unicode standard [@uax11; @uax14; @uax29] and on ICU, the Unicode
+Consortium's own library, rather than on hand-written rules:
 
 | Task | Function(s) |
 |------|-------------|
@@ -64,7 +65,7 @@ library(tidycjk)
 ## Two layers, one contract
 
 Most verbs work on a plain character vector, in the manner of **stringr**.
-Three — `cjk_summary()`, `cjk_char_counts()` and `cjk_tokens()` — take
+Three of them, `cjk_summary()`, `cjk_char_counts()` and `cjk_tokens()`, take
 `(data, column)` instead and return a tibble, so they drop into a **dplyr**
 pipeline without an adaptor [@wickham2014tidy]. Those three want a data
 frame; they do not accept a bare character vector.
@@ -72,7 +73,7 @@ frame; they do not accept a bare character vector.
 The contract is the same throughout, and it is worth stating once because the
 rest of this vignette relies on it. Every vector-layer verb is vectorised:
 `NA` in gives `NA` out, zero-length input gives zero-length output, and
-nothing silently recycles a ragged pair — a mismatch is an error rather than
+nothing silently recycles a ragged pair: a mismatch is an error rather than
 a warning and a short answer.
 
 The tidy verbs answer about the column rather than about each row, so they
@@ -114,9 +115,9 @@ cjk_script(posts$text)
 cjk_detect_language(posts$text)
 ```
 
-Rows one, four and five come back `NA`. Row five is uninteresting — it has no
+Rows one, four and five come back `NA`. Row five is uninteresting: it has no
 CJK in it at all. Rows one and four are the point. `東京都`
-is Tokyo Metropolis — unambiguously Japanese — but it is written entirely in
+is Tokyo Metropolis, unambiguously Japanese, but it is written entirely in
 Han characters, and **nothing in the script distinguishes it from Chinese**.
 Japanese written without kana and Chinese are the same character set. Any
 library that answers `"chinese"` there is guessing, and it will be wrong on
@@ -144,7 +145,7 @@ that ICU carries [@icu] and **stringi** exposes [@gagolewski2022stringi]:
 cjk_segment("我今天很開心", engine = "icu")
 ```
 
-`我 / 今天 / 很 / 開心` — words, not characters. `"character"` is the
+`我 / 今天 / 很 / 開心`: words, not characters. `"character"` is the
 dictionary-free baseline, and the contrast shows what a segmenter is for:
 
 ```{r segment-character}
@@ -182,7 +183,7 @@ cjk_ngrams("中文很好")
 
 No gram is formed across whitespace, so nothing straddles two words of a
 Latin run. Punctuation is a different matter, and `cjk_strip_punct()` is the
-step that deals with it — replacing each mark with a space rather than
+step that deals with it. It replaces each mark with a space rather than
 deleting it, so a bigram cannot span the full stop between two sentences:
 
 ```{r strip-punct}
@@ -202,13 +203,13 @@ resolves the class through the C library, so it removes nothing under
 the session rather than of the data. These three surnames come out in code
 point order under `C` and `en_US.UTF-8`, in pinyin order under `zh_CN.utf8`,
 and in a third order under `ja_JP.utf8`. Each is defensible; none is
-reproducible, and that is the trap — the same script sorts a name column
+reproducible, and that is the trap: the same script sorts a name column
 differently on a colleague's machine and says nothing about it.
 
 The fallback order is worth knowing, because it is not arbitrary. Within the
 base block the unified ideographs are arranged in KangXi radical-stroke
 order, so code point order really is radical order. It is simply not
-phonetic — and it stops being radical order across blocks, since every
+phonetic, and it stops being radical order across blocks, since every
 Extension A character sorts before every base-block one, leaving a rare
 character nowhere near its radical-mates.
 
@@ -252,7 +253,7 @@ cat(cjk_wrap("我今天很開心，因為天氣非常好而且朋友來看我", 
 
 ## Normalisation and transliteration
 
-`to_halfwidth()` narrows fullwidth forms and does **only** that — unlike an
+`to_halfwidth()` narrows fullwidth forms and does **only** that, unlike an
 `NFKC` pass, which also rewrites ligatures, Roman numerals and circled
 numbers:
 
@@ -261,7 +262,7 @@ as.numeric(to_halfwidth("１２３"))
 to_halfwidth("½ Ⅸ ①")   # NFKC would rewrite all three
 ```
 
-When the blunt instrument *is* the right one — matching rather than display —
+When the blunt instrument *is* the right one, for matching rather than display,
 `cjk_normalize()` is it, and it also answers the case a reader may not expect:
 plain `"nfc"` rewrites most of the CJK compatibility ideographs, because they
 have singleton canonical mappings.
@@ -283,10 +284,11 @@ to_hiragana("カタカナ")
 cjk_jamo("한")
 ```
 
-Each has limits worth knowing before you trust it — romanisation is
-per-character, and simplified/traditional conversion is too. They are
-documented honestly in
-`vignette("transliteration", package = "tidycjk")`.
+Each has limits worth knowing before you trust it. Romanisation reads each
+Han character on its own, so a word like `银行` ("bank") gets the wrong
+reading; simplified/traditional conversion resolves characters from context
+but does not substitute regional vocabulary.
+`vignette("transliteration", package = "tidycjk")` covers each.
 
 ## What tidycjk is built on
 

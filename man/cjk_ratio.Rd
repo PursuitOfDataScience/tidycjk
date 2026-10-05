@@ -34,7 +34,8 @@ supplementary plane counts once, not twice. The denominator is every
 character in the string, including spaces and Latin punctuation.
 }
 \examples{
-# all CJK, half CJK, none, the empty string, and NA
+# all CJK; two CJK characters of seven, because the space and the Latin
+# letters count too; none; the empty string; NA
 cjk_ratio(c("\u4e2d\u6587", "half \u4e2d\u6587", "none", "", NA))
 }
 \seealso{

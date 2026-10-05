@@ -62,7 +62,7 @@
 #' # What this is not
 #'
 #' Romanisation is not a function of the code point alone, and ICU treats it
-#' as though it were. Three consequences worth knowing before you trust the
+#' as though it were. Four consequences worth knowing before you trust the
 #' output:
 #'
 #' * **Han is always read as Chinese.** ICU routes every Han character
@@ -71,6 +71,12 @@
 #'   romanises to `ri ben yu`, not `nihongo`. This is not a near miss to be
 #'   cleaned up afterwards -- it is the wrong language. Do not use
 #'   `cjk_romanize()` on Japanese kanji.
+#' * **A character with two readings gets one.** ICU reads each Han
+#'   character on its own, so a polyphonic character gets its most common
+#'   reading whatever word it is in: U+94F6 U+884C ("bank") romanises to
+#'   `yin xing` rather than `yin hang`, and U+97F3 U+4E50 ("music") to
+#'   `yin le` rather than `yin yue` (tone marks omitted here). Treat the
+#'   output as a sort or search key, not as pinyin to show a reader.
 #' * **No word spacing.** ICU inserts a space between Han syllables but not
 #'   between scripts, so Han followed immediately by kana romanises to a run
 #'   with no boundary where the script changes. Segment first with
@@ -81,39 +87,36 @@
 #'
 #' # It is slow, by a wide margin
 #'
-#' The figures below were measured on one machine and will move with the
-#' CPU, the load and the ICU build; the ratios are the durable part. Nothing
-#' in the test suite asserts them, deliberately, because a timing assertion
-#' on a CRAN build machine fails for reasons that have nothing to do with
-#' this package.
+#' ICU's transliterator is the most expensive thing this package calls. On a
+#' column of 5,000 twenty-character Chinese documents, romanising ran at a
+#' median of about 45,000 characters a second (95% CI 43,500 to 45,600) and
+#' took about 27 times as long as `cjk_segment(engine = "icu")` on the same
+#' column (95% CI 24 to 29; the closest of the pairs was 17 times). The cost
+#' is ICU's: a bare `stringi::stri_trans_general(x, "Any-Latin")` takes the
+#' same time (ratio 1.01, 95% CI 0.99 to 1.02), and there is no faster route
+#' to the same answer.
 #'
-#' ICU's transliterator is the most expensive thing this package calls.
-#' Measured here, romanising a column of short documents runs at roughly
-#' sixty thousand characters a second, and it degrades on a single very long
-#' string: the same volume in one string runs at nearer forty thousand,
-#' 200,000 characters take about five seconds, and a million takes over two
-#' minutes. For scale, `cjk_segment(engine = "icu")` gets through that same
-#' million in under half a second, so romanisation can be a few hundred
-#' times the cost of everything around it -- measured at about 320 times on
-#' the million.
+#' It also gets slower per character as one string gets longer, so the same
+#' 100,000 characters took 1.4 times as long pasted into a single string as
+#' kept as a column (95% CI 1.35 to 1.43). Keep a corpus as one row per
+#' document, and romanise once into a column you keep rather than inside a
+#' loop.
 #'
-#' None of that is this package's doing -- a bare
-#' `stringi::stri_trans_general(x, "Any-Latin")` takes the same time -- and
-#' there is no faster route to the same answer. Two things help. Keep a
-#' corpus as one row per document rather than pasting it into one string,
-#' which is worth about a factor of two. And romanise once into a column you
-#' keep, rather than inside a loop.
+#' Those figures are medians of 30 paired, interleaved runs on one machine
+#' (an AMD EPYC 7702, ICU 74.1) and will move with the CPU, the load and the
+#' ICU build; the ratios are the durable part. Nothing in the test suite
+#' asserts them, because a timing assertion on a CRAN build machine fails
+#' for reasons that have nothing to do with this package.
 #'
-#' For Japanese specifically, a morphological analyser that knows the reading
-#' -- [gibasa](https://CRAN.R-project.org/package=gibasa), which binds MeCab
-#' -- is the right tool. This function is for Chinese, for kana, and for
-#' getting a sortable ASCII key out of a CJK column.
+#' For Japanese specifically, a morphological analyser that knows the
+#' reading is the right tool: [gibasa](https://CRAN.R-project.org/package=gibasa),
+#' which binds MeCab. This function is for Chinese, for kana, and for getting
+#' a sortable ASCII key out of a CJK column.
 #'
 #' @inheritParams has_cjk
 #' @param ascii If `TRUE`, strip diacritics so the result is plain ASCII:
 #'   pinyin tone marks are removed, so that `wo` with a caron becomes plain
-#'   `wo`. Defaults to `FALSE`,
-#'   which keeps them.
+#'   `wo`. Defaults to `FALSE`, which keeps them.
 #'
 #' @return A character vector the same length as `x`. `NA` gives `NA`.
 #' @seealso [cjk_simplify()] for Han script conversion, [cjk_segment()] for
@@ -148,7 +151,7 @@ cjk_romanize <- function(x, ascii = FALSE) {
 #' rather than a per-character table. Simplified to traditional is genuinely
 #' one-to-many -- U+53D1 is U+767C ("to send") or U+9AEE ("hair") depending
 #' on the word, and U+5E72 is U+4E7E, U+5E79 or U+5E72 -- and ICU picks
-#' correctly from the surrounding characters. Fourteen such pairs were
+#' correctly from the surrounding characters. Twenty such words were
 #' checked, including the ones where the same character splits both ways
 #' ("after" against "empress", "inside" against "kilometre"), and every one
 #' came out right.
@@ -206,16 +209,18 @@ cjk_traditionalize <- function(x) {
 #' It is a normalisation, not a reversible mapping. Applied to text holding
 #' both syllabaries it erases the distinction between them, and that
 #' distinction means something: katakana marks loanwords, onomatopoeia and
-#' emphasis. `to_katakana(to_hiragana(x))` returns `x` only when `x` was
-#' already all katakana. Run it one way, and keep the original if you need
-#' to go back.
+#' emphasis. `to_katakana(to_hiragana(x))` turns any hiragana in `x` into
+#' katakana, and it is not exact even on text that was all katakana, because
+#' ICU's mapping makes a few choices of its own: the small katakana U+30F5 and
+#' U+30F6 become the full-size hiragana U+304B and U+3051, and the digraphs
+#' U+30FF (*koto*) and U+309F (*yori*) are spelled out as two kana each. Run
+#' it one way, and keep the original if you need to go back.
 #'
 #' Halfwidth katakana is handled too, and composed while it is: the halfwidth
 #' voiced KA is two code points, U+FF76 and U+FF9E, and `to_katakana()`
 #' returns the single character U+30AC. So no width conversion is needed
-#' first, though
-#' [to_halfwidth()] and [to_fullwidth()] remain the way to move along the
-#' width axis without touching the syllabary.
+#' first, though [to_halfwidth()] and [to_fullwidth()] remain the way to move
+#' along the width axis without touching the syllabary.
 #'
 #' @inheritParams has_cjk
 #'
@@ -249,87 +254,82 @@ to_katakana <- function(x) {
 #' A modern Hangul syllable is a composite. Unicode encodes 11,172 of them
 #' precomposed in the Hangul Syllables block, each one algorithmically derived
 #' from a leading consonant, a vowel and an optional trailing consonant:
-#' `SIndex = (LIndex * 21 + VIndex) * 28 + TIndex`. Because the relationship
-#' is arithmetic rather than tabulated, the decomposition is exact for
-#' Hangul: no table can be out of date and no syllable is missed.
+#' `SIndex = (LIndex * 21 + VIndex) * 28 + TIndex`. Both verbs apply that
+#' arithmetic directly, so the decomposition is exact: no table can be out of
+#' date and no syllable is missed.
 #'
-#' # The round trip returns NFC, which is not always the input
+#' # Only Hangul is touched
 #'
-#' `cjk_compose_jamo()` is normalisation form C, so it composes everything
-#' composable and not only the jamo it was handed. If `x` was already in
-#' NFC -- which text from almost any source is -- the round trip returns it
-#' unchanged. If it was not, the result is `x` normalised: an `e` followed by
-#' a combining acute comes back as the single character `U+00E9`, because
-#' that is what NFC is for.
+#' A character that is not a Hangul syllable passes through `cjk_jamo()` as
+#' itself, and `cjk_compose_jamo()` joins conjoining jamo into syllables and
+#' changes nothing else, so both are safe to run over a mixed column. That is
+#' deliberately narrower than Unicode normalisation. NFD would also split an
+#' accented Latin letter, and NFD and NFC alike replace a CJK compatibility
+#' ideograph with its unified form, which in a Korean column means silently
+#' rewriting Hanja: the compatibility ideographs exist so that the Korean
+#' legacy encodings round-trip. Use [cjk_normalize()] when normalisation is
+#' what you want.
 #'
-#' So the guarantee is that re-joining the jamo and composing them equals
-#' `stringi::stri_trans_nfc(x)`, which equals `x` exactly when `x` is already
-#' NFC. Normalise first if you need to be certain.
+#' # The round trip
 #'
-#' Note the re-joining step, which the `rt()` helper in the examples below
-#' spells out. `cjk_jamo()` returns a **list** -- one character vector of
-#' jamo per element of `x` -- and `cjk_compose_jamo()` takes a character
-#' vector, so the two do not compose directly. Writing
-#' `cjk_compose_jamo(cjk_jamo(x))` is an error rather than a silent wrong
-#' answer, which it was until 0.2.0: `as.character()` deparses a list, so
-#' the jamo came back as the literal string `c("\u1112", "\u1161",
-#' "\u11ab")` -- R code spelled out as text.
+#' `cjk_jamo()` returns a **list**, one character vector of jamo per element
+#' of `x`, and `cjk_compose_jamo()` takes a character vector, so the two do
+#' not compose directly: join each element first, as the `rt()` helper in the
+#' examples does. Writing `cjk_compose_jamo(cjk_jamo(x))` is an error rather
+#' than a silent wrong answer, because `as.character()` would deparse the list
+#' and hand back the literal string `c("\u1112", "\u1161", "\u11ab")`.
+#'
+#' Joined and composed, the jamo give back `x` exactly, with one exception
+#' that is the point of `cjk_compose_jamo()`: conjoining jamo that `x`
+#' already held as separate code points come back composed into their
+#' syllable.
 #'
 #' That makes jamo the right unit for questions the syllable hides: which
 #' initial consonants a corpus favours, whether two spellings differ only in
 #' a final consonant, or how to sort by consonant. U+D55C counts three ways,
 #' each right for a different question: one character to `nchar()`, two
-#' terminal columns to [cjk_width()] -- a Hangul syllable is East Asian
-#' Wide -- and three jamo here.
-#'
-#' Text that is not Hangul passes through unchanged, so it is safe to run over
-#' a mixed column.
+#' terminal columns to [cjk_width()] (a Hangul syllable is East Asian Wide),
+#' and three jamo here.
 #'
 #' @inheritParams has_cjk
 #'
 #' @return `cjk_jamo()` returns a list the same length as `x`, each element a
-#'   character vector of jamo; `NA` gives `NA_character_` and the empty string
-#'   gives `character(0)`. `cjk_compose_jamo()` takes a character vector and
+#'   character vector of jamo and of the other characters, one per code
+#'   point; `NA` gives `NA_character_` and the empty string gives
+#'   `character(0)`. `cjk_compose_jamo()` takes a character vector and
 #'   returns one.
 #' @seealso [cjk_script()] to detect Hangul, [cjk_blocks()] for the blocks
-#'   involved.
+#'   involved, [cjk_normalize()] for the Unicode normalisation forms.
 #' @examples
 #' # U+D55C U+AE00, "Hangul"
 #' cjk_jamo("\ud55c\uae00")
 #'
-#' # the round trip returns NFC, so already-NFC input comes back unchanged
+#' # join each element and compose it: the round trip is exact
 #' rt <- function(x) {
 #'   cjk_compose_jamo(vapply(cjk_jamo(x), paste, character(1), collapse = ""))
 #' }
 #' rt("\ud55c\uae00")
 #'
-#' # input that was not NFC comes back normalised: "e" plus a combining
-#' # acute becomes the single character U+00E9
-#' rt("e\u0301")
+#' # text that is not Hangul is left alone: the accent stays where it was,
+#' # and the compatibility ideograph U+F900 is not swapped for U+8C48
+#' cjk_jamo("e\u0301")
+#' rt("\uf900") == "\uf900"
 #' @export
 cjk_jamo <- function(x) {
   x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(list())
   }
-  # A leading byte-order mark is hidden from stringi first: stri_sub() below
-  # drops one, which cost cjk_compose_jamo(cjk_jamo(x)) the exactness its
-  # help page promises.
-  bom <- .cjk_leading_bom(x)
-  x <- .cjk_strip_bom(x, bom)
-  # NFD is the decomposition -- the mapping is defined arithmetically in the
-  # standard, so this is exact rather than a lookup that could be incomplete.
-  d <- .cjk_stri(stringi::stri_trans_nfd(x))
-  lapply(seq_along(d), function(i) {
-    if (is.na(d[[i]])) {
+  # Code points rather than a stringi split, so a leading byte-order mark
+  # survives the same way it does in every verb built on .cjk_codepoints().
+  lapply(.cjk_codepoints(x), function(cp) {
+    if (is.null(cp)) {
       return(NA_character_)
     }
-    if (!nzchar(d[[i]])) {
-      return(if (bom[[i]] > 0L) rep("\uFEFF", bom[[i]]) else character(0))
+    if (length(cp) == 0L) {
+      return(character(0))
     }
-    ch <- .cjk_stri(stringi::stri_sub(d[[i]], seq_len(nchar(d[[i]])),
-                                      length = 1L))
-    if (bom[[i]] > 0L) c(rep("\uFEFF", bom[[i]]), ch) else ch
+    stringi::stri_enc_fromutf32(as.list(.cjk_decompose_hangul(cp)))
   })
 }
 
@@ -340,5 +340,79 @@ cjk_compose_jamo <- function(x) {
   if (length(x) == 0L) {
     return(character(0))
   }
-  .cjk_stri(stringi::stri_trans_nfc(x))
+  cps <- .cjk_codepoints(x)
+  out <- stringi::stri_enc_fromutf32(lapply(cps, function(cp) {
+    if (is.null(cp)) NULL else .cjk_compose_hangul(cp)
+  }))
+  out[vapply(cps, is.null, logical(1))] <- NA_character_
+  out
+}
+
+
+# Hangul syllable arithmetic, from section 3.12 of the Unicode standard.
+#
+# A syllable S is SBase + (L * VCount + V) * TCount + T, with the leading
+# consonant L, vowel V and optional trailing consonant T counted from their
+# own bases; T = 0 means there is none. That is the whole of the mapping,
+# which is why both directions are computed here rather than borrowed from
+# NFD and NFC: those forms decompose and compose everything else as well, and
+# a verb named for jamo had no business rewriting an accented letter or a
+# compatibility ideograph on the way past.
+.CJK_HANGUL <- list(s_base = 0xAC00L, s_last = 0xD7A3L, l_base = 0x1100L,
+                    v_base = 0x1161L, t_base = 0x11A7L, v_count = 21L,
+                    t_count = 28L, l_count = 19L)
+
+.cjk_decompose_hangul <- function(cp) {
+  h <- .CJK_HANGUL
+  syl <- cp >= h$s_base & cp <= h$s_last
+  if (!any(syl)) {
+    return(cp)
+  }
+  s <- cp[syl] - h$s_base
+  t <- s %% h$t_count
+  # every syllable becomes two jamo, or three when it has a final consonant;
+  # everything else stays one code point
+  width <- rep(1L, length(cp))
+  width[syl] <- 2L + (t > 0L)
+  out <- rep(cp, width)
+  first <- (cumsum(width) - width + 1L)[syl]
+  n_vt <- h$v_count * h$t_count
+  out[first] <- h$l_base + s %/% n_vt
+  out[first + 1L] <- h$v_base + (s %% n_vt) %/% h$t_count
+  out[first[t > 0L] + 2L] <- h$t_base + t[t > 0L]
+  out
+}
+
+.cjk_compose_hangul <- function(cp) {
+  h <- .CJK_HANGUL
+  n <- length(cp)
+  if (n < 2L) {
+    return(cp)
+  }
+  is_l <- function(v) v >= h$l_base & v < h$l_base + h$l_count
+  is_v <- function(v) v >= h$v_base & v < h$v_base + h$v_count
+  is_t <- function(v) v > h$t_base & v < h$t_base + h$t_count
+  # Leading consonant + vowel first. The two sets are disjoint, so the pairs
+  # cannot overlap and one vectorised pass finds them all.
+  lv <- which(is_l(cp[-n]) & is_v(cp[-1L]))
+  if (length(lv)) {
+    cp[lv] <- h$s_base +
+      ((cp[lv] - h$l_base) * h$v_count + (cp[lv + 1L] - h$v_base)) *
+      h$t_count
+    cp <- cp[-(lv + 1L)]
+    n <- length(cp)
+  }
+  if (n < 2L) {
+    return(cp)
+  }
+  # Then an LV syllable + trailing consonant, which covers both an L V T run
+  # composed above and an LV syllable that arrived precomposed: NFC composes
+  # both, and composing one but not the other would be a half-normalisation.
+  lvt <- which(cp[-n] >= h$s_base & cp[-n] <= h$s_last &
+                 (cp[-n] - h$s_base) %% h$t_count == 0L & is_t(cp[-1L]))
+  if (length(lvt)) {
+    cp[lvt] <- cp[lvt] + (cp[lvt + 1L] - h$t_base)
+    cp <- cp[-(lvt + 1L)]
+  }
+  cp
 }

@@ -14,18 +14,12 @@
 # API: consistent naming, and a width-aware truncate, which stringi does not
 # have.
 
-# `width` validation, shared by cjk_pad() and cjk_truncate().
+# `width` validation, shared by cjk_pad(), cjk_truncate() and cjk_wrap().
 #
 # as.integer() alone is too permissive: as.integer("abc") is a warning and an
 # NA, so a typo would come back as missing output rather than as an error. A
 # genuinely missing width still propagates as NA, which is what every other
 # function in the package does with NA.
-# Above this many characters cjk_wrap() switches to the greedy algorithm,
-# because stringi's optimal one segfaults on long input. Set well below the
-# ~70,000 where the crash was observed here: it looks like stack exhaustion
-# in a recursive fit, so the real limit moves with the platform's stack.
-.CJK_WRAP_GREEDY_ABOVE <- 10000L
-
 .cjk_as_width <- function(width) {
   if (length(width) == 0L) {
     stop("`width` must have at least one element.", call. = FALSE)
@@ -186,8 +180,13 @@ cjk_width <- function(x) {
 cjk_pad <- function(x, width, side = "right", pad = " ") {
   x <- .cjk_as_text(x)
   side <- .cjk_arg_match(side, c("right", "left", "both"), "side")
-  if (!is.character(pad) || length(pad) != 1L || is.na(pad) ||
-      nchar(pad) != 1L) {
+  if (!is.character(pad) || length(pad) != 1L || is.na(pad)) {
+    stop("`pad` must be a single, non-missing character.", call. = FALSE)
+  }
+  # Ahead of nchar(), which answers undecodable bytes with an error of its own
+  # naming neither the argument nor the encoding.
+  .cjk_check_encoding(pad, "pad")
+  if (nchar(pad) != 1L) {
     stop("`pad` must be a single, non-missing character.", call. = FALSE)
   }
   if (stringi::stri_width(pad) != 1L) {
@@ -268,6 +267,7 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
   if (!is.character(ellipsis) || length(ellipsis) != 1L || is.na(ellipsis)) {
     stop("`ellipsis` must be a single, non-missing string.", call. = FALSE)
   }
+  .cjk_check_encoding(ellipsis, "ellipsis")
   # Validated ahead of the zero-length exit, for the reason given in cjk_pad().
   width <- .cjk_as_width(width)
   if (length(x) == 0L) {
@@ -282,9 +282,9 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
   # Split to code points once for the whole vector, as the width above already
   # is. .cjk_codepoints() is vectorised but carries a fixed per-call cost -- an
   # encoding-error handler and a byte-order-mark scan -- and calling it from
-  # inside the loop paid that cost once per element instead of once per vector.
-  # Measured on 50,000 strings that was about a third of cjk_truncate()'s total
-  # time, for no answer that differs.
+  # inside the loop paid that cost once per element instead of once per
+  # vector, a large share of cjk_truncate()'s time on a long column, for no
+  # answer that differs.
   #
   # Conditional, because a column that all fits never needs the code points at
   # all and splitting it anyway was slower than the per-element version it
@@ -374,10 +374,12 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 #' and can go straight to `cat()`. `strsplit(out, "\n", fixed = TRUE)` gives
 #' the lines separately.
 #'
-#' A `width` narrower than a single character cannot be honoured -- a CJK
-#' character needs two columns -- and ICU emits the character anyway rather
-#' than looping, so a line may exceed `width` in that case. It is the only
-#' case where it can.
+#' A line comes out wider than `width` only where no break is allowed inside
+#' it, and then ICU emits it whole rather than looping. That happens in three
+#' cases: a character wider than the budget (a CJK character needs two
+#' columns, so `width = 1` cannot be honoured), a run with no break
+#' opportunity in it, such as a long Latin word or a stretch of a URL, and an
+#' `indent` or `exdent` that leaves no room for the text after it.
 #'
 #' # The break style depends on the locale
 #'
@@ -394,19 +396,16 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 #' closing bracket or an ideographic full stop never begins a line, and an
 #' opening bracket never ends one.
 #'
-#' # Very long strings use a different fit
+#' # Lines are filled greedily
 #'
-#' `stri_wrap()`'s default is an optimal-fit algorithm, and it crashes R on a
-#' long string -- `stri_wrap(strrep("\u4e2d\u6587", 50000), 40)` segfaults,
-#' at any width. Strings longer than 10,000 characters are therefore wrapped
-#' with the greedy algorithm, which handles the same input without
-#' complaint. For CJK text the two agree exactly, because nearly every
-#' position is a break opportunity: over 600 randomly generated CJK strings
-#' the two produced identical output every time. Mixed CJK and Latin can
-#' differ, where a long Latin word gives the optimal fit something to
-#' optimise. The threshold is set well below the length where the crash was
-#' seen, since it looks like stack exhaustion and the true limit will move
-#' with the machine.
+#' Each line takes as much text as fits before the next break opportunity
+#' would overflow it, which is what a terminal does. `stri_wrap()`'s own
+#' default is an optimal fit that evens out line lengths across a paragraph;
+#' it is not used here, because its cost grows far faster than the text
+#' (40,000 characters of CJK exhaust 1.5 GB of memory), and because the
+#' breaks it picks for the start of a paragraph depend on how the paragraph
+#' ends, so appending a sentence can re-flow every line above it. Greedy
+#' breaks depend only on the text up to them.
 #'
 #' A leading byte-order mark survives, which takes work: stringi drops one.
 #' A U+FEFF *elsewhere* in the string may not, because re-flowing can put it
@@ -478,14 +477,21 @@ cjk_wrap <- function(x, width, indent = 0L, exdent = 0L,
                      locale = NULL) {
   x <- .cjk_as_text(x)
   # Validate ahead of the zero-length exit, so a bad argument is an error
-  # whatever the length of `x` -- the same ordering as cjk_pad().
+  # whatever the length of `x` -- the same ordering as cjk_pad(). The locale
+  # too: checked inside the call to stringi, it was never checked at all for
+  # input that is empty or entirely NA.
   width <- .cjk_as_width(width)
+  locale <- .cjk_check_locale(locale, "break data",
+                              "Use a language such as \"zh\", \"ja\" or \"ko\".")
   for (nm in c("indent", "exdent")) {
     v <- get(nm)
+    # The upper bound for the reason .cjk_as_width() has one: past the integer
+    # range as.integer() gives NA with a bare coercion warning, and stringi
+    # then fails on the NA with a message about its own argument.
     if (!is.numeric(v) || length(v) != 1L || is.na(v) || !is.finite(v) ||
-        v < 0) {
-      stop("`", nm, "` must be a single, non-negative, non-missing number.",
-           call. = FALSE)
+        v < 0 || v > .Machine$integer.max) {
+      stop("`", nm, "` must be a single, non-negative, non-missing number ",
+           "within integer range.", call. = FALSE)
     }
   }
   indent <- as.integer(indent)
@@ -510,36 +516,23 @@ cjk_wrap <- function(x, width, indent = 0L, exdent = 0L,
   out[usable & !nzchar(x)] <- ""
 
   # stri_wrap() takes one width, but it is vectorised over the strings, so
-  # the work is one call per *distinct* width rather than one per element.
-  # Looping per element instead cost about 13x on a 2,000-row column -- the
+  # the work is one call per *distinct* width rather than one per element,
+  # and the cost of a column grows with its widths rather than its rows: the
   # same once-per-vector point the block table and cjk_truncate() already
   # make.
   todo <- usable & nzchar(x)
-  # stri_wrap()'s default is an optimal-fit algorithm, and on a long string
-  # it segfaults: a plain stri_wrap(strrep("\u4e2d\u6587", 50000), 40) takes
-  # R down, at any width. The greedy algorithm (cost_exponent = 0) handles
-  # the same input fine, so long strings go through that instead. See the
-  # note under Details; a crash is not an acceptable answer, and for CJK the
-  # two agree anyway.
-  long <- todo & nchar(x) > .CJK_WRAP_GREEDY_ABOVE
   for (w in unique(width[todo])) {
-    for (greedy in c(FALSE, TRUE)) {
-      idx <- which(todo & width == w & long == greedy)
-      if (!length(idx)) {
-        next
-      }
-      # measured in columns by default -- use_length = TRUE is what switches
-      # it to code points -- so it already agrees with cjk_width()
-      lines <- .cjk_locale_guard(
-        .cjk_stri(stringi::stri_wrap(
-          x[idx], width = w, indent = indent, exdent = exdent,
-          simplify = FALSE, whitespace_only = FALSE, locale = locale,
-          cost_exponent = if (greedy) 0 else 2
-        )),
-        locale, "break data", "Use a language such as \"zh\", \"ja\" or \"ko\"."
-      )
-      out[idx] <- vapply(lines, paste, character(1), collapse = "\n")
-    }
+    idx <- which(todo & width == w)
+    # cost_exponent = 0 is the greedy fill; see "Lines are filled greedily"
+    # under Details for why stringi's optimal fit is not used. The width is
+    # measured in columns by default (use_length = TRUE is what switches it
+    # to code points), so it already agrees with cjk_width().
+    lines <- .cjk_stri(stringi::stri_wrap(
+      x[idx], width = w, indent = indent, exdent = exdent,
+      simplify = FALSE, whitespace_only = FALSE, locale = locale,
+      cost_exponent = 0
+    ))
+    out[idx] <- vapply(lines, paste, character(1), collapse = "\n")
   }
   out <- .cjk_restore_bom(out, bom)
   out

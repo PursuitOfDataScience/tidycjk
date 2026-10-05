@@ -131,6 +131,28 @@ test_that("the character engine handles mixed scripts", {
   )
 })
 
+test_that("an unknown engine is an error even for empty input", {
+  # Looked up after the zero-length exit, the engine was never checked for an
+  # empty vector, so a typo in a pipeline passed every empty batch.
+  expect_error(cjk_segment(character(0), engine = "nope"), "Unknown engine")
+  expect_error(cjk_segment(character(0), engine = 1),
+               "must be a single string or a function")
+  expect_error(cjk_tokens(data.frame(t = character(0)), t, engine = "nope"),
+               "Unknown engine")
+  # A caller's own engine is still not asked to handle an empty vector, as
+  # in 0.1.0: nothing in the engine contract warned that it might be.
+  called <- FALSE
+  spy <- function(x, ...) {
+    called <<- TRUE
+    lapply(x, identity)
+  }
+  expect_identical(cjk_segment(character(0), engine = spy), list())
+  expect_false(called)
+  # the built-in engines are, and answer an empty list
+  expect_identical(cjk_segment(character(0), engine = "icu"), list())
+  expect_identical(cjk_segment(character(0), engine = "character"), list())
+})
+
 test_that("cjk_segment() propagates NA and handles empty input", {
   expect_equal(cjk_segment(NA_character_, engine = "character")[[1]],
                NA_character_)

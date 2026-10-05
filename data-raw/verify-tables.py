@@ -64,6 +64,16 @@ RANGES = [
     (0xFF00, 0xFF64, "Halfwidth and Fullwidth Forms", "fullwidth"),
     (0xFF65, 0xFF9F, "Halfwidth Katakana", "katakana"),
     (0xFFA0, 0xFFEF, "Halfwidth and Fullwidth Forms", "fullwidth"),
+    # The kana extension blocks, split where the Script property changes.
+    # U+1B123 (HIRAGANA DIGRAPH KOTO, Unicode 18.0) falls in the katakana row
+    # of Kana Extended-A; see the comment in .cjk_ranges().
+    (0x1AFF0, 0x1AFFF, "Kana Extended-B", "katakana"),
+    (0x1B000, 0x1B000, "Kana Supplement", "katakana"),
+    (0x1B001, 0x1B0FF, "Kana Supplement", "hiragana"),
+    (0x1B100, 0x1B11F, "Kana Extended-A", "hiragana"),
+    (0x1B120, 0x1B12F, "Kana Extended-A", "katakana"),
+    (0x1B130, 0x1B154, "Small Kana Extension", "hiragana"),
+    (0x1B155, 0x1B16F, "Small Kana Extension", "katakana"),
     (0x20000, 0x2A6DF, "CJK Unified Ideographs Extension B", "han"),
     (0x2A700, 0x2B73F, "CJK Unified Ideographs Extension C", "han"),
     (0x2B740, 0x2B81F, "CJK Unified Ideographs Extension D", "han"),
@@ -75,6 +85,7 @@ RANGES = [
     (0x2F800, 0x2FA1F, "CJK Compatibility Ideographs Supplement", "han"),
     (0x30000, 0x3134F, "CJK Unified Ideographs Extension G", "han"),
     (0x31350, 0x323AF, "CJK Unified Ideographs Extension H", "han"),
+    (0x323B0, 0x3347F, "CJK Unified Ideographs Extension J", "han"),
 ]
 
 # invariants findInterval() depends on
@@ -91,18 +102,23 @@ SAMPLES = {
     0xFF76: "katakana", 0xAC00: "hangul", 0x1100: "hangul",
     0x3131: "hangul", 0x3105: "bopomofo", 0x3190: "kanbun",
     0x3002: "punctuation", 0xFF01: "fullwidth",
+    0x1B000: "katakana", 0x1B002: "hiragana", 0x1B132: "hiragana",
+    0x1B155: "katakana", 0x1AFF0: "katakana", 0x323B0: "han",
 }
 def lookup(cp):
     for s, e, blk, sc in RANGES:
         if s <= cp <= e:
             return sc
     return None
+newer_samples = []
 for cp, want in SAMPLES.items():
     check(lookup(cp) == want, f"U+{cp:04X} -> {lookup(cp)}, expected {want}")
     try:
         ud.name(chr(cp))
     except ValueError:
-        fail.append(f"U+{cp:04X} is unassigned")
+        # Unassigned to this referee, which may simply be older than the
+        # character; reported below rather than failed, as blocks are.
+        newer_samples.append(f"U+{cp:04X}")
 
 # The referee is only as current as the Python build. Extensions G, H and I
 # arrived in Unicode 13.0, 15.0 and 15.1, so an older `unicodedata` cannot
@@ -118,6 +134,9 @@ unknown = sorted({name for start, end, name, _ in RANGES
 if unknown:
     print("  block newer than the referee, not verifiable here: "
           + ", ".join(unknown))
+if newer_samples:
+    print("  sample code points this referee does not know: "
+          + ", ".join(newer_samples))
 
 # ------------------------------------------------------------ block coverage
 # The check the sortedness assertions above cannot make: is a whole block of
@@ -148,12 +167,10 @@ LETTER_PREFIXES = (
     "HANGUL JUNGSEONG", "HANGUL JONGSEONG",
     "HALFWIDTH KATAKANA LETTER", "HALFWIDTH HANGUL LETTER",
 )
-OUT_OF_SCOPE = [
-    (0x1AFF0, 0x1AFFE, "Kana Extended-B: Minnan tone letters"),
-    (0x1B000, 0x1B0FF, "Kana Supplement: archaic kana and hentaigana"),
-    (0x1B100, 0x1B12F, "Kana Extended-A: hentaigana"),
-    (0x1B130, 0x1B16F, "Small Kana Extension"),
-]
+# The four kana extension blocks used to be listed here, while ?cjk_blocks
+# told users every phonetic script was covered in full; they are in the table
+# as of 0.2.0, so nothing is excused at present.
+OUT_OF_SCOPE = []
 def in_scope_ranges(cp):
     return any(s <= cp <= e for s, e, _, _ in RANGES)
 def excused(cp):

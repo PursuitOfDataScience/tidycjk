@@ -38,6 +38,10 @@ test_that("cjk_wrap validates width the same way cjk_pad does", {
 
 test_that("cjk_wrap validates indent and exdent", {
   expect_error(cjk_wrap("\u4e2d", 5, indent = -1), "`indent`")
+  # past the integer range as.integer() is NA with a bare warning, and
+  # stringi then complained about its own argument
+  expect_error(cjk_wrap("\u4e2d", 5, indent = 3e9), "within integer range")
+  expect_error(cjk_wrap("\u4e2d", 5, exdent = 3e9), "within integer range")
   expect_error(cjk_wrap("\u4e2d", 5, exdent = NA), "`exdent`")
   expect_error(cjk_wrap("\u4e2d", 5, indent = c(1, 2)), "`indent`")
   # Inf clears is.numeric() and `v < 0` both, so the is.finite() clause is the
@@ -133,35 +137,24 @@ test_that("cjk_wrap keeps a leading byte-order mark", {
   expect_true(startsWith(cjk_wrap(y, 20), "\ufeff"))
 })
 
-test_that("a long string wraps instead of crashing R", {
-  # stri_wrap()'s default optimal fit segfaults on long input -- a plain
-  # stri_wrap(strrep(<2 CJK chars>, 50000), 40) takes R down. cjk_wrap()
-  # switches to the greedy algorithm above 10,000 characters. This test is
-  # here because the failure mode is a crash, not a wrong answer, so nothing
-  # else in the suite would survive to report it.
+test_that("a long string wraps instead of exhausting R", {
+  # stringi's default optimal fit grows far faster than its input: 40,000
+  # characters of CJK exhaust 1.5 GB. cjk_wrap() fills greedily, which is
+  # linear. This test is here because the failure mode is the session dying,
+  # not a wrong answer, so nothing else in the suite would survive to report
+  # it.
   big <- strrep("\u4e2d\u6587", 12000)          # 24,000 characters
-  expect_gt(nchar(big), .CJK_WRAP_GREEDY_ABOVE)
   lines <- strsplit(cjk_wrap(big, 40), "\n", fixed = TRUE)[[1]]
   expect_true(all(cjk_width(lines) <= 40))
   expect_equal(paste(lines, collapse = ""), big)
 })
 
-test_that("short strings keep stringi's optimal fit", {
-  # The greedy switch must not change anything below the threshold.
-  s <- "hello there world wide"
-  expect_lt(nchar(s), .CJK_WRAP_GREEDY_ABOVE)
-  expect_equal(cjk_wrap(s, 8),
-               paste(stringi::stri_wrap(s, 8, simplify = TRUE),
-                     collapse = "\n"))
-})
-
-test_that("the greedy switch happens exactly where the help page says", {
-  # ?cjk_wrap promises "strings longer than 10,000 characters" use the greedy
-  # fit. Nothing else pins the comparison, so changing `>` to `>=` would make
-  # the documentation wrong with every test still passing. The unit below is
-  # one where the two algorithms genuinely disagree, which is what makes the
-  # switch observable at all.
-  thresh <- .CJK_WRAP_GREEDY_ABOVE
+test_that("lines are filled greedily at every length", {
+  # ?cjk_wrap promises the greedy fill. The unit below is one where the
+  # greedy and optimal fits genuinely disagree, which is what makes the
+  # choice observable. An earlier draft took the optimal fit up to 10,000
+  # characters and the greedy one beyond, so one more character could
+  # re-flow every line; the lengths either side of that line are kept.
   unit <- "aa bbbbbbbb c "
   mk <- function(n) {
     substr(strrep(unit, ceiling(n / nchar(unit)) + 1L), 1L, n)
@@ -170,13 +163,18 @@ test_that("the greedy switch happens exactly where the help page says", {
     paste(stringi::stri_wrap(s, 10, cost_exponent = cost, simplify = TRUE),
           collapse = "\n")
   }
-  at <- mk(thresh)
-  over <- mk(thresh + 1L)
-  # the premise: the two fits differ on this input, so the choice is visible
-  expect_false(identical(wrapped(at, 2), wrapped(at, 0)))
-
-  expect_equal(cjk_wrap(at, 10), wrapped(at, 2))       # at the threshold: optimal
-  expect_equal(cjk_wrap(over, 10), wrapped(over, 0))   # one past it: greedy
+  for (n in c(40L, 10000L, 10001L)) {
+    s <- mk(n)
+    expect_false(identical(wrapped(s, 2), wrapped(s, 0)))
+    expect_equal(cjk_wrap(s, 10), wrapped(s, 0))
+  }
+  # and appending text never re-flows the lines above it, which the optimal
+  # fit does
+  s <- "the word longer paragraph is an example of text to wrap"
+  a <- strsplit(cjk_wrap(s, 20), "\n", fixed = TRUE)[[1]]
+  b <- strsplit(cjk_wrap(paste(s, "and then some more"), 20), "\n",
+                fixed = TRUE)[[1]]
+  expect_identical(b[seq_len(length(a) - 1L)], a[seq_len(length(a) - 1L)])
 })
 
 

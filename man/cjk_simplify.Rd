@@ -33,7 +33,7 @@ This is ICU's \code{Simplified-Traditional} pair, and it is context-aware
 rather than a per-character table. Simplified to traditional is genuinely
 one-to-many -- U+53D1 is U+767C ("to send") or U+9AEE ("hair") depending
 on the word, and U+5E72 is U+4E7E, U+5E79 or U+5E72 -- and ICU picks
-correctly from the surrounding characters. Fourteen such pairs were
+correctly from the surrounding characters. Twenty such words were
 checked, including the ones where the same character splits both ways
 ("after" against "empress", "inside" against "kilometre"), and every one
 came out right.

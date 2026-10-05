@@ -44,17 +44,17 @@ test_that("every required Unicode block is present with the right bounds", {
   expect_equal(bounds("Halfwidth and Fullwidth Forms"), c(0xFF00, 0xFFEF))
 })
 
-test_that("every unified ideograph extension is covered, A through I", {
-  # The table was written when Extension F was the last one. G, H and I are
-  # ordinary ideographs, so leaving them out made has_cjk() answer FALSE for a
-  # real Chinese character -- and Extension I sits at U+2EBF0, *below* G and H,
-  # so the rows are in code point order rather than alphabetical order.
+test_that("every unified ideograph extension is covered, A through J", {
+  # The table was written when Extension F was the last one. G, H, I and J
+  # are ordinary ideographs, so leaving them out made has_cjk() answer FALSE
+  # for a real Chinese character -- and Extension I sits at U+2EBF0, *below*
+  # G and H, so the rows are in code point order rather than alphabetical.
   tab <- cjk_blocks()
   ext <- grep("^CJK Unified Ideographs Extension ", tab$block, value = TRUE)
   expect_setequal(
     ext,
     paste("CJK Unified Ideographs Extension", c("A", "B", "C", "D", "E", "F",
-                                                "G", "H", "I"))
+                                                "G", "H", "I", "J"))
   )
   expect_true(all(tab$script[tab$block %in% ext] == "han"))
   expect_equal(
@@ -125,11 +125,13 @@ test_that("the two documented edges of the table are where the docs say", {
   # points included, so the exception really is an exception
   expect_true(has_cjk("\u3100"))               # unassigned, head of Bopomofo
 
-  # The table is current to Unicode 16.0. Extension J (U+323B0-U+3347F) arrived
-  # in Unicode 17.0 and is a known gap, documented in ?cjk_blocks. If this ever
-  # fails, the table gained the block and the help page needs updating with it.
-  expect_equal(max(cjk_blocks()$end), 0x323AFL)
-  expect_false(has_cjk(stringi::stri_enc_fromutf32(list(0x323B0))))
+  # The table is current to Unicode 18.0, whose last block in scope is
+  # Extension J (U+323B0-U+3347F, from Unicode 17.0). If this fails, the
+  # table changed and ?cjk_blocks needs updating with it.
+  expect_equal(max(cjk_blocks()$end), 0x3347FL)
+  expect_true(has_cjk(stringi::stri_enc_fromutf32(list(0x323B0))))
+  expect_true(has_cjk(stringi::stri_enc_fromutf32(list(0x3347F))))
+  expect_false(has_cjk(stringi::stri_enc_fromutf32(list(0x33480))))
 })
 
 test_that("every phonetic script is covered including its extension block", {
@@ -154,6 +156,39 @@ test_that("every phonetic script is covered including its extension block", {
     cjk_char_counts(data.frame(text = "\u31a0"), text)$block,
     "Bopomofo Extended"
   )
+
+  # The kana extension blocks were the same gap: hentaigana, archaic and
+  # small kana and the Minnan tone letters are letters of the two kana
+  # scripts, and has_cjk() answered FALSE for every one of them. Each block
+  # is split where Unicode's Script property changes, so the label is the
+  # script the letter belongs to.
+  kana <- c(
+    "KATAKANA LETTER MINNAN TONE-2" = 0x1AFF0,
+    "KATAKANA LETTER ARCHAIC E" = 0x1B000,
+    "HIRAGANA LETTER ARCHAIC YE" = 0x1B001,
+    "HENTAIGANA LETTER A-1" = 0x1B002,
+    "HIRAGANA LETTER ARCHAIC WU" = 0x1B11F,
+    "KATAKANA LETTER ARCHAIC YI" = 0x1B120,
+    "HIRAGANA LETTER SMALL KO" = 0x1B132,
+    "HIRAGANA LETTER SMALL WO" = 0x1B152,
+    "KATAKANA LETTER SMALL KO" = 0x1B155,
+    "KATAKANA LETTER SMALL N" = 0x1B167
+  )
+  want <- ifelse(grepl("^KATAKANA", names(kana)), "katakana", "hiragana")
+  expect_equal(.cjk_scripts_of(kana), unname(want))
+  chars <- stringi::stri_enc_fromutf32(as.list(kana))
+  expect_true(all(has_cjk(chars)))
+  expect_true(all(cjk_detect_language(chars) == "japanese"))
+  # and the blocks end where Unicode's do
+  for (b in c("Kana Extended-B", "Kana Supplement", "Kana Extended-A",
+              "Small Kana Extension")) {
+    rows <- tab[tab$block == b, ]
+    expect_equal(c(min(rows$start), max(rows$end)),
+                 switch(b, "Kana Extended-B" = c(0x1AFF0L, 0x1AFFFL),
+                        "Kana Supplement" = c(0x1B000L, 0x1B0FFL),
+                        "Kana Extended-A" = c(0x1B100L, 0x1B12FL),
+                        "Small Kana Extension" = c(0x1B130L, 0x1B16FL)))
+  }
 })
 
 test_that("boundary code points are inside their block, neighbours are out", {
@@ -246,8 +281,12 @@ test_that("the encoding handler rewrites stringi's message and nothing else", {
 
 test_that("mis-encoded input is reported in tidycjk's own terms", {
   bad <- rawToChar(as.raw(c(0x61, 0xFF, 0x62)))
+  # stri_length() is the call .cjk_check_encoding() relies on to raise. On
+  # an older stringi it only warns, and the warning is part of the probe, not
+  # a result, so it is not allowed to escape into the test's record.
   errs <- inherits(
-    try(stringi::stri_enc_toutf32(bad), silent = TRUE), "try-error"
+    try(suppressWarnings(stringi::stri_length(bad)), silent = TRUE),
+    "try-error"
   )
   skip_if_not(errs, "this stringi warns rather than errors on invalid UTF-8")
   verbs <- list(
@@ -263,11 +302,59 @@ test_that("mis-encoded input is reported in tidycjk's own terms", {
     function() cjk_segment(bad, engine = "character"),
     function() cjk_summary(data.frame(t = bad), t),
     function() cjk_char_counts(data.frame(t = bad), t),
-    function() cjk_tokens(data.frame(t = bad), t, engine = "character")
+    function() cjk_tokens(data.frame(t = bad), t, engine = "character"),
+    # The verbs below used to answer five different ways: U+FFFD from the
+    # ICU transforms, the raw bytes back from cjk_sentences() and
+    # cjk_sort(), nchar()'s own error from cjk_wrap(), and the bad byte
+    # silently dropped by the "icu" engine. They now refuse on the way in.
+    function() cjk_wrap(bad, 5),
+    function() cjk_sentences(bad),
+    function() cjk_ngrams(bad),
+    function() cjk_strip_punct(bad),
+    function() cjk_normalize(bad),
+    function() cjk_romanize(bad),
+    function() cjk_simplify(bad),
+    function() cjk_traditionalize(bad),
+    function() to_hiragana(bad),
+    function() to_katakana(bad),
+    function() cjk_jamo(bad),
+    function() cjk_compose_jamo(bad),
+    function() cjk_sort(bad),
+    function() cjk_order(bad),
+    function() cjk_segment(bad, engine = "icu")
   )
   for (f in verbs) {
-    expect_error(f(), "must be valid UTF-8")
+    # the error, and no stray warning from a base R function on the way to it
+    warned <- character(0)
+    e <- withCallingHandlers(
+      tryCatch(f(), error = function(e) e),
+      warning = function(w) {
+        warned <<- c(warned, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+    expect_s3_class(e, "error")
+    expect_match(conditionMessage(e), "must be valid UTF-8", fixed = TRUE)
+    expect_identical(warned, character(0))
   }
+  # the tidy verbs name the argument the caller wrote
+  expect_error(cjk_summary(data.frame(t = bad), t), "`col` must be valid",
+               fixed = TRUE)
+  # and so do the arguments that carry text of their own
+  expect_error(cjk_pad("a", 5, pad = bad), "`pad` must be valid", fixed = TRUE)
+  expect_error(cjk_truncate("abcdef", 4, ellipsis = bad),
+               "`ellipsis` must be valid", fixed = TRUE)
+  expect_error(cjk_strip_punct("a.b", replacement = bad),
+               "`replacement` must be valid", fixed = TRUE)
+})
+
+test_that("a string marked as bytes is refused by name", {
+  b <- "caf\u00e9"
+  Encoding(b) <- "bytes"
+  expect_error(cjk_width(b), "`x` is marked as \"bytes\"", fixed = TRUE)
+  expect_error(cjk_normalize(b), "marked as \"bytes\"", fixed = TRUE)
+  expect_error(cjk_summary(data.frame(t = I(b)), t), "`col` is marked",
+               fixed = TRUE)
 })
 
 test_that("errors that are not about encoding are re-thrown untouched", {
@@ -471,11 +558,12 @@ test_that("supplementary-plane characters are one code point, not two", {
 })
 
 
-test_that("the two reported shapes for undecodable bytes are what ?tidycjk says", {
-  # ?tidycjk states that a byte sequence R cannot decode is reported two
-  # ways: the code-point path raises our message, the ICU-transform path
-  # returns U+FFFD. Both are stringi's behaviour rather than ours, so this
-  # pins the claim the documentation rests on.
+test_that("undecodable bytes are reported the one way ?tidycjk says", {
+  # ?tidycjk states that a byte sequence R cannot decode is an error from
+  # every verb, and that what counts as undecodable depends on the session.
+  # Until 0.2.0 the ICU-transform verbs answered with U+FFFD replacement
+  # characters instead, which is a silently wrong answer; this pins both
+  # halves of the claim.
   #
   # Skipped outside a UTF-8 locale on purpose, and this is the point of the
   # documented caveat: in a GB18030 or C locale these same bytes are
@@ -488,24 +576,19 @@ test_that("the two reported shapes for undecodable bytes are what ?tidycjk says"
   expect_false(validUTF8(gbk))
 
   # And skipped unless stringi actually raises, which is the caveat the
-  # test above this one already records: stringi 1.5.3 only *warns* on
-  # invalid UTF-8 in stri_enc_toutf32(), so on that build nothing reaches
-  # our handler and there is no error to assert. Writing the sweep without
-  # this guard is what made the test fail on R 3.6.3.
+  # tests above record: stringi 1.5.3 only *warns* on invalid UTF-8, so on
+  # that build nothing reaches our handler and there is no error to assert.
   raises <- tryCatch({
-    suppressWarnings(stringi::stri_enc_toutf32(gbk)); FALSE
+    suppressWarnings(stringi::stri_length(gbk)); FALSE
   }, error = function(e) TRUE)
   skip_if_not(raises, "this stringi warns rather than raises on invalid UTF-8")
 
-  # the code-point path raises, and names the legacy encodings
-  expect_error(suppressWarnings(has_cjk(gbk)), "must be valid UTF-8")
-  expect_error(suppressWarnings(has_cjk(gbk)), "GBK")
-
-  # the ICU-transform path returns replacement characters instead
-  out <- suppressWarnings(cjk_normalize(gbk))
-  expect_false(grepl("must be valid", out, fixed = TRUE))
-  expect_true(grepl("\ufffd", out, fixed = TRUE))
-  expect_true(grepl("\ufffd", suppressWarnings(cjk_romanize(gbk)), fixed = TRUE))
+  # the code-point path and the ICU-transform path now raise alike, and name
+  # the legacy encodings
+  for (f in list(has_cjk, cjk_normalize, cjk_romanize, cjk_jamo)) {
+    expect_error(f(gbk), "must be valid UTF-8")
+    expect_error(f(gbk), "GBK")
+  }
 
   # and text whose encoding IS declared goes through untouched
   declared <- iconv(gbk, "GBK", "UTF-8")
@@ -514,13 +597,14 @@ test_that("the two reported shapes for undecodable bytes are what ?tidycjk says"
   expect_equal(cjk_normalize(declared), zh)
 })
 
-
 test_that("an enumerated argument is rejected by name, not as 'arg'", {
   # match.arg() reports a non-character value as "'arg' must be NULL or a
-  # character vector", which names a variable the caller never wrote. The
-  # other 34 messages in this package all name their argument, so the two
-  # enumerated ones are held to the same standard.
-  for (v in list(NA, 1, list(1), TRUE, data.frame(a = 1))) {
+  # character vector", and a string matching no choice as "'arg' should be
+  # one of", both naming a variable the caller never wrote and both carrying
+  # match.arg()'s own call. Every other message in this package names its
+  # argument, so the two enumerated ones are held to the same standard.
+  for (v in list(NA, 1, list(1), TRUE, data.frame(a = 1), "middle", "NFC",
+                 "", character(0), c("left", "right"), c("nfc", "nfd"))) {
     expect_error(cjk_pad("a", 8, side = v), "`side` must be one of",
                  fixed = TRUE)
     expect_error(cjk_normalize("a", form = v), "`form` must be one of",
@@ -539,9 +623,13 @@ test_that("an enumerated argument is rejected by name, not as 'arg'", {
   expect_equal(cjk_pad("ab", 6, side = NULL), cjk_pad("ab", 6))
   expect_equal(cjk_normalize("a", form = NULL), cjk_normalize("a"))
   expect_equal(cjk_normalize("\uff21", form = "nfkc"), "A")
-  # an unmatched value keeps match.arg's own wording, which lists the choices
-  expect_error(cjk_pad("a", 8, side = "middle"), "should be one of")
-  expect_error(cjk_normalize("a", form = "NFC"), "should be one of")
+  # an unmatched or ambiguous string gets the same message, with no call
+  for (expr in list(quote(cjk_pad("a", 8, side = "middle")),
+                    quote(cjk_normalize("a", form = "nfk")))) {
+    e <- tryCatch(eval(expr), error = function(e) e)
+    expect_match(conditionMessage(e), "must be one of", fixed = TRUE)
+    expect_null(conditionCall(e))
+  }
 })
 
 

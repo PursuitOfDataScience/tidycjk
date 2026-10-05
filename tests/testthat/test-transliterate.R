@@ -163,17 +163,47 @@ test_that("kana conversion round-trips only within one syllabary", {
   expect_false(identical(to_katakana(to_hiragana(mixed)), mixed))
 })
 
-test_that("the jamo round trip returns NFC, not necessarily the input", {
-  # Documented in ?cjk_jamo. Already-NFC input is returned unchanged...
-  for (s in c("\ud55c\uae00", "\u4e2d\u6587", "abc")) {
-    expect_equal(cjk_compose_jamo(paste(cjk_jamo(s)[[1]], collapse = "")), s)
+test_that("the jamo round trip is exact, and only Hangul is touched", {
+  # Documented in ?cjk_jamo. The verbs apply the Hangul syllable arithmetic
+  # and nothing else, so text that is not Hangul comes back as it went in,
+  # where NFD and NFC would have split the accented letter and replaced the
+  # compatibility ideographs with their unified forms.
+  rt <- function(s) vapply(cjk_jamo(s), paste, character(1), collapse = "")
+  for (s in c("\ud55c\uae00", "\u4e2d\u6587", "abc", "e\u0301", "\u00e9",
+              "\uf900\ud55c", "\U0002F800", "\u1100\u3131", "\ufeff\ud55c")) {
+    expect_identical(cjk_compose_jamo(rt(s)), s)
   }
-  # ... and input that is not gets normalised, which is what NFC is for
-  decomposed <- "e\u0301"
-  expect_false(identical(stringi::stri_trans_nfc(decomposed), decomposed))
-  expect_equal(
-    cjk_compose_jamo(paste(cjk_jamo(decomposed)[[1]], collapse = "")),
-    stringi::stri_trans_nfc(decomposed)
+  expect_identical(cjk_jamo("\u00e9")[[1]], "\u00e9")
+  expect_identical(cjk_jamo("e\u0301")[[1]], c("e", "\u0301"))
+  expect_identical(cjk_jamo("\uf900")[[1]], "\uf900")
+  expect_identical(cjk_compose_jamo("e\u0301"), "e\u0301")
+  expect_identical(cjk_compose_jamo("\uf900"), "\uf900")
+  # the one exception, and the reason the verb exists: jamo the input held
+  # as separate code points are composed into their syllable
+  expect_identical(cjk_compose_jamo("\u1112\u1161\u11ab"), "\ud55c")
+  expect_identical(cjk_compose_jamo(c("\u1112\u1161", NA, "")),
+                   c("\ud558", NA, ""))
+})
+
+test_that("cjk_compose_jamo composes jamo exactly as NFC does", {
+  # The composition is computed here rather than borrowed from NFC, so check
+  # it against NFC wherever the two must agree: strings of jamo, syllables
+  # and ASCII, which NFC has nothing else to do to. The pool includes the
+  # code points either side of each jamo range (U+1113, U+1176, U+11A7 and
+  # U+11C3 are archaic or bases and compose with nothing), an LV and two LVT
+  # syllables, so every boundary of the arithmetic is exercised.
+  set.seed(20261005)
+  pool <- c(0x1100:0x1113, 0x1160:0x1176, 0x11A7:0x11C3,
+            0xAC00, 0xAC01, 0xB098, 0xD7A3, 0x41, 0x20)
+  x <- vapply(seq_len(2000), function(i) {
+    intToUtf8(sample(pool, sample(1:8, 1L), replace = TRUE))
+  }, character(1))
+  expect_identical(cjk_compose_jamo(x), stringi::stri_trans_nfc(x))
+  # and decomposition agrees with NFD on the whole syllable block
+  syl <- intToUtf8(0xAC00:0xD7A3, multiple = TRUE)
+  expect_identical(
+    vapply(cjk_jamo(syl), paste, character(1), collapse = ""),
+    stringi::stri_trans_nfd(syl)
   )
 })
 

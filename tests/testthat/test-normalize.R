@@ -411,8 +411,11 @@ test_that("cjk_normalize keeps the vector contract", {
 })
 
 test_that("cjk_normalize rejects a bad form or flag", {
-  expect_error(cjk_normalize("a", "NFC"), "arg")
-  expect_error(cjk_normalize("a", "nfkc_cf"), "arg")
+  # named by the argument the caller wrote, not as match.arg()'s 'arg'
+  expect_error(cjk_normalize("a", "NFC"), "`form` must be one of",
+               fixed = TRUE)
+  expect_error(cjk_normalize("a", "nfkc_cf"), "`form` must be one of",
+               fixed = TRUE)
   expect_error(cjk_normalize("a", drop_variation_selectors = 1),
                "must be TRUE or FALSE")
   expect_error(cjk_normalize("a", drop_variation_selectors = NA),

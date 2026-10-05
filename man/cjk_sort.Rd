@@ -68,6 +68,9 @@ than the silent fallback to root collation stringi would otherwise give
 you, because that fallback produces a plausible-looking wrong order. An
 unrecognised \emph{region} is not an error: \code{"zh-CH"}, a typo for \code{"zh-CN"},
 resolves to \code{"zh"} and still sorts by pinyin, which is the right answer.
+The language is matched without regard to case, as BCP 47 specifies, so
+\code{"ZH"} is \code{"zh"}; and \code{"root"} asks for ICU's root collation by name,
+which is a choice rather than a fallback.
 }
 
 \section{Missing values}{

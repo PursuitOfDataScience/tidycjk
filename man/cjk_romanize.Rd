@@ -19,8 +19,7 @@ frame or a function is an error naming what to do instead.}
 
 \item{ascii}{If \code{TRUE}, strip diacritics so the result is plain ASCII:
 pinyin tone marks are removed, so that \code{wo} with a caron becomes plain
-\code{wo}. Defaults to \code{FALSE},
-which keeps them.}
+\code{wo}. Defaults to \code{FALSE}, which keeps them.}
 }
 \value{
 A character vector the same length as \code{x}. \code{NA} gives \code{NA}.
@@ -37,7 +36,7 @@ Latin is left alone.
 }
 \section{What this is not}{
 Romanisation is not a function of the code point alone, and ICU treats it
-as though it were. Three consequences worth knowing before you trust the
+as though it were. Four consequences worth knowing before you trust the
 output:
 \itemize{
 \item \strong{Han is always read as Chinese.} ICU routes every Han character
@@ -46,6 +45,12 @@ back with Chinese readings: U+65E5 U+672C U+8A9E ("Japanese language")
 romanises to \verb{ri ben yu}, not \code{nihongo}. This is not a near miss to be
 cleaned up afterwards -- it is the wrong language. Do not use
 \code{cjk_romanize()} on Japanese kanji.
+\item \strong{A character with two readings gets one.} ICU reads each Han
+character on its own, so a polyphonic character gets its most common
+reading whatever word it is in: U+94F6 U+884C ("bank") romanises to
+\verb{yin xing} rather than \verb{yin hang}, and U+97F3 U+4E50 ("music") to
+\verb{yin le} rather than \verb{yin yue} (tone marks omitted here). Treat the
+output as a sort or search key, not as pinyin to show a reader.
 \item \strong{No word spacing.} ICU inserts a space between Han syllables but not
 between scripts, so Han followed immediately by kana romanises to a run
 with no boundary where the script changes. Segment first with
@@ -57,33 +62,31 @@ how it is said.
 }
 
 \section{It is slow, by a wide margin}{
-The figures below were measured on one machine and will move with the
-CPU, the load and the ICU build; the ratios are the durable part. Nothing
-in the test suite asserts them, deliberately, because a timing assertion
-on a CRAN build machine fails for reasons that have nothing to do with
-this package.
+ICU's transliterator is the most expensive thing this package calls. On a
+column of 5,000 twenty-character Chinese documents, romanising ran at a
+median of about 45,000 characters a second (95\% CI 43,500 to 45,600) and
+took about 27 times as long as \code{cjk_segment(engine = "icu")} on the same
+column (95\% CI 24 to 29; the closest of the pairs was 17 times). The cost
+is ICU's: a bare \code{stringi::stri_trans_general(x, "Any-Latin")} takes the
+same time (ratio 1.01, 95\% CI 0.99 to 1.02), and there is no faster route
+to the same answer.
 
-ICU's transliterator is the most expensive thing this package calls.
-Measured here, romanising a column of short documents runs at roughly
-sixty thousand characters a second, and it degrades on a single very long
-string: the same volume in one string runs at nearer forty thousand,
-200,000 characters take about five seconds, and a million takes over two
-minutes. For scale, \code{cjk_segment(engine = "icu")} gets through that same
-million in under half a second, so romanisation can be a few hundred
-times the cost of everything around it -- measured at about 320 times on
-the million.
+It also gets slower per character as one string gets longer, so the same
+100,000 characters took 1.4 times as long pasted into a single string as
+kept as a column (95\% CI 1.35 to 1.43). Keep a corpus as one row per
+document, and romanise once into a column you keep rather than inside a
+loop.
 
-None of that is this package's doing -- a bare
-\code{stringi::stri_trans_general(x, "Any-Latin")} takes the same time -- and
-there is no faster route to the same answer. Two things help. Keep a
-corpus as one row per document rather than pasting it into one string,
-which is worth about a factor of two. And romanise once into a column you
-keep, rather than inside a loop.
+Those figures are medians of 30 paired, interleaved runs on one machine
+(an AMD EPYC 7702, ICU 74.1) and will move with the CPU, the load and the
+ICU build; the ratios are the durable part. Nothing in the test suite
+asserts them, because a timing assertion on a CRAN build machine fails
+for reasons that have nothing to do with this package.
 
-For Japanese specifically, a morphological analyser that knows the reading
--- \href{https://CRAN.R-project.org/package=gibasa}{gibasa}, which binds MeCab
--- is the right tool. This function is for Chinese, for kana, and for
-getting a sortable ASCII key out of a CJK column.
+For Japanese specifically, a morphological analyser that knows the
+reading is the right tool: \href{https://CRAN.R-project.org/package=gibasa}{gibasa},
+which binds MeCab. This function is for Chinese, for kana, and for getting
+a sortable ASCII key out of a CJK column.
 }
 
 \examples{

@@ -37,16 +37,18 @@ written either way for emphasis.
 It is a normalisation, not a reversible mapping. Applied to text holding
 both syllabaries it erases the distinction between them, and that
 distinction means something: katakana marks loanwords, onomatopoeia and
-emphasis. \code{to_katakana(to_hiragana(x))} returns \code{x} only when \code{x} was
-already all katakana. Run it one way, and keep the original if you need
-to go back.
+emphasis. \code{to_katakana(to_hiragana(x))} turns any hiragana in \code{x} into
+katakana, and it is not exact even on text that was all katakana, because
+ICU's mapping makes a few choices of its own: the small katakana U+30F5 and
+U+30F6 become the full-size hiragana U+304B and U+3051, and the digraphs
+U+30FF (\emph{koto}) and U+309F (\emph{yori}) are spelled out as two kana each. Run
+it one way, and keep the original if you need to go back.
 
 Halfwidth katakana is handled too, and composed while it is: the halfwidth
 voiced KA is two code points, U+FF76 and U+FF9E, and \code{to_katakana()}
 returns the single character U+30AC. So no width conversion is needed
-first, though
-\code{\link[=to_halfwidth]{to_halfwidth()}} and \code{\link[=to_fullwidth]{to_fullwidth()}} remain the way to move along the
-width axis without touching the syllabary.
+first, though \code{\link[=to_halfwidth]{to_halfwidth()}} and \code{\link[=to_fullwidth]{to_fullwidth()}} remain the way to move
+along the width axis without touching the syllabary.
 }
 \examples{
 to_hiragana("\u30ab\u30bf\u30ab\u30ca")   # katakana -> hiragana

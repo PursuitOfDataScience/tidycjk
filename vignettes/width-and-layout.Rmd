@@ -56,7 +56,7 @@ cat(paste0("|", cjk_pad(labels, 8), "|"), sep = "\n")
 ## `cjk_pad()`
 
 Pads to a width in columns. `side` names the side the padding goes on, and
-`pad` must itself be one column wide — a two-column pad character cannot hit
+`pad` must itself be one column wide: a two-column pad character cannot hit
 an odd target, so it is rejected rather than allowed to overshoot.
 
 ```{r pad}
@@ -66,8 +66,8 @@ cjk_pad("中文", 10, side = "both")
 cjk_pad("中文", 10, pad = ".")
 ```
 
-A width already exceeded is left alone rather than truncated — padding and
-truncation are separate verbs on purpose:
+A width already exceeded is left alone rather than truncated, because padding
+and truncation are separate verbs on purpose:
 
 ```{r pad-over}
 cjk_width(cjk_pad("日本語テキスト", 4))
@@ -103,7 +103,8 @@ x <- "我今天很開心，因為天氣非常好而且朋友來看我"
 cat(cjk_wrap(x, 14))
 ```
 
-Every line is inside the budget:
+Lines are filled greedily, the way a terminal fills them: each takes as much
+text as fits. Every line is inside the budget:
 
 ```{r wrap-check}
 cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
@@ -111,8 +112,8 @@ cjk_width(strsplit(cjk_wrap(x, 14), "\n", fixed = TRUE)[[1]])
 
 ### Why this is not "split every N columns"
 
-CJK text is *mostly* breakable between any two characters — there are no
-spaces to break at — but not everywhere. Unicode Annex #14 defines the
+CJK text is *mostly* breakable between any two characters, since there are no
+spaces to break at, but not everywhere. Unicode Annex #14 defines the
 positions [@uax14], and several are forbidden:
 
 * a closing bracket `）` may not begin a line;
@@ -130,8 +131,8 @@ Notice that no line begins with `。` or `）`.
 
 ### One rule that is not universal
 
-Those three hold whatever the locale. A fourth — whether a small kana may be
-separated from the character it follows — does **not**. Annex #14 defines
+Those three hold whatever the locale. A fourth, whether a small kana may be
+separated from the character it follows, does **not**. Annex #14 defines
 strict, normal and loose line-breaking styles and which applies is tailored
 per locale: under `"en"` a small kana never begins a line, and under `"ja"`,
 which uses the looser style, it may. Name the style when the output has to be
@@ -168,7 +169,7 @@ cjk_wrap(NA, 6)
 
 A `width` that is `Inf` or outside integer range is an error rather than a
 silent `NA`. `cjk_pad(x, Inf)` is a plausible way to write "do not truncate",
-and it used to return missing values with only a coercion warning:
+and coercing it would return missing values with only a coercion warning:
 
 ```{r contract-error, error = TRUE}
 cjk_pad("中文", Inf)
@@ -183,7 +184,7 @@ cjk_pad(c("a", "b", "c"), c(2, 3))
 
 ## Ambiguous width
 
-Some characters — Greek, Cyrillic, a few punctuation marks — are `Ambiguous`
+Some characters (Greek, Cyrillic, a few punctuation marks) are `Ambiguous`
 in Annex #11: two columns in a legacy East Asian font, one otherwise. There is
 no context-free answer, and ICU has changed its treatment more than once.
 `cjk_width()` reports what ICU reports on your machine. If your output must

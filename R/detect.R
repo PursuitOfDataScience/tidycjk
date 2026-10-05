@@ -110,6 +110,9 @@ cjk_script <- function(x) {
 #' The rules are applied in order:
 #'
 #' 1. Hiragana or katakana present: `"japanese"`. Only Japanese uses kana.
+#'    The katakana middle dot U+30FB, and its halfwidth form U+FF65, do not
+#'    count: they are punctuation that Chinese and Korean text use too, to
+#'    separate the parts of a transliterated name.
 #' 2. Kanbun annotation marks present: `"japanese"`. They exist to make
 #'    Classical Chinese readable as Japanese.
 #' 3. Hangul present: `"korean"`.
@@ -176,6 +179,15 @@ cjk_detect_language <- function(x, han_only = NA_character_) {
       return(NA_character_)
     }
     s <- .cjk_scripts_of(cp)
+    # The katakana middle dot sits in the Katakana block, so the block table
+    # calls it katakana, but it is punctuation (Script=Common) that Chinese
+    # and Korean text use as a name separator too: Unicode's
+    # Script_Extensions lists Han, Hangul and Bopomofo for it. Counted as
+    # kana it made the first rule fire, so a Korean "Seoul / Busan" written
+    # with one came back "japanese". The prolonged sound mark U+30FC and the
+    # voiced marks look similar and are not: their Script_Extensions are
+    # hiragana and katakana only, so they stay evidence for Japanese.
+    s[cp %in% .CJK_SHARED_MIDDLE_DOTS] <- NA_character_
     s <- s[!is.na(s)]
     if (any(s %in% c("hiragana", "katakana", "kanbun"))) {
       return("japanese")
@@ -192,6 +204,9 @@ cjk_detect_language <- function(x, han_only = NA_character_) {
     NA_character_
   }, character(1))
 }
+
+
+.CJK_SHARED_MIDDLE_DOTS <- c(0x30FBL, 0xFF65L)
 
 
 #' What share of the text is CJK?
@@ -214,7 +229,8 @@ cjk_detect_language <- function(x, han_only = NA_character_) {
 #' @seealso [has_cjk()] for the yes/no version, [cjk_summary()] for the
 #'   column-level summary.
 #' @examples
-#' # all CJK, half CJK, none, the empty string, and NA
+#' # all CJK; two CJK characters of seven, because the space and the Latin
+#' # letters count too; none; the empty string; NA
 #' cjk_ratio(c("\u4e2d\u6587", "half \u4e2d\u6587", "none", "", NA))
 #' @export
 cjk_ratio <- function(x) {

@@ -75,6 +75,8 @@
 #' @export
 cjk_sentences <- function(x, locale = NULL) {
   x <- .cjk_as_text(x)
+  locale <- .cjk_check_locale(locale, "break data",
+                              "Use a language such as \"zh\", \"ja\" or \"ko\".")
   if (length(x) == 0L) {
     return(list())
   }
@@ -83,12 +85,9 @@ cjk_sentences <- function(x, locale = NULL) {
   # concatenate back to the input exactly.
   bom <- .cjk_leading_bom(x)
   x <- .cjk_strip_bom(x, bom)
-  out <- .cjk_locale_guard(
-    .cjk_stri(stringi::stri_split_boundaries(
-      x, type = "sentence", locale = locale
-    )),
-    locale, "break data", "Use a language such as \"zh\", \"ja\" or \"ko\"."
-  )
+  out <- .cjk_stri(stringi::stri_split_boundaries(
+    x, type = "sentence", locale = locale
+  ))
   # As in the icu engine: stringi already returns NA for NA and character(0)
   # for "". On the current stringi that NA is already NA_character_, so the
   # coercion below changes nothing; it is kept because the type is part of
@@ -211,9 +210,9 @@ cjk_ngrams <- function(x, n = 2L) {
     }
     # n vectorised paste0() calls rather than one closure call per gram.
     # The k-th gram is chars[i] ... chars[i + n - 1], so pasting n shifted
-    # slices column-wise builds every gram at once; measured about five
-    # times faster than the per-window vapply() on a corpus of short
-    # documents, with byte-identical output.
+    # slices column-wise builds every gram at once, with output identical to
+    # the per-window version; test-differential.R checks it against a
+    # brute-force reference.
     hit <- starts[keep]
     do.call(paste0, lapply(seq_len(n) - 1L, function(k) chars[hit + k]))
   })
@@ -309,6 +308,7 @@ cjk_strip_punct <- function(x, replacement = " ", symbols = FALSE) {
         is.na(replacement)) {
     stop("`replacement` must be a single string.", call. = FALSE)
   }
+  .cjk_check_encoding(replacement, "replacement")
   if (!is.logical(symbols) || length(symbols) != 1L || is.na(symbols)) {
     stop("`symbols` must be TRUE or FALSE.", call. = FALSE)
   }

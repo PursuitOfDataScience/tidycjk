@@ -120,6 +120,30 @@ test_that("the Han-only guess is available but has to be asked for", {
   expect_error(cjk_detect_language(ZH, han_only = c("a", "b")), "single string")
 })
 
+test_that("the katakana middle dot is not evidence of Japanese", {
+  # U+30FB separates the parts of a transliterated name in Chinese and Korean
+  # text as well as in Japanese, which is what its Script_Extensions say.
+  # Counted as kana it fired the first rule, so a Korean string came back
+  # "japanese". U+FF65 is its halfwidth form.
+  ko <- "\uc11c\uc6b8\u30fb\ubd80\uc0b0"            # "Seoul / Busan"
+  expect_equal(cjk_detect_language(ko), "korean")
+  expect_equal(cjk_detect_language(sub("\u30fb", "\uff65", ko)), "korean")
+  zh <- "\u7d04\u7ff0\u30fb\u53f2\u5bc6\u65af"      # "John Smith"
+  expect_true(is.na(cjk_detect_language(zh)))
+  expect_equal(cjk_detect_language(zh, han_only = "chinese"), "chinese")
+  expect_true(is.na(cjk_detect_language("\u30fb")))
+  # real kana still settles it, and so does the prolonged sound mark, which
+  # only Japanese uses
+  expect_equal(
+    cjk_detect_language("\u30b8\u30e7\u30f3\u30fb\u30b9\u30df\u30b9"),
+    "japanese"
+  )
+  expect_equal(cjk_detect_language("\u30fc"), "japanese")
+  # cjk_script() reports the block, as documented, so there the dot is still
+  # katakana
+  expect_equal(cjk_script("\u30fb"), "katakana")
+})
+
 test_that("CJK punctuation does not stop Han text being recognised", {
   # Every Han fixture above is punctuation-free, which left the commonest
   # real input untested: a Chinese sentence ends in U+3002, and U+3002 is a
