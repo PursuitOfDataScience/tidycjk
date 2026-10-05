@@ -15,7 +15,17 @@ cjk_ngrams(x, n = 2L)
 
 - x:
 
-  A character vector.
+  A character vector. Anything else is coerced with
+  [`as.character()`](https://rdrr.io/r/base/character.html). That
+  coercion is R's, not this package's, so a numeric vector is measured
+  as R chooses to write it – which moves with `options(scipen)` and
+  `options(OutDec)`, and can therefore differ between sessions. Convert
+  deliberately if you mean to measure numbers; these verbs are for text.
+  A list is *not* coerced –
+  [`as.character()`](https://rdrr.io/r/base/character.html) deparses one
+  rather than coercing it, so the text measured would be the R code that
+  builds the list – so a list, a data frame or a function is an error
+  naming what to do instead.
 
 - n:
 

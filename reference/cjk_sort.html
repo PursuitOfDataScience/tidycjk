@@ -58,7 +58,15 @@ the permutation that would do it, for reordering a data frame.</p>
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A character vector.</p></dd>
+<dd><p>A character vector. Anything else is coerced with
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code>. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it – which moves
+with <code>options(scipen)</code> and <code>options(OutDec)</code>, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text. A list is <em>not</em> coerced –
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> deparses one rather than coercing it, so the text
+measured would be the R code that builds the list – so a list, a data
+frame or a function is an error naming what to do instead.</p></dd>
 
 
 <dt id="arg-locale">locale<a class="anchor" aria-label="anchor" href="#arg-locale"></a></dt>

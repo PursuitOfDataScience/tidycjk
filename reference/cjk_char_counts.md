@@ -23,7 +23,9 @@ cjk_char_counts(data, col)
   coerced with
   [`as.character()`](https://rdrr.io/r/base/character.html); see
   [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
-  for why that makes a numeric column a poor thing to measure.
+  for why that makes a numeric column a poor thing to measure. A
+  list-column is an error rather than a coercion, for the reason given
+  there.
 
 ## Value
 
@@ -58,6 +60,8 @@ for the block table these labels come from.
 ## Examples
 
 ``` r
+# "Chinese writing" twice over, then "the Japanese language" in kanji and
+# kana, then a row with no CJK at all
 df <- data.frame(
   text = c("\u4e2d\u6587\u4e2d\u6587",
            "\u65e5\u672c\u306e\u3053\u3068\u3070",

@@ -15,7 +15,17 @@ cjk_compose_jamo(x)
 
 - x:
 
-  A character vector.
+  A character vector. Anything else is coerced with
+  [`as.character()`](https://rdrr.io/r/base/character.html). That
+  coercion is R's, not this package's, so a numeric vector is measured
+  as R chooses to write it – which moves with `options(scipen)` and
+  `options(OutDec)`, and can therefore differ between sessions. Convert
+  deliberately if you mean to measure numbers; these verbs are for text.
+  A list is *not* coerced –
+  [`as.character()`](https://rdrr.io/r/base/character.html) deparses one
+  rather than coercing it, so the text measured would be the R code that
+  builds the list – so a list, a data frame or a function is an error
+  naming what to do instead.
 
 ## Value
 
@@ -42,9 +52,20 @@ unchanged. If it was not, the result is `x` normalised: an `e` followed
 by a combining acute comes back as the single character `U+00E9`,
 because that is what NFC is for.
 
-So the guarantee is `cjk_compose_jamo(cjk_jamo(x))` equals
+So the guarantee is that re-joining the jamo and composing them equals
 `stringi::stri_trans_nfc(x)`, which equals `x` exactly when `x` is
 already NFC. Normalise first if you need to be certain.
+
+Note the re-joining step, which the
+[`rt()`](https://rdrr.io/r/stats/TDist.html) helper in the examples
+below spells out. `cjk_jamo()` returns a **list** – one character vector
+of jamo per element of `x` – and `cjk_compose_jamo()` takes a character
+vector, so the two do not compose directly. Writing
+`cjk_compose_jamo(cjk_jamo(x))` is an error rather than a silent wrong
+answer, which it was until 0.2.0:
+[`as.character()`](https://rdrr.io/r/base/character.html) deparses a
+list, so the jamo came back as the literal string
+`c("\u1112", "\u1161", "\u11ab")` – R code spelled out as text.
 
 That makes jamo the right unit for questions the syllable hides: which
 initial consonants a corpus favours, whether two spellings differ only

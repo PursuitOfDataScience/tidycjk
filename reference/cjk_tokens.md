@@ -24,7 +24,9 @@ cjk_tokens(data, col, engine, ..., output = "token")
   coerced with
   [`as.character()`](https://rdrr.io/r/base/character.html); see
   [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
-  for why that makes a numeric column a poor thing to measure.
+  for why that makes a numeric column a poor thing to measure. A
+  list-column is an error rather than a coercion, for the reason given
+  there.
 
 - engine:
 
@@ -80,6 +82,7 @@ when you want characters rather than words.
 ## Examples
 
 ``` r
+# "I am very happy", then a row mixing Latin with "Chinese writing"
 df <- data.frame(
   id = 1:2,
   text = c("\u6211\u5f88\u958b\u5fc3", "hello \u4e2d\u6587")

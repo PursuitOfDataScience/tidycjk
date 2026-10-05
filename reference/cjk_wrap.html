@@ -64,7 +64,10 @@ it counts columns rather than characters.</p>
 numeric vector is measured as R chooses to write it – which moves
 with <code>options(scipen)</code> and <code>options(OutDec)</code>, and can therefore
 differ between sessions. Convert deliberately if you mean to
-measure numbers; these verbs are for text.</p></dd>
+measure numbers; these verbs are for text. A list is <em>not</em> coerced –
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> deparses one rather than coercing it, so the text
+measured would be the R code that builds the list – so a list, a data
+frame or a function is an error naming what to do instead.</p></dd>
 
 
 <dt id="arg-width">width<a class="anchor" aria-label="anchor" href="#arg-width"></a></dt>
@@ -145,12 +148,32 @@ again and removes it. Unicode deprecated U+FEFF for any use other than
 marking the start of a stream, so this only bites text that is already
 using it against the standard's advice – but it is a content change, and
 this page would rather say so than have you find it.</p>
-<p>Two behaviours differ from <code><a href="cjk_pad.html">cjk_pad()</a></code> and <code><a href="cjk_truncate.html">cjk_truncate()</a></code>, because this
-verb re-flows text rather than measuring it in place. Existing newlines in
-<code>x</code> are whitespace to the algorithm and are replaced by the new line
-breaks, so <code>"a\nb"</code> wrapped wide comes back as <code>"a b"</code>; wrap the pieces
-separately if the original breaks are meaningful. And a string of nothing
-but whitespace re-flows to <code>""</code>, where <code><a href="cjk_pad.html">cjk_pad()</a></code> would have kept it.</p>
+<p>Three behaviours differ from <code><a href="cjk_pad.html">cjk_pad()</a></code> and <code><a href="cjk_truncate.html">cjk_truncate()</a></code>, because
+this verb re-flows text rather than measuring it in place. Existing
+newlines in <code>x</code> are whitespace to the algorithm and are replaced by the
+new line breaks, so <code>"a\nb"</code> wrapped wide comes back as <code>"a b"</code>; wrap the
+pieces separately if the original breaks are meaningful. A string of
+nothing but whitespace re-flows to <code>""</code>, where <code><a href="cjk_pad.html">cjk_pad()</a></code> would have
+kept it.</p>
+<p>And the output is in normalisation form C. ICU's line-breaking works on
+normalised text, so <code>stri_wrap()</code> normalises, and 1,120 code points
+therefore come back changed. 1,002 of them are the CJK Compatibility
+Ideographs (U+F900-U+FAD9 and U+2F800-U+2FA1D): <code>cjk_wrap("\uf900", 2)</code>
+is U+8C48. The other 118 are the Hebrew presentation forms, a handful of
+musical symbols, and 71 scattered singletons and composition exclusions:
+the Kelvin, Ohm and Angstrom signs, Greek letters with an oxia,
+Devanagari letters with a nukta, and U+2329 and U+232A, which become the
+CJK angle brackets U+3008 and U+3009. These are exactly the code points
+NFC changes, no more and no fewer, each a duplicate of a character or
+sequence Unicode prefers and kept for compatibility. Everyday text,
+precomposed Latin and Hangul syllables included, is already NFC and
+passes through untouched.
+<code><a href="cjk_pad.html">cjk_pad()</a></code>, <code><a href="cjk_truncate.html">cjk_truncate()</a></code> and <code><a href="cjk_segment.html">cjk_segment()</a></code> do <strong>not</strong> normalise,
+so this is the one layout verb that can change a character. Undoing it
+would mean re-aligning re-flowed output against the input, which risks
+corrupting ordinary text to protect a deprecated corner of it; running
+<code><a href="cjk_normalize.html">cjk_normalize()</a></code> first is the way to make the normalisation explicit
+and expected.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

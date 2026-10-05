@@ -21,6 +21,11 @@ cjk_ratio(x)
   as R chooses to write it – which moves with `options(scipen)` and
   `options(OutDec)`, and can therefore differ between sessions. Convert
   deliberately if you mean to measure numbers; these verbs are for text.
+  A list is *not* coerced –
+  [`as.character()`](https://rdrr.io/r/base/character.html) deparses one
+  rather than coercing it, so the text measured would be the R code that
+  builds the list – so a list, a data frame or a function is an error
+  naming what to do instead.
 
 ## Value
 
@@ -44,6 +49,7 @@ for the column-level summary.
 ## Examples
 
 ``` r
+# all CJK, half CJK, none, the empty string, and NA
 cjk_ratio(c("\u4e2d\u6587", "half \u4e2d\u6587", "none", "", NA))
 #> [1] 1.0000000 0.2857143 0.0000000        NA        NA
 ```

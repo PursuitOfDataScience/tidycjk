@@ -22,7 +22,9 @@ cjk_summary(data, col)
   coerced with
   [`as.character()`](https://rdrr.io/r/base/character.html); see
   [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
-  for why that makes a numeric column a poor thing to measure.
+  for why that makes a numeric column a poor thing to measure. A
+  list-column is an error rather than a coercion, for the reason given
+  there.
 
 ## Value
 
@@ -62,6 +64,7 @@ for the per-row measure this averages.
 ## Examples
 
 ``` r
+# U+4E2D U+6587 is "Chinese writing": all CJK, then mixed, then neither
 df <- data.frame(
   text = c("\u4e2d\u6587", "mixed \u4e2d\u6587 text", "plain ASCII", NA)
 )

@@ -58,7 +58,15 @@ cjk_compose_jamo() puts them back together."><meta property="og:image" content="
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A character vector.</p></dd>
+<dd><p>A character vector. Anything else is coerced with
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code>. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it – which moves
+with <code>options(scipen)</code> and <code>options(OutDec)</code>, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text. A list is <em>not</em> coerced –
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> deparses one rather than coercing it, so the text
+measured would be the R code that builds the list – so a list, a data
+frame or a function is an error naming what to do instead.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -85,9 +93,16 @@ NFC – which text from almost any source is – the round trip returns it
 unchanged. If it was not, the result is <code>x</code> normalised: an <code>e</code> followed by
 a combining acute comes back as the single character <code>U+00E9</code>, because
 that is what NFC is for.</p>
-<p>So the guarantee is <code>cjk_compose_jamo(cjk_jamo(x))</code> equals
+<p>So the guarantee is that re-joining the jamo and composing them equals
 <code>stringi::stri_trans_nfc(x)</code>, which equals <code>x</code> exactly when <code>x</code> is already
 NFC. Normalise first if you need to be certain.</p>
+<p>Note the re-joining step, which the <code><a href="https://rdrr.io/r/stats/TDist.html" class="external-link">rt()</a></code> helper in the examples below
+spells out. <code>cjk_jamo()</code> returns a <strong>list</strong> – one character vector of
+jamo per element of <code>x</code> – and <code>cjk_compose_jamo()</code> takes a character
+vector, so the two do not compose directly. Writing
+<code>cjk_compose_jamo(cjk_jamo(x))</code> is an error rather than a silent wrong
+answer, which it was until 0.2.0: <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> deparses a list, so
+the jamo came back as the literal string <code>c("\u1112", "\u1161", "\u11ab")</code> – R code spelled out as text.</p>
 <p>That makes jamo the right unit for questions the syllable hides: which
 initial consonants a corpus favours, whether two spellings differ only in
 a final consonant, or how to sort by consonant. U+D55C counts three ways,

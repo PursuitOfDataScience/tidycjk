@@ -244,6 +244,16 @@ limits are on the help page and in
   [`is.na()`](https://rdrr.io/r/base/NA.html) on a function warns;
   testing [`is.atomic()`](https://rdrr.io/r/base/is.recursive.html)
   first keeps both properties.
+- **Every error the package constructs is now tested to carry no call.**
+  All 36 message-constructing
+  [`stop()`](https://rdrr.io/r/base/stop.html) calls pass
+  `call. = FALSE`, so a message reads `Error: \`n\` must be a single
+  positive whole number.`rather than repeating the whole`cjk_ngrams(x, n
+  =
+  “2”)`back at the reader. That was a convention held up by nothing:`expect_error()`matches on the message, which`call.`does not change, so any one of the 36 could have been dropped without a single test noticing. A mutation sweep found four of them silently mutable, and the suite now asserts`conditionCall()`is`NULL`across 27 error paths -- and, for the three`stop()\`
+  calls that re-raise someone else’s condition rather than construct a
+  message, that the original call and message come through untouched. No
+  message text changed.
 
 ### Documentation
 
@@ -327,6 +337,50 @@ limits are on the help page and in
   and
   [`vignette("transliteration")`](https://pursuitofdatascience.github.io/tidycjk/articles/transliteration.md).
 
+- **Seven help pages omitted a coercion caveat that applies to them.**
+  [`?has_cjk`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
+  warns that a non-character `x` is coerced by R, so a numeric vector
+  “is measured as R chooses to write it – which moves with
+  `options(scipen)` and `options(OutDec)`”. Measuring it confirms the
+  warning is true and that it applies to every verb taking `x`,
+  including the eleven on seven pages that declared `x` as a bare “A
+  character vector.” and so said nothing about it: all eleven shift
+  under `scipen = -100` or `OutDec = ","`. Those pages now inherit the
+  shared parameter documentation, as the other twelve already did. On
+  character input – what the package is actually for – nothing is
+  sensitive to any option tested, and `options(warn = 2)` produces no
+  output difference either, so the verbs emit no warnings in ordinary
+  use.
+
+- **The figure pipeline was verified to reproduce, and two of its
+  scripts could not be run as written.** `data-raw/` is in
+  `.Rbuildignore`, so `R CMD check` never touches it, yet the gallery
+  claims a figure “cannot drift from what the functions actually
+  return”. Re-running the generators against the current sources
+  reproduces all eight artifacts byte-for-byte – the six panels, the
+  logo and the animated hero – so the claim holds. But
+  `data-raw/make-hero.R` requires a `HERO_OUT` environment variable that
+  nothing documented: unset, `file.path("", ...)` resolves to the
+  filesystem root and the device fails with a bare cairo “error while
+  writing to output stream”. Its companion `merge-hero.py` takes the
+  same directory as a positional argument instead, which nothing
+  documented either. Both now carry the two-line recipe, checked
+  verbatim.
+
+- **Four example blocks showed nothing but hex.** CJK literals in
+  examples are written as `\uXXXX` escapes so that no CJK glyph reaches
+  the LaTeX manual, and the rendered output beneath each call shows the
+  real characters – but
+  [`?cjk_ratio`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md),
+  [`?cjk_summary`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md),
+  [`?cjk_char_counts`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
+  and
+  [`?cjk_tokens`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
+  had no comment anywhere in their example block, so a reader of the
+  website saw only code points and had to decode them to see what was
+  being demonstrated. Each now says what its strings are, which is the
+  convention the other twenty blocks already followed.
+
 - **The same contradiction was in the transliteration vignette.** “Width
   forms are a separate concern” said an `NFKC` pass rewrites ligatures,
   Roman numerals and circled numbers, “none of which you asked for” –
@@ -361,11 +415,36 @@ limits are on the help page and in
 
 ### Fixes to 0.1.0
 
-Three things in this release are fixes in the sense a 0.1.0 user cares
+Four things in this release are fixes in the sense a 0.1.0 user cares
 about. The rest of what changed during development concerned code that
 had never shipped, and is described under the features it belongs to
 rather than dressed up as a fix.
 
+- **A list argument was measured as the R code that builds it.** Every
+  verb starts by coercing `x`, which is what lets a numeric or a factor
+  column through and is deliberate. But
+  [`as.character()`](https://rdrr.io/r/base/character.html) does not
+  coerce a list, it *deparses* it – so `cjk_width(list(c("a", "b")))`
+  answered **11**, the display width of the eleven-character string
+  `c("a", "b")`, with no error and no warning. Every exported verb had
+  this hole, and the list a caller has in hand is usually another verb’s
+  output:
+  [`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md),
+  [`cjk_sentences()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sentences.md)
+  and
+  [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
+  all return one, and `cjk_compose_jamo(cjk_jamo(x))` – the round trip
+  this package’s own help page described – hit it squarely, handing back
+  `c("\u1112", "\u1161", "\u11ab")` as a literal string. All of them now
+  raise, naming the two ways out, and the three tidy verbs check a
+  pulled list-column the same way. This is the check
+  [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
+  already applied to what a *segmentation engine* returns, finally
+  applied to what a *caller* passes in – the likelier direction of the
+  two. `NULL` is still accepted, and still gives `character(0)`:
+  `is.atomic(NULL)` was `TRUE` until R 4.4.0 and is `FALSE` after it, so
+  the guard admits it explicitly rather than inheriting a contract that
+  changed under it.
 - **`cjk_detect_language(han_only = )` no longer turns two malformed
   values into languages.** The check was written to stop `han_only = 1`
   coming back as the language `"1"`, and two cases slipped past it.
@@ -443,14 +522,46 @@ surprise you, gathered in one place.
   re-flows to `""`, where
   [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
   would have kept it.
+- **[`cjk_wrap()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_wrap.md)
+  returns NFC, which no other layout verb does.** ICU’s line-breaking
+  works on normalised text, so `stri_wrap()` normalises and this verb
+  inherits it: `cjk_wrap("\uf900", 2)` is U+8C48. A sweep of every code
+  point in Unicode puts the affected set at 1,120: 460 of the 472
+  assigned CJK Compatibility Ideographs, all 542 of the supplement, 34
+  Hebrew presentation forms, 13 musical symbols, and 71 scattered
+  singletons and composition exclusions such as the Kelvin and Ohm
+  signs, Greek letters with an oxia and Devanagari letters with a nukta.
+  That is exactly the set NFC changes, no more and no fewer: each is a
+  duplicate of a character or sequence Unicode prefers, kept for
+  compatibility. Everyday text, precomposed Latin and Hangul syllables
+  included, is already NFC and passes through untouched.
+  [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md),
+  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)
+  and
+  [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
+  do not normalise. It is documented and pinned by a test over the whole
+  block table rather than changed: `normalize = FALSE` would stop it,
+  but that argument also turns off whitespace collapsing and makes
+  `stri_wrap()` raise on any string containing a newline, which would
+  break re-wrapping already-wrapped text – and re-aligning re-flowed
+  output against the input risks corrupting ordinary text to protect a
+  deprecated corner of it. Call
+  [`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
+  first if you want the normalisation to be explicit.
 - **The jamo round trip returns NFC.**
   [`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
   is normalisation form C, so it composes everything composable and not
   only the jamo it was handed: an `e` followed by a combining acute
-  comes back as the single character U+00E9. The guarantee is
-  `cjk_compose_jamo(cjk_jamo(x))` equalling `stri_trans_nfc(x)`, which
-  is `x` whenever `x` was already NFC. The Hangul decomposition itself
-  is exact.
+  comes back as the single character U+00E9. The guarantee is that
+  re-joining the jamo and composing them equals `stri_trans_nfc(x)`,
+  which is `x` whenever `x` was already NFC. The Hangul decomposition
+  itself is exact – verified over all 11,172 syllables in the block,
+  which decompose into 67 distinct conjoining jamo and recompose to the
+  syllable they came from. Note the re-joining step:
+  [`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
+  returns a list and
+  [`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
+  takes a character vector, so the two do not compose directly.
 - **Kana conversion is a normalisation, not a reversible mapping.** On
   text holding both syllabaries it erases the distinction between them,
   and that distinction carries meaning – katakana marks loanwords and
@@ -510,6 +621,104 @@ surprise you, gathered in one place.
   were checked against a deliberately poisoned cache to confirm they
   fail when they should.
 
+- **Eight contracts the suite stated but never actually tested.** A
+  mutation sweep over the package’s own parse tree flipped all 240
+  comparisons, boundaries and logical operators in `R/` one at a time
+  and re-ran the suite; the ones nothing noticed marked the gaps. Not
+  one was a bug – every case behaves as documented – but none was pinned
+  either. They were: that a Chinese full stop does not stop
+  [`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md)
+  seeing the Han around it (every Han fixture in the suite was
+  punctuation-free, which left the commonest real input untested); that
+  [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
+  and
+  [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
+  convert both ends of the ASCII range, `!` and `~`, not just the
+  letters in the middle; that a width – or an `n` – of exactly
+  `.Machine$integer.max` is accepted rather than refused one short of
+  the limit; that `cjk_pad(pad = )` rejects a wrong type and a wrong
+  length each on its own evidence; that a `width` which is entirely `NA`
+  propagates while one that merely contains an `NA` is a type error;
+  that `decreasing` is validated by all three of its clauses in both
+  [`cjk_sort()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md)
+  and
+  [`cjk_order()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md);
+  and that a byte-order mark on **some** elements of a vector is handled
+  element by element – every earlier BOM test used a length-one input,
+  so none could tell the cheap
+  [`any()`](https://rdrr.io/r/base/any.html) exit from a wrong one that
+  would have left the mark in the output of six verbs. The eighth is
+  internal: `.cjk_take_width()` answers `""` for a budget of zero
+  columns, which is not reachable through
+  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)
+  but is the boundary the helper’s own comment promises a caller.
+
+- **The sweep also settled which operators cannot be tested, which is
+  worth knowing too.** 221 of the 240 mutants die; of the 21 that live,
+  20 are equivalent – no input distinguishes them. The BOM guards are
+  optimisations whose slow path computes the same answer (`rep(x, 0L)`
+  is `character(0)`, `substring(x, 1L)` is `x`) – five of the twenty.
+  The engine registry is parented on
+  [`emptyenv()`](https://rdrr.io/r/base/environment.html), so `inherits`
+  cannot matter; `use.names = FALSE` is set on
+  [`unlist()`](https://rdrr.io/r/base/unlist.html) calls whose input has
+  no names to drop; `fixed = TRUE` is set on patterns holding no
+  metacharacter anyway; four guards are followed by a second guard that
+  catches the same case; a run-numbering
+  [`cumsum()`](https://rdrr.io/r/base/cumsum.html) is only ever read as
+  a grouping key, so shifting every group’s label by one changes no
+  grouping; and
+  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)’s
+  two ellipsis boundaries meet at the same answer from either side.
+  Those are left exactly as they are – they document intent, and a test
+  could only restate the source. That leaves exactly one branch
+  genuinely untested, and it now says so in a comment: reaching the
+  `pull()`-method lookup for a database-backed `tbl` would mean a
+  backend package in `Suggests` for one branch’s sake, or registering a
+  method into dplyr’s own namespace from a test, and neither is worth
+  it. It stays because deleting it would relabel a backend’s errors as
+  bad input.
+
+- **The tests now assert laws over the code point space, not examples.**
+  A new `test-invariants.R` checks idempotence, round trips and
+  agreement with the block table, and lets Unicode supply the input
+  rather than a hand-picked character. That is what found the two
+  defects above: every earlier test had chosen characters to illustrate
+  a point, and neither a compatibility ideograph nor a list argument was
+  a point anyone had thought to illustrate. The laws are that each of
+  the five normal forms is a fixed point of itself, that `nfc(nfd(x))`
+  is `nfc(x)` and likewise for NFKC, that
+  [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
+  and
+  [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
+  are idempotent and that fullwidth text survives a trip to halfwidth
+  and back, that the kana conversions are idempotent, that
+  [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md)
+  and
+  [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md)
+  are no-ops on a string that already fits, that one character is one
+  token and one 1-gram, and that all thirteen transforms return one
+  valid, non-missing UTF-8 string per input. Over all 111,012 code
+  points in the block table: no violations. A one-off sweep of all
+  **1,112,029** valid code points in Unicode confirmed
+  [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md),
+  [`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
+  and
+  [`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md)
+  agree with the block table in both directions – no character wrongly
+  called CJK and none wrongly left out – and that
+  [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md)
+  is never missing and never outside 0:2. What is kept in the suite is
+  every block boundary and the code point either side of it, which is
+  where an interval lookup actually fails, rather than a minute of CI
+  spent re-verifying static data on every job. The exhaustive in-block
+  pass is `skip_on_cran()`; the sampled one, forty code points from
+  every block, runs everywhere.
+
+- **The Hangul round trip is verified in full**, not by example: all
+  11,172 syllables decompose into 2 or 3 of 67 distinct conjoining jamo
+  (U+1100-U+11C2, never the compatibility block) and recompose exactly.
+
 - `RoxygenNote` replaces `Config/roxygen2/version`: `man/` is generated
   by roxygen2 7.3.2, and the file now records what actually built it.
 
@@ -529,6 +738,21 @@ surprise you, gathered in one place.
   [`stringi::stri_enc_detect()`](https://rdrr.io/pkg/stringi/man/stri_enc_detect.html)
   exists and is unreliable on short CJK samples, which is exactly when
   it would be used. It is not wrapped rather than wrapped badly.
+- **[`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
+  taking the list
+  [`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
+  returns.** It would make the round trip compose directly instead of
+  needing the [`vapply()`](https://rdrr.io/r/base/lapply.html) step, and
+  the case for it is real: that boilerplate sits in the middle of this
+  package’s own worked example. Declined because it would reopen, for
+  one function, exactly the hole closed everywhere else this release –
+  [`cjk_sentences()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sentences.md)
+  and
+  [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
+  also return lists, and `cjk_compose_jamo(cjk_sentences(x))` would then
+  quietly paste sentences together instead of saying no. One function
+  that guesses is worse than one line of boilerplate, and the error now
+  names the line to write.
 
 ## tidycjk 0.1.0
 
