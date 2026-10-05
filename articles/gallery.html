@@ -85,7 +85,7 @@ Chicago</span>
 <code>data-raw/</code>: <code>make-figures.R</code> for the panels, and
 <code>make-hero.R</code> with <code>merge-hero.py</code> for the
 animation at the top. All of them call the package to lay themselves out
-— the terminal grids are positioned by <code><a href="../reference/cjk_width.html">cjk_width()</a></code> — so a
+(the terminal grids are positioned by <code><a href="../reference/cjk_width.html">cjk_width()</a></code>), so a
 figure cannot drift from what the functions actually return.</p>
 <div class="section level2">
 <h2 id="width-is-not-character-count">Width is not character count<a class="anchor" aria-label="anchor" href="#width-is-not-character-count"></a>
@@ -106,8 +106,8 @@ tables print ragged.</p>
 <span><span class="co">#&gt; |中文    |</span></span>
 <span><span class="co">#&gt; |abcd    |</span></span>
 <span><span class="co">#&gt; |日本語  |</span></span></code></pre></div>
-<p>Truncation follows the same rule — a cut at eight columns, not eight
-characters:</p>
+<p>Truncation follows the same rule: a cut at eight columns, not eight
+characters.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_truncate.html">cjk_truncate</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "我今..."</span></span></code></pre></div>
@@ -124,7 +124,7 @@ characters:</p>
 <span><span class="fu"><a href="../reference/cjk_detect_language.html">cjk_detect_language</a></span><span class="op">(</span><span class="va">txt</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] NA         "japanese" "korean"   NA         NA</span></span></code></pre></div>
 <p>Rows one, four and five come back <code>NA</code>. Row five is
-uninteresting – it has no CJK in it at all. Rows one and four are the
+uninteresting: it has no CJK in it at all. Rows one and four are the
 point: both are written entirely in Han characters, and nothing in the
 script separates Japanese from Chinese there. A library that answers
 <code>"chinese"</code> is guessing, and it will be wrong on Japanese
@@ -178,8 +178,8 @@ included. At the column level:</p>
 <h2 id="segmentation">Segmentation<a class="anchor" aria-label="anchor" href="#segmentation"></a>
 </h2>
 <p><img src="../reference/figures/fig-tokens.png" width="100%" alt="One sentence under both engines: four word tokens with icu, six character tokens with character."></p>
-<p><code>"icu"</code> is a real word segmenter — ICU’s dictionary-based
-break iterators, shipped inside stringi:</p>
+<p><code>"icu"</code> is a real word segmenter, built on ICU’s
+dictionary-based break iterators, which ship inside stringi:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_segment.html">cjk_segment</a></span><span class="op">(</span><span class="st">"我今天很開心"</span>, engine <span class="op">=</span> <span class="st">"icu"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
@@ -222,9 +222,9 @@ follow the Unicode line breaking algorithm, so no line begins with
 <code>。</code> or <code>）</code>:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_wrap.html">cjk_wrap</a></span><span class="op">(</span><span class="st">"他說（今天天氣很好）。我們去公園散步。"</span>, <span class="fl">12</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 他說（今天</span></span>
-<span><span class="co">#&gt; 天氣很好）。</span></span>
-<span><span class="co">#&gt; 我們去公園散</span></span>
+<span><span class="co">#&gt; 他說（今天天</span></span>
+<span><span class="co">#&gt; 氣很好）。我</span></span>
+<span><span class="co">#&gt; 們去公園散</span></span>
 <span><span class="co">#&gt; 步。</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="st">"我今天很開心，因為天氣非常好而且朋友來看我"</span></span>
@@ -248,7 +248,7 @@ come out first or it ends up inside a token.</p>
 <span><span class="co">#&gt; [1] "中文" "文很" "很好"</span></span></code></pre></div>
 <p><code><a href="../reference/cjk_strip_punct.html">cjk_strip_punct()</a></code> removes punctuation by Unicode
 category rather than by <code>[[:punct:]]</code>, which resolves through
-the C library and so removes nothing under <code>LC_ALL=C</code> — and
+the C library and so removes nothing under <code>LC_ALL=C</code>, and
 nothing at all from CJK when <code>perl = TRUE</code>. The default
 replaces each mark with a space, so a bigram cannot span a full
 stop:</p>
@@ -292,7 +292,7 @@ everywhere.</p>
 </h2>
 <p>Two strings can render identically and still differ as data.
 <code><a href="../reference/cjk_normalize.html">cjk_normalize()</a></code> is the Unicode forms, and the surprise is
-that plain <code>"nfc"</code> is not a no-op on Han — compatibility
+that plain <code>"nfc"</code> is not a no-op on Han: compatibility
 ideographs have singleton canonical mappings, so it rewrites them
 exactly as <code>"nfkc"</code> does.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
@@ -323,9 +323,9 @@ rather than after:</p>
 <div class="section level2">
 <h2 id="romanisation-script-and-kana">Romanisation, script and kana<a class="anchor" aria-label="anchor" href="#romanisation-script-and-kana"></a>
 </h2>
-<p>Kana conversion is a normalisation, the jamo round trip returns NFC,
-Han conversion resolves ambiguity from context but not regional
-vocabulary, and romanisation reads all Han as Chinese.
+<p>Kana conversion is a normalisation, the jamo round trip is exact, Han
+conversion resolves ambiguity from context but not regional vocabulary,
+and romanisation reads each Han character alone, and as Chinese.
 <code><a href="../articles/transliteration.html">vignette("transliteration")</a></code> is explicit about each.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_romanize.html">cjk_romanize</a></span><span class="op">(</span><span class="st">"中文"</span><span class="op">)</span></span>
@@ -397,7 +397,7 @@ vocabulary, and romanisation reads all Han as Chinese.
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> CJK Unified Ideographs Extension A han         <span style="text-decoration: underline;">13</span>312 <span style="text-decoration: underline;">19</span>903         <span style="text-decoration: underline;">6</span>592</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_blocks.html">cjk_blocks</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 27</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 35</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -8,90 +8,29 @@ library(tidycjk)
 ## Four conversions, four different levels of trust
 
 This vignette covers the transforms that change *what characters are
-there* rather than how wide they are. They are grouped together because
-they share an implementation — ICU’s transliterators, via **stringi**
-(Unicode Consortium 2024; Gagolewski 2022) — and they should not be
-trusted equally.
+there* rather than how wide they are. Three of them share an
+implementation, ICU’s transliterators via **stringi** (Unicode
+Consortium 2024; Gagolewski 2022), and the jamo pair applies the Unicode
+arithmetic directly. They should not be trusted equally.
 
-| Conversion | Reversible? | Context-free? | Trust |
+| Conversion | Reversible? | Uses context? | Trust |
 |----|----|----|----|
-| [`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) / [`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) | within one syllabary | yes | complete |
-| [`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md) / [`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md) | returns NFC | yes | complete |
-| [`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) | no | context-aware | good |
-| [`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) | no | context-aware | good on characters, blind to regional vocabulary |
-| [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md) | no | no | Chinese yes, Japanese no |
+| [`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md) / [`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md) | yes, exactly | no | complete |
+| [`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) / [`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md) | within one syllabary | no | high |
+| [`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) | no | yes | good |
+| [`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md) | no | yes | good on characters, blind to regional vocabulary |
+| [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md) | no | no | a key for Chinese; wrong for Japanese kanji |
 
 The rest of this vignette is why.
 
-## Kana: safe, with one thing to know
-
-Hiragana and katakana encode the same sounds. The mapping is one to one
-and carries no context, so the answer never depends on the surrounding
-words.
-
-``` r
-
-to_hiragana("カタカナ")
-#> [1] "かたかな"
-to_katakana("ひらがな")
-#> [1] "ヒラガナ"
-
-to_hiragana(to_katakana("ひらがな"))
-#> [1] "ひらがな"
-```
-
-That round trip is exact because the input was already in one syllabary.
-On mixed text it is not, and cannot be: converting to a single syllabary
-erases the distinction between the two, and that distinction carries
-meaning — katakana marks loanwords, onomatopoeia and emphasis.
-
-``` r
-
-x <- "アか"                      # one katakana, one hiragana
-to_hiragana(x)                    # both become hiragana
-#> [1] "あか"
-to_katakana(to_hiragana(x))       # ... and cannot be told apart again
-#> [1] "アカ"
-```
-
-So the conversion is safe in the sense that matters — it never guesses —
-but run it in one direction, as a normalisation, rather than expecting
-to undo it.
-
-Kanji, Latin and punctuation are untouched, so it is safe on a mixed
-column:
-
-``` r
-
-to_katakana("日本語のtext です")
-#> [1] "日本語ノtext デス"
-```
-
-This is the normalisation you want before grouping Japanese text, where
-the same word is often written either way for emphasis.
-
-Halfwidth katakana is handled too, and composed on the way through. `ｶﾞ`
-is two code points — the kana and a combining voiced mark — and comes
-back as the single character `ガ`:
-
-``` r
-
-to_hiragana("ｶﾀｶﾅ")
-#> [1] "かたかな"
-to_katakana("ｶﾞ")
-#> [1] "ガ"
-nchar(to_katakana("ｶﾞ"))
-#> [1] 1
-```
-
-## Hangul jamo: safe
+## Hangul jamo: exact
 
 A modern Hangul syllable is built from a leading consonant, a vowel and
 an optional trailing consonant, and Unicode encodes all 11,172
-combinations precomposed. The relationship is arithmetic —
-`SIndex = (LIndex * 21 + VIndex) * 28 + TIndex` — so the decomposition
-is exact rather than tabulated: no table can be out of date and no
-syllable is missed.
+combinations precomposed. The relationship is arithmetic,
+`SIndex = (LIndex * 21 + VIndex) * 28 + TIndex`, so the decomposition is
+exact rather than tabulated: no table can be out of date and no syllable
+is missed.
 
 ``` r
 
@@ -100,6 +39,10 @@ cjk_jamo("한글")
 #> [1] "ᄒ" "ᅡ"   "ᆫ"   "ᄀ" "ᅳ"   "ᆯ"
 ```
 
+[`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
+returns a list, one vector of jamo per string, so join each element
+before composing it back:
+
 ``` r
 
 back <- vapply(cjk_jamo("한글"), paste, character(1), collapse = "")
@@ -107,28 +50,26 @@ cjk_compose_jamo(back)
 #> [1] "한글"
 ```
 
-One caveat on the round trip:
-[`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
-is normalisation form C, so it composes everything composable, not only
-the jamo it was given. Text that was already in NFC — almost anything
-you will meet — comes back unchanged. Text that was not comes back
-normalised:
+The round trip is exact, because both verbs apply the Hangul arithmetic
+and nothing else. Text that is not Hangul passes through untouched,
+which is the difference from Unicode normalisation: NFD would split the
+accented letter below, and NFD and NFC alike would replace the
+compatibility ideograph with its unified form, which in a Korean column
+means rewriting Hanja.
 
 ``` r
 
-x <- "e\u0301"                        # e followed by a combining acute
-cjk_compose_jamo(paste(cjk_jamo(x)[[1]], collapse = ""))
-#> [1] "é"
+cjk_jamo("café")
+#> [[1]]
+#> [1] "c" "a" "f" "é"
+cjk_compose_jamo("豈") == "豈"
+#> [1] TRUE
 ```
 
-That is `é` as a single code point. The guarantee is that the round trip
-returns `stringi::stri_trans_nfc(x)`, which is `x` whenever `x` is
-already NFC.
-
-Jamo are the right unit for questions the syllable hides — which initial
+Jamo are the right unit for questions the syllable hides: which initial
 consonants a corpus favours, or whether two spellings differ only in a
 final consonant. The same syllable counts three different ways, each
-right for a different question — `한` is one character to
+right for a different question. `한` is one character to
 [`nchar()`](https://rdrr.io/r/base/nchar.html), two terminal columns to
 [`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
 and three jamo here:
@@ -143,6 +84,79 @@ lengths(cjk_jamo("한"))
 #> [1] 3
 ```
 
+## Kana: safe, with two things to know
+
+Hiragana and katakana encode the same sounds, so the mapping never
+depends on the surrounding words.
+
+``` r
+
+to_hiragana("カタカナ")
+#> [1] "かたかな"
+to_katakana("ひらがな")
+#> [1] "ヒラガナ"
+
+to_hiragana(to_katakana("ひらがな"))
+#> [1] "ひらがな"
+```
+
+That round trip is exact because the input was in one syllabary. On
+mixed text it is not, and cannot be: converting to a single syllabary
+erases the distinction between the two, and that distinction carries
+meaning, because katakana marks loanwords, onomatopoeia and emphasis.
+
+``` r
+
+x <- "アか"                      # one katakana, one hiragana
+to_hiragana(x)                    # both become hiragana
+#> [1] "あか"
+to_katakana(to_hiragana(x))       # and cannot be told apart again
+#> [1] "アカ"
+```
+
+The second thing is that ICU makes a few choices of its own. The small
+katakana `ヵ` and `ヶ` become the full-size hiragana `か` and `け`, and
+the digraph `ヿ` (*koto*) is spelled out as two kana, so even text that
+was all katakana does not always survive the trip:
+
+``` r
+
+to_hiragana("ヵヶ")
+#> [1] "かけ"
+to_katakana("ヿ")
+#> [1] "コト"
+```
+
+So the conversion is safe in the sense that matters, which is that it
+never guesses from context, but run it in one direction, as a
+normalisation, rather than expecting to undo it.
+
+Kanji, Latin and punctuation are untouched, so it is safe on a mixed
+column:
+
+``` r
+
+to_katakana("日本語のtext です")
+#> [1] "日本語ノtext デス"
+```
+
+This is the normalisation you want before grouping Japanese text, where
+the same word is often written either way for emphasis.
+
+Halfwidth katakana is handled too, and composed on the way through. `ｶﾞ`
+is two code points, the kana and the halfwidth voiced mark U+FF9E, and
+comes back as the single character `ガ`:
+
+``` r
+
+to_hiragana("ｶﾀｶﾅ")
+#> [1] "かたかな"
+to_katakana("ｶﾞ")
+#> [1] "ガ"
+nchar(to_katakana("ｶﾞ"))
+#> [1] 1
+```
+
 ## Simplified and traditional Han: right on characters, blind to vocabulary
 
 ``` r
@@ -153,9 +167,9 @@ cjk_traditionalize("汉字")
 #> [1] "漢字"
 ```
 
-It is better than it looks. Simplified → traditional is genuinely
-one-to-many — simplified `发` is `發` (“to send”) or `髮` (“hair”), and
-`干` is `乾`, `幹` or `干` — and ICU resolves these **from context**,
+It is better than it looks. Simplified to traditional is genuinely
+one-to-many (simplified `发` is `發`, “to send”, or `髮`, “hair”, and
+`干` is `乾`, `幹` or `干`), and ICU resolves these **from context**,
 not character by character:
 
 ``` r
@@ -164,12 +178,12 @@ cjk_traditionalize(c("头发", "发送"))   # hair, send
 #> [1] "頭髮" "發送"
 cjk_traditionalize(c("干净", "树干"))   # clean, tree trunk
 #> [1] "乾淨" "樹幹"
-cjk_traditionalize(c("后天", "皇后"))   # after, empress — 后 splits both ways
+cjk_traditionalize(c("后天", "皇后"))   # after, empress: 后 splits both ways
 #> [1] "後天" "皇后"
 ```
 
-All six are right. Over fourteen such pairs, including `面条`/`面对` and
-`里面`/`公里`, every one came out correct.
+All six are right, and so were the fourteen other words checked for this
+release, including `面条`/`面对` and `里面`/`公里`.
 
 What ICU does *not* do is substitute regional vocabulary. The two
 standards differ in the words they use, not only in glyph shape, and
@@ -198,9 +212,9 @@ cjk_romanize("中文", ascii = TRUE)
 #> [1] "zhong wen"
 ```
 
-For Chinese this is pinyin, with tone marks unless you ask for ASCII,
-and it is good. `ascii = TRUE` gives a sortable, greppable key for a CJK
-column, which is often the real reason to romanise at all.
+For Chinese this is pinyin, with tone marks unless you ask for ASCII.
+`ascii = TRUE` gives a sortable, greppable key for a CJK column, which
+is often the real reason to romanise at all.
 
 ``` r
 
@@ -211,7 +225,16 @@ cjk_romanize(c("こんにちは", "안녕하세요"))
 Three caveats, in increasing order of severity.
 
 **Han readings are per character.** A character with several readings
-gets ICU’s preferred one regardless of the word it appears in.
+gets ICU’s preferred one regardless of the word it appears in, so common
+words come back wrong:
+
+``` r
+
+cjk_romanize(c("银行", "音乐"))   # bank, music: yín háng and yīn yuè
+#> [1] "yín xíng" "yīn lè"
+```
+
+That is fine for a sort key and wrong for pinyin you show a reader.
 
 **No boundary between scripts.** ICU spaces Han syllables but does not
 insert a break where the script changes:
@@ -237,13 +260,13 @@ cjk_romanize("私は日本語を話します")
 #> [1] "sīha rì běn yǔwo huàshimasu"
 ```
 
-That is not an approximation of the Japanese reading — it is the Chinese
+That is not an approximation of the Japanese reading; it is the Chinese
 one. The kana in the same string romanise correctly, which makes the
 output look plausible at a glance and is exactly what makes it
 dangerous. Note too that the particle `は` gives `ha`, which is how it
 is written rather than how it is said.
 
-For Japanese, use a morphological analyser that carries readings —
+For Japanese, use a morphological analyser that carries readings:
 **gibasa** binds MeCab and returns them (Kudo et al. 2004; Kato 2025).
 [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md)
 is for Chinese, for kana, and for producing an ASCII sort key.
@@ -254,7 +277,7 @@ is for Chinese, for kana, and for producing an ASCII sort key.
 and
 [`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
 change width and nothing else. The usual advice for fullwidth text is an
-`NFKC` pass, which does fix width — and also rewrites ligatures, Roman
+`NFKC` pass, which does fix width, and also rewrites ligatures, Roman
 numerals and circled numbers, none of which a change of width asked for.
 When that wider fold *is* what you want, it is
 [`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
@@ -287,14 +310,15 @@ to_halfwidth(x) == "ガ"
 
 ## Normalisation is the fourth axis
 
-Width, script, syllabary — and then the code points themselves.
+Width, script and syllabary are three axes; the code points themselves
+are the fourth.
 [`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
-applies the Unicode normalisation forms (Whistler 2024), which is what
+applies the Unicode normalisation forms (Whistler 2026), which is what
 decides whether two strings that render identically compare equal:
 
 ``` r
 
-both <- c("\u304c", "\u304b\u3099")   # composed, then KA + voiced mark
+both <- c("が", "が")   # composed, then KA + voiced mark
 nchar(both)
 #> [1] 1 2
 nchar(cjk_normalize(both))
@@ -314,7 +338,7 @@ cjk_normalize("ＡＢ　①", form = "nfc")
 
 **Canonical normalisation is not a no-op on Han.** Compatibility
 ideographs have singleton canonical mappings, so `"nfc"` rewrites them
-just as `"nfkc"` does — this is the part that surprises people who reach
+just as `"nfkc"` does. This is the part that surprises people who reach
 for NFC because it is supposed to be the safe one:
 
 ``` r
@@ -345,9 +369,9 @@ nchar(cjk_normalize(ivs, drop_variation_selectors = TRUE))
 #> [1] 1
 ```
 
-They are dropped *before* the form is applied, not after — a selector
-has combining class zero and blocks canonical composition across itself,
-so stripping one afterwards can leave text that is no longer in the form
+They are dropped *before* the form is applied, not after: a selector has
+combining class zero and blocks canonical composition across itself, so
+stripping one afterwards can leave text that is no longer in the form
 you just asked for.
 
 ## References
@@ -370,6 +394,6 @@ Kuo, Carbo. 2024. *OpenCC: Open Chinese Convert*.
 Unicode Consortium. 2024. *International Components for Unicode*.
 <https://icu.unicode.org/>.
 
-Whistler, Ken. 2024. *Unicode Standard Annex \#15: Unicode Normalization
+Whistler, Ken. 2026. *Unicode Standard Annex \#15: Unicode Normalization
 Forms*. Unicode Standard Annex No. 15. The Unicode Consortium.
 <https://www.unicode.org/reports/tr15/>.

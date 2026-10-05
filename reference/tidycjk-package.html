@@ -51,38 +51,44 @@ A tidy toolkit for text that is written in Chinese, Japanese or Korean. Most tex
     <h2 id="output-and-naming-contract">Output and naming contract<a class="anchor" aria-label="anchor" href="#output-and-naming-contract"></a></h2>
 
 
-<p>The package has two layers. The <strong>vector layer</strong> takes an atomic character
-vector and returns an atomic vector of the same length, in the manner of
-<span class="pkg">stringr</span>: <code><a href="has_cjk.html">has_cjk()</a></code>, <code><a href="cjk_script.html">cjk_script()</a></code>, <code><a href="cjk_detect_language.html">cjk_detect_language()</a></code>,
-<code><a href="cjk_width.html">cjk_width()</a></code>, <code><a href="cjk_pad.html">cjk_pad()</a></code>, <code><a href="cjk_truncate.html">cjk_truncate()</a></code>, <code><a href="cjk_ratio.html">cjk_ratio()</a></code>,
-<code><a href="to_halfwidth.html">to_halfwidth()</a></code> and <code><a href="to_halfwidth.html">to_fullwidth()</a></code>. <code><a href="cjk_segment.html">cjk_segment()</a></code> belongs to the same
-layer but returns a list, because the number of tokens per string varies.
+<p>The package has two layers. The <strong>vector layer</strong> takes a character vector
+and returns a vector of the same length, in the manner of <span class="pkg">stringr</span>:
+detection (<code><a href="has_cjk.html">has_cjk()</a></code>, <code><a href="cjk_script.html">cjk_script()</a></code>, <code><a href="cjk_detect_language.html">cjk_detect_language()</a></code>,
+<code><a href="cjk_ratio.html">cjk_ratio()</a></code>), layout (<code><a href="cjk_width.html">cjk_width()</a></code>, <code><a href="cjk_pad.html">cjk_pad()</a></code>, <code><a href="cjk_truncate.html">cjk_truncate()</a></code>,
+<code><a href="cjk_wrap.html">cjk_wrap()</a></code>), normalisation and cleaning (<code><a href="to_halfwidth.html">to_halfwidth()</a></code>,
+<code><a href="to_halfwidth.html">to_fullwidth()</a></code>, <code><a href="cjk_normalize.html">cjk_normalize()</a></code>, <code><a href="cjk_strip_punct.html">cjk_strip_punct()</a></code>),
+transliteration (<code><a href="cjk_romanize.html">cjk_romanize()</a></code>, <code><a href="cjk_simplify.html">cjk_simplify()</a></code>,
+<code><a href="cjk_simplify.html">cjk_traditionalize()</a></code>, <code><a href="to_hiragana.html">to_hiragana()</a></code>, <code><a href="to_hiragana.html">to_katakana()</a></code>,
+<code><a href="cjk_jamo.html">cjk_compose_jamo()</a></code>) and ordering (<code><a href="cjk_sort.html">cjk_sort()</a></code>, and <code><a href="cjk_sort.html">cjk_order()</a></code>, which
+returns the indices instead). <code><a href="cjk_segment.html">cjk_segment()</a></code>, <code><a href="cjk_sentences.html">cjk_sentences()</a></code>,
+<code><a href="cjk_ngrams.html">cjk_ngrams()</a></code> and <code><a href="cjk_jamo.html">cjk_jamo()</a></code> belong to the same layer but return a
+list, because the number of pieces per string varies.
 The <strong>tidy layer</strong> takes <code>verb(data, col, ...)</code> with the column unquoted and
 returns a tibble: <code><a href="cjk_summary.html">cjk_summary()</a></code>, <code><a href="cjk_char_counts.html">cjk_char_counts()</a></code> and <code><a href="cjk_tokens.html">cjk_tokens()</a></code>.</p>
-<p>Every vector-layer function is vectorised, propagates <code>NA</code> element-wise,
-and returns a zero-length vector of the right type for zero-length input.</p>
+<p>Every vector-layer function is vectorised, propagates <code>NA</code> element-wise
+(the ordering verbs keep it and sort it last), and returns a zero-length
+result of the right type for zero-length input. Arguments are checked
+before that exit, so a bad argument is an error whatever the length of the
+input.</p>
     </div>
     <div class="section level2">
     <h2 id="input-encoding">Input encoding<a class="anchor" aria-label="anchor" href="#input-encoding"></a></h2>
 
 
 <p>Text has to reach R either as UTF-8 or with its encoding declared, which
-means naming the encoding when the file is read: <code>read.csv(f, encoding = "GBK")</code>, <code>readLines(f, encoding = "Shift_JIS")</code>, or
-<code><a href="https://rdrr.io/pkg/stringi/man/stri_encode.html" class="external-link">stringi::stri_encode()</a></code> afterwards. That is worth doing deliberately,
-because what happens otherwise is not uniform and cannot be made so.</p>
-<p>Whether a string of bytes is uninterpretable at all depends on the
-session's native encoding: GBK bytes with no declaration are an error in
-a UTF-8 locale and ordinary text in a GB18030 one, and both answers are
-right. When the bytes genuinely cannot be read, the verbs do not all
-report it the same way either – the ones that go through code points
-raise "<code>x</code> must be valid UTF-8" and name the legacy encodings, while the
-ones built on an ICU transform (<code><a href="cjk_normalize.html">cjk_normalize()</a></code>, <code><a href="cjk_romanize.html">cjk_romanize()</a></code>,
-<code><a href="cjk_simplify.html">cjk_simplify()</a></code>, <code><a href="cjk_simplify.html">cjk_traditionalize()</a></code>, <code><a href="to_hiragana.html">to_hiragana()</a></code>,
-<code><a href="to_hiragana.html">to_katakana()</a></code>, <code><a href="cjk_jamo.html">cjk_jamo()</a></code>, <code><a href="cjk_jamo.html">cjk_compose_jamo()</a></code>) hand back U+FFFD
-replacement characters, because that is what the transform does with a
-byte it cannot decode.</p>
-<p>So do not rely on an error to catch a mis-read file. Declare the encoding
-on the way in; a <code>\uFFFD</code> in the output means it was not declared.</p>
+means naming the encoding when the file is read: <code>read.csv(f, fileEncoding = "GBK")</code>, <code>readLines(file(f, encoding = "Shift_JIS"))</code>, <code>readr</code>'s
+<code>locale(encoding = "EUC-KR")</code>, or <code><a href="https://rdrr.io/pkg/stringi/man/stri_encode.html" class="external-link">stringi::stri_encode()</a></code> afterwards.
+(The <code>encoding</code> argument of <code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv()</a></code> and <code><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines()</a></code> is not the one
+to use: it only labels the strings, so GBK bytes stay GBK and
+<code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv()</a></code> fails on them outright in a UTF-8 session.)</p>
+<p>Whether a string of bytes can be read at all depends on the session's
+native encoding: GBK bytes with no declaration are invalid in a UTF-8
+locale and ordinary text in a GB18030 one, and both answers are right.
+When the bytes cannot be read, every verb stops with "<code>x</code> must be valid
+UTF-8", naming the argument and the legacy encodings, before doing any
+work; none of them hands back replacement characters or quietly drops the
+bytes it could not read. A string marked <code>"bytes"</code> is refused the same
+way, because its characters cannot be read either.</p>
     </div>
     <div class="section level2">
     <h2 id="what-counts-as-cjk">What counts as CJK<a class="anchor" aria-label="anchor" href="#what-counts-as-cjk"></a></h2>
@@ -99,21 +105,24 @@ you actually have, so the wide definition never hides the detail.</p>
     <h2 id="related-packages">Related packages<a class="anchor" aria-label="anchor" href="#related-packages"></a></h2>
 
 
-<p><span class="pkg">tidycjk</span> deliberately stops where another package already does the job:</p><ul><li><p>Chinese word segmentation –
-<a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a>, which
-<code><a href="cjk_segmenters.html">cjk_segmenters()</a></code> shows how to register as an engine. It was archived
-from CRAN on 2025-05-01, which is why it is not a dependency.</p></li>
-<li><p>Romanisation – <a href="https://CRAN.R-project.org/package=pinyin" class="external-link">pinyin</a> and
-<a href="https://CRAN.R-project.org/package=hanyupinyin" class="external-link">hanyupinyin</a>.</p></li>
-<li><p>Traditional/simplified conversion –
-<a href="https://CRAN.R-project.org/package=tmcn" class="external-link">tmcn</a> at the character level.
-Character-level conversion is context-blind and often wrong, so this
-package ships none; <a href="https://github.com/BYVoid/OpenCC" class="external-link">OpenCC</a> is the
-phrase-level answer outside R.</p></li>
-<li><p>Japanese-specific utilities –
-<a href="https://CRAN.R-project.org/package=zipangu" class="external-link">zipangu</a> and
-<a href="https://CRAN.R-project.org/package=Nippon" class="external-link">Nippon</a>.</p></li>
-<li><p>Tokenising whitespace-delimited text –
+<p><span class="pkg">tidycjk</span> bundles one word segmenter, one romaniser and one script
+converter, all of them ICU's. These go further, each in its own direction:</p><ul><li><p>Japanese morphological analysis:
+<a href="https://CRAN.R-project.org/package=gibasa" class="external-link">gibasa</a>, a MeCab binding that
+gives part of speech, lemma and reading, which the <code>"icu"</code> engine does
+not. <a href="https://CRAN.R-project.org/package=audubon" class="external-link">audubon</a> collects
+Japanese text utilities.</p></li>
+<li><p>Segmentation with a model rather than a word list:
+<a href="https://CRAN.R-project.org/package=udpipe" class="external-link">udpipe</a>, whose Universal
+Dependencies models cover Chinese, Japanese and Korean and are
+downloaded separately.</p></li>
+<li><p>Chinese segmentation with jieba's tuned dictionaries:
+<a href="https://CRAN.R-project.org/package=jiebaR" class="external-link">jiebaR</a>, archived from CRAN
+on 2025-05-01 and installable from GitHub; <code><a href="cjk_segmenters.html">cjk_segmenters()</a></code> shows how
+to register it as an engine.</p></li>
+<li><p>Pinyin: <a href="https://CRAN.R-project.org/package=hanyupinyin" class="external-link">hanyupinyin</a>.</p></li>
+<li><p>Regional vocabulary in simplified/traditional conversion, which ICU does
+not attempt: <a href="https://github.com/BYVoid/OpenCC" class="external-link">OpenCC</a>, outside R.</p></li>
+<li><p>Tokenising whitespace-delimited text:
 <a href="https://CRAN.R-project.org/package=tidytext" class="external-link">tidytext</a>, whose
 <code>unnest_tokens()</code> <code><a href="cjk_tokens.html">cjk_tokens()</a></code> mirrors for text that has no spaces
 between words.</p></li>
@@ -122,13 +131,16 @@ between words.</p></li>
     <h2 id="relationship-to-stringi">Relationship to stringi<a class="anchor" aria-label="anchor" href="#relationship-to-stringi"></a></h2>
 
 
-<p><span class="pkg">tidycjk</span> does not re-implement Unicode. Display width comes from
-<code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code> and padding from <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code> –
-<a href="https://CRAN.R-project.org/package=stringi" class="external-link">stringi</a> – both of which
-read the live Unicode tables in <a href="https://icu.unicode.org" class="external-link">ICU</a>, the
-Unicode Consortium's C library. <span class="pkg">tidycjk</span> adds the CJK-specific
-layer on top and keeps the naming consistent with the rest of the package.
-If all you need is the width of a string, call <span class="pkg">stringi</span> directly.</p>
+<p><span class="pkg">tidycjk</span> does not re-implement Unicode. Width, padding and wrapping
+come from <code><a href="https://rdrr.io/pkg/stringi/man/stri_width.html" class="external-link">stringi::stri_width()</a></code>, <code><a href="https://rdrr.io/pkg/stringi/man/stri_pad.html" class="external-link">stringi::stri_pad()</a></code> and
+<code><a href="https://rdrr.io/pkg/stringi/man/stri_wrap.html" class="external-link">stringi::stri_wrap()</a></code>; words, sentences and ordering from ICU's break
+iterators and collators; romanisation and script and kana conversion from
+ICU transforms. All of it is reached through
+<a href="https://CRAN.R-project.org/package=stringi" class="external-link">stringi</a>, which carries
+<a href="https://icu.unicode.org" class="external-link">ICU</a>, the Unicode Consortium's C library.
+<span class="pkg">tidycjk</span> adds the CJK layer on top: one contract across the verbs,
+and guards where ICU's own behaviour is quietly wrong for this use. If
+all you need is the width of a string, call <span class="pkg">stringi</span> directly.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

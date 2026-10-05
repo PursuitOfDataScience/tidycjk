@@ -93,7 +93,7 @@ Chicago</span>
 #11 assigns every character an East Asian Width, and the values
 <code>Wide</code> and <code>Fullwidth</code> mean two columns in a
 monospaced terminal <span class="citation">(Unicode Consortium
-2024a)</span>. <code><a href="../reference/cjk_width.html">cjk_width()</a></code> reports that number.</p>
+2026a)</span>. <code><a href="../reference/cjk_width.html">cjk_width()</a></code> reports that number.</p>
 <p>Everything that goes wrong with CJK in a console follows from code
 that used the first number where it needed the second.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -116,7 +116,7 @@ column count:</p>
 <code>cjk_pad()</code><a class="anchor" aria-label="anchor" href="#cjk_pad"></a>
 </h2>
 <p>Pads to a width in columns. <code>side</code> names the side the
-padding goes on, and <code>pad</code> must itself be one column wide — a
+padding goes on, and <code>pad</code> must itself be one column wide: a
 two-column pad character cannot hit an odd target, so it is rejected
 rather than allowed to overshoot.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -128,7 +128,7 @@ rather than allowed to overshoot.</p>
 <span><span class="co">#&gt; [1] "   中文   "</span></span>
 <span><span class="fu"><a href="../reference/cjk_pad.html">cjk_pad</a></span><span class="op">(</span><span class="st">"中文"</span>, <span class="fl">10</span>, pad <span class="op">=</span> <span class="st">"."</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "中文......"</span></span></code></pre></div>
-<p>A width already exceeded is left alone rather than truncated —
+<p>A width already exceeded is left alone rather than truncated, because
 padding and truncation are separate verbs on purpose:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_width.html">cjk_width</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_pad.html">cjk_pad</a></span><span class="op">(</span><span class="st">"日本語テキスト"</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
@@ -167,17 +167,18 @@ allowed to break is its own question.</p>
 <span><span class="co">#&gt; 我今天很開心，</span></span>
 <span><span class="co">#&gt; 因為天氣非常好</span></span>
 <span><span class="co">#&gt; 而且朋友來看我</span></span></code></pre></div>
-<p>Every line is inside the budget:</p>
+<p>Lines are filled greedily, the way a terminal fills them: each takes
+as much text as fits. Every line is inside the budget:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_width.html">cjk_width</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_wrap.html">cjk_wrap</a></span><span class="op">(</span><span class="va">x</span>, <span class="fl">14</span><span class="op">)</span>, <span class="st">"\n"</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 14 14 14</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="why-this-is-not-split-every-n-columns">Why this is not “split every N columns”<a class="anchor" aria-label="anchor" href="#why-this-is-not-split-every-n-columns"></a>
 </h3>
-<p>CJK text is <em>mostly</em> breakable between any two characters —
-there are no spaces to break at — but not everywhere. Unicode Annex #14
-defines the positions <span class="citation">(Unicode Consortium
-2024b)</span>, and several are forbidden:</p>
+<p>CJK text is <em>mostly</em> breakable between any two characters,
+since there are no spaces to break at, but not everywhere. Unicode Annex
+#14 defines the positions <span class="citation">(Unicode Consortium
+2026b)</span>, and several are forbidden:</p>
 <ul>
 <li>a closing bracket <code>）</code> may not begin a line;</li>
 <li>a full stop <code>。</code> may not begin a line;</li>
@@ -188,9 +189,9 @@ ICU’s implementation of the algorithm, so the break positions are the
 ones a typesetter would choose:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_wrap.html">cjk_wrap</a></span><span class="op">(</span><span class="st">"他說（今天天氣很好）。我們去公園散步。"</span>, <span class="fl">12</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 他說（今天</span></span>
-<span><span class="co">#&gt; 天氣很好）。</span></span>
-<span><span class="co">#&gt; 我們去公園散</span></span>
+<span><span class="co">#&gt; 他說（今天天</span></span>
+<span><span class="co">#&gt; 氣很好）。我</span></span>
+<span><span class="co">#&gt; 們去公園散</span></span>
 <span><span class="co">#&gt; 步。</span></span></code></pre></div>
 <p>Notice that no line begins with <code>。</code> or
 <code>）</code>.</p>
@@ -198,8 +199,8 @@ ones a typesetter would choose:</p>
 <div class="section level3">
 <h3 id="one-rule-that-is-not-universal">One rule that is not universal<a class="anchor" aria-label="anchor" href="#one-rule-that-is-not-universal"></a>
 </h3>
-<p>Those three hold whatever the locale. A fourth — whether a small kana
-may be separated from the character it follows — does
+<p>Those three hold whatever the locale. A fourth, whether a small kana
+may be separated from the character it follows, does
 <strong>not</strong>. Annex #14 defines strict, normal and loose
 line-breaking styles and which applies is tailored per locale: under
 <code>"en"</code> a small kana never begins a line, and under
@@ -219,8 +220,8 @@ when the output has to be reproducible:</p>
 text behaves the way you would expect from both sides:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/cjk_wrap.html">cjk_wrap</a></span><span class="op">(</span><span class="st">"tidycjk 讓中日韓文字在終端機裡對齊 and it handles Latin too"</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; tidycjk 讓中日韓文</span></span>
-<span><span class="co">#&gt; 字在終端機裡對齊 and</span></span>
+<span><span class="co">#&gt; tidycjk 讓中日韓文字</span></span>
+<span><span class="co">#&gt; 在終端機裡對齊 and</span></span>
 <span><span class="co">#&gt; it handles Latin too</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -249,8 +250,8 @@ makes them safe inside a pipeline:</p>
 <p>A <code>width</code> that is <code>Inf</code> or outside integer
 range is an error rather than a silent <code>NA</code>.
 <code>cjk_pad(x, Inf)</code> is a plausible way to write “do not
-truncate”, and it used to return missing values with only a coercion
-warning:</p>
+truncate”, and coercing it would return missing values with only a
+coercion warning:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cjk_pad.html">cjk_pad</a></span><span class="op">(</span><span class="st">"中文"</span>, <span class="cn">Inf</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
@@ -266,7 +267,7 @@ a refusal:</p>
 <div class="section level2">
 <h2 id="ambiguous-width">Ambiguous width<a class="anchor" aria-label="anchor" href="#ambiguous-width"></a>
 </h2>
-<p>Some characters — Greek, Cyrillic, a few punctuation marks — are
+<p>Some characters (Greek, Cyrillic, a few punctuation marks) are
 <code>Ambiguous</code> in Annex #11: two columns in a legacy East Asian
 font, one otherwise. There is no context-free answer, and ICU has
 changed its treatment more than once. <code><a href="../reference/cjk_width.html">cjk_width()</a></code> reports
@@ -281,11 +282,11 @@ specific terminal, measure there rather than assuming:</p>
 </h2>
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-uax11" class="csl-entry">
-Unicode Consortium. 2024a. <em><span>Unicode Standard Annex #11: East
+Unicode Consortium. 2026a. <em><span>Unicode Standard Annex #11: East
 Asian Width</span></em>. Unicode Consortium. <a href="https://www.unicode.org/reports/tr11/" class="external-link">https://www.unicode.org/reports/tr11/</a>.
 </div>
 <div id="ref-uax14" class="csl-entry">
-Unicode Consortium. 2024b. <em><span>Unicode Standard Annex #14: Unicode
+Unicode Consortium. 2026b. <em><span>Unicode Standard Annex #14: Unicode
 Line Breaking Algorithm</span></em>. Unicode Consortium. <a href="https://www.unicode.org/reports/tr14/" class="external-link">https://www.unicode.org/reports/tr14/</a>.
 </div>
 </div>

@@ -73,8 +73,7 @@ frame or a function is an error naming what to do instead.</p></dd>
 <dt id="arg-ascii">ascii<a class="anchor" aria-label="anchor" href="#arg-ascii"></a></dt>
 <dd><p>If <code>TRUE</code>, strip diacritics so the result is plain ASCII:
 pinyin tone marks are removed, so that <code>wo</code> with a caron becomes plain
-<code>wo</code>. Defaults to <code>FALSE</code>,
-which keeps them.</p></dd>
+<code>wo</code>. Defaults to <code>FALSE</code>, which keeps them.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -90,13 +89,19 @@ Latin is left alone.</p>
     <div class="section level2">
     <h2 id="what-this-is-not">What this is not<a class="anchor" aria-label="anchor" href="#what-this-is-not"></a></h2>
     <p>Romanisation is not a function of the code point alone, and ICU treats it
-as though it were. Three consequences worth knowing before you trust the
+as though it were. Four consequences worth knowing before you trust the
 output:</p><ul><li><p><strong>Han is always read as Chinese.</strong> ICU routes every Han character
 through pinyin, whatever language surrounds it, so Japanese kanji come
 back with Chinese readings: U+65E5 U+672C U+8A9E ("Japanese language")
 romanises to <code>ri ben yu</code>, not <code>nihongo</code>. This is not a near miss to be
 cleaned up afterwards – it is the wrong language. Do not use
 <code>cjk_romanize()</code> on Japanese kanji.</p></li>
+<li><p><strong>A character with two readings gets one.</strong> ICU reads each Han
+character on its own, so a polyphonic character gets its most common
+reading whatever word it is in: U+94F6 U+884C ("bank") romanises to
+<code>yin xing</code> rather than <code>yin hang</code>, and U+97F3 U+4E50 ("music") to
+<code>yin le</code> rather than <code>yin yue</code> (tone marks omitted here). Treat the
+output as a sort or search key, not as pinyin to show a reader.</p></li>
 <li><p><strong>No word spacing.</strong> ICU inserts a space between Han syllables but not
 between scripts, so Han followed immediately by kana romanises to a run
 with no boundary where the script changes. Segment first with
@@ -107,30 +112,28 @@ how it is said.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="it-is-slow-by-a-wide-margin">It is slow, by a wide margin<a class="anchor" aria-label="anchor" href="#it-is-slow-by-a-wide-margin"></a></h2>
-    <p>The figures below were measured on one machine and will move with the
-CPU, the load and the ICU build; the ratios are the durable part. Nothing
-in the test suite asserts them, deliberately, because a timing assertion
-on a CRAN build machine fails for reasons that have nothing to do with
-this package.</p>
-<p>ICU's transliterator is the most expensive thing this package calls.
-Measured here, romanising a column of short documents runs at roughly
-sixty thousand characters a second, and it degrades on a single very long
-string: the same volume in one string runs at nearer forty thousand,
-200,000 characters take about five seconds, and a million takes over two
-minutes. For scale, <code>cjk_segment(engine = "icu")</code> gets through that same
-million in under half a second, so romanisation can be a few hundred
-times the cost of everything around it – measured at about 320 times on
-the million.</p>
-<p>None of that is this package's doing – a bare
-<code>stringi::stri_trans_general(x, "Any-Latin")</code> takes the same time – and
-there is no faster route to the same answer. Two things help. Keep a
-corpus as one row per document rather than pasting it into one string,
-which is worth about a factor of two. And romanise once into a column you
-keep, rather than inside a loop.</p>
-<p>For Japanese specifically, a morphological analyser that knows the reading
-– <a href="https://CRAN.R-project.org/package=gibasa" class="external-link">gibasa</a>, which binds MeCab
-– is the right tool. This function is for Chinese, for kana, and for
-getting a sortable ASCII key out of a CJK column.</p>
+    <p>ICU's transliterator is the most expensive thing this package calls. On a
+column of 5,000 twenty-character Chinese documents, romanising ran at a
+median of about 45,000 characters a second (95% CI 43,500 to 45,600) and
+took about 27 times as long as <code>cjk_segment(engine = "icu")</code> on the same
+column (95% CI 24 to 29; the closest of the pairs was 17 times). The cost
+is ICU's: a bare <code>stringi::stri_trans_general(x, "Any-Latin")</code> takes the
+same time (ratio 1.01, 95% CI 0.99 to 1.02), and there is no faster route
+to the same answer.</p>
+<p>It also gets slower per character as one string gets longer, so the same
+100,000 characters took 1.4 times as long pasted into a single string as
+kept as a column (95% CI 1.35 to 1.43). Keep a corpus as one row per
+document, and romanise once into a column you keep rather than inside a
+loop.</p>
+<p>Those figures are medians of 30 paired, interleaved runs on one machine
+(an AMD EPYC 7702, ICU 74.1) and will move with the CPU, the load and the
+ICU build; the ratios are the durable part. Nothing in the test suite
+asserts them, because a timing assertion on a CRAN build machine fails
+for reasons that have nothing to do with this package.</p>
+<p>For Japanese specifically, a morphological analyser that knows the
+reading is the right tool: <a href="https://CRAN.R-project.org/package=gibasa" class="external-link">gibasa</a>,
+which binds MeCab. This function is for Chinese, for kana, and for getting
+a sortable ASCII key out of a CJK column.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

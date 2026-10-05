@@ -89,9 +89,9 @@ the CJK compatibility ideographs.
 
 Romanisation, Han script conversion, the kana syllabaries and Hangul
 jamo. Each help page states how far it can be trusted: kana conversion
-is a normalisation, the jamo round trip returns NFC, Han conversion
+is a normalisation, the jamo round trip is exact, Han conversion
 resolves ambiguity from context but not regional vocabulary, and
-romanisation reads all Han as Chinese.
+romanisation reads each Han character alone, and as Chinese.
 
 - [`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md)
   : Romanise CJK text

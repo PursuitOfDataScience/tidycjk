@@ -113,7 +113,10 @@ variants:</p><ul><li><p><code>"zh"</code> – Mandarin pinyin.</p></li>
 than the silent fallback to root collation stringi would otherwise give
 you, because that fallback produces a plausible-looking wrong order. An
 unrecognised <em>region</em> is not an error: <code>"zh-CH"</code>, a typo for <code>"zh-CN"</code>,
-resolves to <code>"zh"</code> and still sorts by pinyin, which is the right answer.</p>
+resolves to <code>"zh"</code> and still sorts by pinyin, which is the right answer.
+The language is matched without regard to case, as BCP 47 specifies, so
+<code>"ZH"</code> is <code>"zh"</code>; and <code>"root"</code> asks for ICU's root collation by name,
+which is a choice rather than a fallback.</p>
     </div>
     <div class="section level2">
     <h2 id="missing-values">Missing values<a class="anchor" aria-label="anchor" href="#missing-values"></a></h2>

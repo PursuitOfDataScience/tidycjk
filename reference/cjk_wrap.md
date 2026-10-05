@@ -74,10 +74,12 @@ Lines are returned joined by `\n`, so the result is the same length as
 `x` and can go straight to [`cat()`](https://rdrr.io/r/base/cat.html).
 `strsplit(out, "\n", fixed = TRUE)` gives the lines separately.
 
-A `width` narrower than a single character cannot be honoured – a CJK
-character needs two columns – and ICU emits the character anyway rather
-than looping, so a line may exceed `width` in that case. It is the only
-case where it can.
+A line comes out wider than `width` only where no break is allowed
+inside it, and then ICU emits it whole rather than looping. That happens
+in three cases: a character wider than the budget (a CJK character needs
+two columns, so `width = 1` cannot be honoured), a run with no break
+opportunity in it, such as a long Latin word or a stretch of a URL, and
+an `indent` or `exdent` that leaves no room for the text after it.
 
 ## The break style depends on the locale
 
@@ -94,19 +96,16 @@ The rules that hold whatever the locale are the ones about punctuation:
 a closing bracket or an ideographic full stop never begins a line, and
 an opening bracket never ends one.
 
-## Very long strings use a different fit
+## Lines are filled greedily
 
-`stri_wrap()`'s default is an optimal-fit algorithm, and it crashes R on
-a long string – `stri_wrap(strrep("\u4e2d\u6587", 50000), 40)`
-segfaults, at any width. Strings longer than 10,000 characters are
-therefore wrapped with the greedy algorithm, which handles the same
-input without complaint. For CJK text the two agree exactly, because
-nearly every position is a break opportunity: over 600 randomly
-generated CJK strings the two produced identical output every time.
-Mixed CJK and Latin can differ, where a long Latin word gives the
-optimal fit something to optimise. The threshold is set well below the
-length where the crash was seen, since it looks like stack exhaustion
-and the true limit will move with the machine.
+Each line takes as much text as fits before the next break opportunity
+would overflow it, which is what a terminal does. `stri_wrap()`'s own
+default is an optimal fit that evens out line lengths across a
+paragraph; it is not used here, because its cost grows far faster than
+the text (40,000 characters of CJK exhaust 1.5 GB of memory), and
+because the breaks it picks for the start of a paragraph depend on how
+the paragraph ends, so appending a sentence can re-flow every line above
+it. Greedy breaks depend only on the text up to them.
 
 A leading byte-order mark survives, which takes work: stringi drops one.
 A U+FEFF *elsewhere* in the string may not, because re-flowing can put

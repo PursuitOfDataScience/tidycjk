@@ -17,12 +17,13 @@ terminal columns but counts as **one** character, so
 printed table disagree, and every console table containing CJK text
 comes out ragged. Fullwidth digits `１２３` look like digits and do not
 parse as a number. A Japanese place name written only in Han characters
-cannot be told from Chinese by script alone — and most libraries guess
+cannot be told from Chinese by script alone, and most libraries guess
 anyway.
 
-**tidycjk** addresses these as separate, honest problems, each derived
-from the Unicode specification (Unicode Consortium 2024b, 2024c, 2024d)
-rather than from heuristics:
+**tidycjk** addresses these as separate, honest problems, each built on
+the Unicode standard (Unicode Consortium 2026a, 2026b, 2026c) and on
+ICU, the Unicode Consortium’s own library, rather than on hand-written
+rules:
 
 | Task | Function(s) |
 |----|----|
@@ -48,19 +49,19 @@ library(tidycjk)
 ## Two layers, one contract
 
 Most verbs work on a plain character vector, in the manner of
-**stringr**. Three —
+**stringr**. Three of them,
 [`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md),
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 and
-[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
-— take `(data, column)` instead and return a tibble, so they drop into a
+[`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md),
+take `(data, column)` instead and return a tibble, so they drop into a
 **dplyr** pipeline without an adaptor (Wickham 2014). Those three want a
 data frame; they do not accept a bare character vector.
 
 The contract is the same throughout, and it is worth stating once
 because the rest of this vignette relies on it. Every vector-layer verb
 is vectorised: `NA` in gives `NA` out, zero-length input gives
-zero-length output, and nothing silently recycles a ragged pair — a
+zero-length output, and nothing silently recycles a ragged pair: a
 mismatch is an error rather than a warning and a short answer.
 
 The tidy verbs answer about the column rather than about each row, so
@@ -132,10 +133,10 @@ cjk_detect_language(posts$text)
 #> [1] NA         "japanese" "korean"   NA         NA
 ```
 
-Rows one, four and five come back `NA`. Row five is uninteresting — it
+Rows one, four and five come back `NA`. Row five is uninteresting: it
 has no CJK in it at all. Rows one and four are the point. `東京都` is
-Tokyo Metropolis — unambiguously Japanese — but it is written entirely
-in Han characters, and **nothing in the script distinguishes it from
+Tokyo Metropolis, unambiguously Japanese, but it is written entirely in
+Han characters, and **nothing in the script distinguishes it from
 Chinese**. Japanese written without kana and Chinese are the same
 character set. Any library that answers `"chinese"` there is guessing,
 and it will be wrong on Japanese input in a way you cannot detect
@@ -159,7 +160,7 @@ needs a dictionary. `tidycjk` dispatches on an engine name rather than
 committing to one, and two engines ship with the package.
 
 `"icu"` is a real word segmenter, using the dictionary-based break
-iterators that ICU carries (Unicode Consortium 2024a) and **stringi**
+iterators that ICU carries (Unicode Consortium 2024) and **stringi**
 exposes (Gagolewski 2022):
 
 ``` r
@@ -169,7 +170,7 @@ cjk_segment("我今天很開心", engine = "icu")
 #> [1] "我"   "今天" "很"   "開心"
 ```
 
-`我 / 今天 / 很 / 開心` — words, not characters. `"character"` is the
+`我 / 今天 / 很 / 開心`: words, not characters. `"character"` is the
 dictionary-free baseline, and the contrast shows what a segmenter is
 for:
 
@@ -233,9 +234,9 @@ cjk_ngrams("中文很好")
 No gram is formed across whitespace, so nothing straddles two words of a
 Latin run. Punctuation is a different matter, and
 [`cjk_strip_punct()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_strip_punct.md)
-is the step that deals with it — replacing each mark with a space rather
-than deleting it, so a bigram cannot span the full stop between two
-sentences:
+is the step that deals with it. It replaces each mark with a space
+rather than deleting it, so a bigram cannot span the full stop between
+two sentences:
 
 ``` r
 
@@ -262,13 +263,13 @@ order it gives Han text is a property of the session rather than of the
 data. These three surnames come out in code point order under `C` and
 `en_US.UTF-8`, in pinyin order under `zh_CN.utf8`, and in a third order
 under `ja_JP.utf8`. Each is defensible; none is reproducible, and that
-is the trap — the same script sorts a name column differently on a
+is the trap: the same script sorts a name column differently on a
 colleague’s machine and says nothing about it.
 
 The fallback order is worth knowing, because it is not arbitrary. Within
 the base block the unified ideographs are arranged in KangXi
 radical-stroke order, so code point order really is radical order. It is
-simply not phonetic — and it stops being radical order across blocks,
+simply not phonetic, and it stops being radical order across blocks,
 since every Extension A character sorts before every base-block one,
 leaving a rare character nowhere near its radical-mates.
 
@@ -290,7 +291,7 @@ cjk_sort(x, locale = "zh-u-co-stroke")      # stroke count
 
 [`nchar()`](https://rdrr.io/r/base/nchar.html) counts characters. A
 terminal counts columns, and Unicode Annex \#11 assigns CJK characters
-two of them (Unicode Consortium 2024b).
+two of them (Unicode Consortium 2026a).
 
 ``` r
 
@@ -313,7 +314,7 @@ cat(paste0("|", cjk_pad(labels, 8), "|"), sep = "\n")
 ```
 
 Truncation and wrapping follow the same rule. Wrapping additionally
-respects the Unicode line breaking algorithm (Unicode Consortium 2024c),
+respects the Unicode line breaking algorithm (Unicode Consortium 2026b),
 so it will not put a break before a closing bracket or a full stop:
 
 ``` r
@@ -331,7 +332,7 @@ goes further.
 ## Normalisation and transliteration
 
 [`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
-narrows fullwidth forms and does **only** that — unlike an `NFKC` pass,
+narrows fullwidth forms and does **only** that, unlike an `NFKC` pass,
 which also rewrites ligatures, Roman numerals and circled numbers:
 
 ``` r
@@ -342,8 +343,8 @@ to_halfwidth("½ Ⅸ ①")   # NFKC would rewrite all three
 #> [1] "½ Ⅸ ①"
 ```
 
-When the blunt instrument *is* the right one — matching rather than
-display —
+When the blunt instrument *is* the right one, for matching rather than
+display,
 [`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md)
 is it, and it also answers the case a reader may not expect: plain
 `"nfc"` rewrites most of the CJK compatibility ideographs, because they
@@ -376,10 +377,12 @@ cjk_jamo("한")
 #> [1] "ᄒ" "ᅡ"   "ᆫ"
 ```
 
-Each has limits worth knowing before you trust it — romanisation is
-per-character, and simplified/traditional conversion is too. They are
-documented honestly in
-[`vignette("transliteration", package = "tidycjk")`](https://pursuitofdatascience.github.io/tidycjk/articles/transliteration.md).
+Each has limits worth knowing before you trust it. Romanisation reads
+each Han character on its own, so a word like `银行` (“bank”) gets the
+wrong reading; simplified/traditional conversion resolves characters
+from context but does not substitute regional vocabulary.
+[`vignette("transliteration", package = "tidycjk")`](https://pursuitofdatascience.github.io/tidycjk/articles/transliteration.md)
+covers each.
 
 ## What tidycjk is built on
 
@@ -402,7 +405,7 @@ head(cjk_blocks(), 8)
 #> 7 Kanbun                      kanbun      12688 12703           16
 #> 8 Bopomofo Extended           bopomofo    12704 12735           32
 nrow(cjk_blocks())
-#> [1] 27
+#> [1] 35
 ```
 
 Nothing here makes a network request, and the package needs no compiled
@@ -421,17 +424,17 @@ Silge, Julia, and David Robinson. 2016. “Tidytext: Text Mining and
 Analysis Using Tidy Data Principles in R.” *Journal of Open Source
 Software* 1 (3): 37. <https://doi.org/10.21105/joss.00037>.
 
-Unicode Consortium. 2024a. *International Components for Unicode*.
+Unicode Consortium. 2024. *International Components for Unicode*.
 <https://icu.unicode.org/>.
 
-Unicode Consortium. 2024b. *Unicode Standard Annex \#11: East Asian
+Unicode Consortium. 2026a. *Unicode Standard Annex \#11: East Asian
 Width*. Unicode Consortium. <https://www.unicode.org/reports/tr11/>.
 
-Unicode Consortium. 2024c. *Unicode Standard Annex \#14: Unicode Line
+Unicode Consortium. 2026b. *Unicode Standard Annex \#14: Unicode Line
 Breaking Algorithm*. Unicode Consortium.
 <https://www.unicode.org/reports/tr14/>.
 
-Unicode Consortium. 2024d. *Unicode Standard Annex \#29: Unicode Text
+Unicode Consortium. 2026c. *Unicode Standard Annex \#29: Unicode Text
 Segmentation*. Unicode Consortium.
 <https://www.unicode.org/reports/tr29/>.
 

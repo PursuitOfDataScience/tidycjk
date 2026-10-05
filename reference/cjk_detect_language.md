@@ -42,6 +42,9 @@ A character vector the same length as `x`, holding `"japanese"`,
 The rules are applied in order:
 
 1.  Hiragana or katakana present: `"japanese"`. Only Japanese uses kana.
+    The katakana middle dot U+30FB, and its halfwidth form U+FF65, do
+    not count: they are punctuation that Chinese and Korean text use
+    too, to separate the parts of a transliterated name.
 
 2.  Kanbun annotation marks present: `"japanese"`. They exist to make
     Classical Chinese readable as Japanese.

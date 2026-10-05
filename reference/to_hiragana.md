@@ -45,9 +45,12 @@ the same word may be written either way for emphasis.
 It is a normalisation, not a reversible mapping. Applied to text holding
 both syllabaries it erases the distinction between them, and that
 distinction means something: katakana marks loanwords, onomatopoeia and
-emphasis. `to_katakana(to_hiragana(x))` returns `x` only when `x` was
-already all katakana. Run it one way, and keep the original if you need
-to go back.
+emphasis. `to_katakana(to_hiragana(x))` turns any hiragana in `x` into
+katakana, and it is not exact even on text that was all katakana,
+because ICU's mapping makes a few choices of its own: the small katakana
+U+30F5 and U+30F6 become the full-size hiragana U+304B and U+3051, and
+the digraphs U+30FF (*koto*) and U+309F (*yori*) are spelled out as two
+kana each. Run it one way, and keep the original if you need to go back.
 
 Halfwidth katakana is handled too, and composed while it is: the
 halfwidth voiced KA is two code points, U+FF76 and U+FF9E, and

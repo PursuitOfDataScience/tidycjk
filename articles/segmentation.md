@@ -19,7 +19,7 @@ and `天` belong together while `很` stands alone. That is a fact about
 Chinese, learned from a corpus, and Unicode makes no claim about it.
 Unicode Annex \#29 defines word boundaries for scripts that mark them
 and explicitly defers to dictionaries for those that do not (Unicode
-Consortium 2024b).
+Consortium 2026).
 
 This is why `tidycjk` does not have a single `tokenize()`. It has an
 engine slot.
@@ -32,10 +32,10 @@ cjk_segmenters()
 #> [1] "character" "icu"
 ```
 
-### `"icu"` — dictionary-based, and already installed
+### `"icu"`: dictionary-based, and already installed
 
 ICU ships dictionary-based break iterators for Chinese and Japanese, and
-**stringi** ships ICU (Unicode Consortium 2024a; Gagolewski 2022). Since
+**stringi** ships ICU (Unicode Consortium 2024; Gagolewski 2022). Since
 **stringi** is already a hard dependency of this package, real word
 segmentation costs nothing extra:
 
@@ -51,7 +51,7 @@ cjk_segment("今天天氣很好我們去公園散步", engine = "icu")
 ```
 
 Japanese works out of the box. `locale` is accepted but does not change
-the result — “`locale` does not pick the dictionary” below says why:
+the result; “`locale` does not pick the dictionary” below says why:
 
 ``` r
 
@@ -67,7 +67,7 @@ speech, no lemma, no user dictionary, and models lighter than the ones a
 dedicated analyser carries. It is the right first choice and not the
 last word.
 
-### `"character"` — the honest baseline
+### `"character"`: the honest baseline
 
 ``` r
 
@@ -77,16 +77,16 @@ cjk_segment("我今天很開心", engine = "character")
 ```
 
 One token per CJK character; runs of non-CJK text split on whitespace.
-Whitespace is never a token — including the ideographic space U+3000,
-even though
+Whitespace is never a token, the ideographic space U+3000 included, even
+though
 [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
 counts it as CJK, because it is a space and treating it as a word would
 inflate every count.
 
 This is *character* tokenisation, not word segmentation. For Chinese it
 cuts two-character words in half. It is genuinely useful when a
-per-character unit is what you want — character frequency, or a
-character-level model — and misleading if you call its output “words”.
+per-character unit is what you want (character frequency, or a
+character-level model) and misleading if you call its output “words”.
 
 ``` r
 
@@ -113,13 +113,13 @@ that decision were visible in the calling code.
 It is natural to assume it does, and it does not. ICU applies one
 combined Chinese–Japanese word list to Han and kana runs, selected by
 the *script of the text* rather than by the locale (Unicode Consortium
-2024a). Segmenting seven CJK strings under `"zh"`, `"ja"`, `"ko"`,
-`"en"` and the session default gives identical output in every case.
+2024). Segmenting seven CJK strings under `"zh"`, `"ja"`, `"ko"`, `"en"`
+and the session default gives identical output in every case.
 
-`locale` is still accepted and forwarded — ICU may use it elsewhere, and
-a locale ICU has no break data for is an error rather than a silent
-fallback — but do not expect `locale = "ja"` to change how Japanese
-segments.
+`locale` is still accepted and forwarded, because ICU may use it
+elsewhere and a locale ICU has no break data for is an error rather than
+a silent fallback, but do not expect `locale = "ja"` to change how
+Japanese segments.
 
 ## In a pipeline
 
@@ -169,9 +169,9 @@ as `x`, each element a character vector of tokens. `NA` in gives
 `NA_character_`; the empty string gives `character(0)`.
 [`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
 checks the shape and complains if an engine breaks the contract, rather
-than passing a malformed result downstream — the list itself, its
-length, and the type of each element. An atomic element is coerced, so
-integers or a factor are fine; a list element is refused, because
+than passing a malformed result downstream: it checks the list itself,
+its length, and the type of each element. An atomic element is coerced,
+so integers or a factor are fine; a list element is refused, because
 [`as.character()`](https://rdrr.io/r/base/character.html) deparses a
 list rather than coercing it and `list(c(1, 2))` would otherwise arrive
 as the single token `"c(1, 2)"`.
@@ -179,12 +179,13 @@ as the single token `"c(1, 2)"`.
 A leading byte-order mark survives both built-in engines, which takes
 work: the stringi calls underneath them each read a leading U+FEFF as a
 byte-order mark and drop it. An engine you register yourself gets no
-such help — if it calls stringi, it needs the same guard.
+such help: if it calls stringi, it needs the same guard.
 
 ### gibasa, for Japanese
 
 [gibasa](https://CRAN.R-project.org/package=gibasa) binds MeCab (Kudo et
-al. 2004; Kato 2025) and is on CRAN. It gives part of speech and lemma,
+al. 2004; Kato 2025) and is on CRAN, though it needs MeCab itself and a
+dictionary installed on the system. It gives part of speech and lemma,
 which ICU does not:
 
 ``` r
@@ -227,10 +228,10 @@ and after `data` and `col` in
 so R’s partial matching claims a prefix of one of those before the dots
 see it. `cjk_tokens(df, text, "mine", c = 1)` matches `c` to `col`,
 pushes bare `text` into `engine`, resolves it to
-[`graphics::text()`](https://rdrr.io/r/graphics/text.html) — a function,
-so it is accepted — and the error you get is about plotting. Name engine
-arguments so they are not a prefix of `col`, `data` or `engine`, or
-capture the setting in a closure:
+[`graphics::text()`](https://rdrr.io/r/graphics/text.html), which is a
+function and so is accepted, and the error you get is about plotting.
+Name engine arguments so they are not a prefix of `col`, `data` or
+`engine`, or capture the setting in a closure:
 
 ``` r
 
@@ -274,9 +275,9 @@ Silge, Julia, and David Robinson. 2016. “Tidytext: Text Mining and
 Analysis Using Tidy Data Principles in R.” *Journal of Open Source
 Software* 1 (3): 37. <https://doi.org/10.21105/joss.00037>.
 
-Unicode Consortium. 2024a. *International Components for Unicode*.
+Unicode Consortium. 2024. *International Components for Unicode*.
 <https://icu.unicode.org/>.
 
-Unicode Consortium. 2024b. *Unicode Standard Annex \#29: Unicode Text
+Unicode Consortium. 2026. *Unicode Standard Annex \#29: Unicode Text
 Segmentation*. Unicode Consortium.
 <https://www.unicode.org/reports/tr29/>.

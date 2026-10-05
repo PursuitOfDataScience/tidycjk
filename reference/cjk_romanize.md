@@ -45,7 +45,7 @@ Latin is left alone.
 ## What this is not
 
 Romanisation is not a function of the code point alone, and ICU treats
-it as though it were. Three consequences worth knowing before you trust
+it as though it were. Four consequences worth knowing before you trust
 the output:
 
 - **Han is always read as Chinese.** ICU routes every Han character
@@ -54,6 +54,13 @@ the output:
   romanises to `ri ben yu`, not `nihongo`. This is not a near miss to be
   cleaned up afterwards – it is the wrong language. Do not use
   `cjk_romanize()` on Japanese kanji.
+
+- **A character with two readings gets one.** ICU reads each Han
+  character on its own, so a polyphonic character gets its most common
+  reading whatever word it is in: U+94F6 U+884C ("bank") romanises to
+  `yin xing` rather than `yin hang`, and U+97F3 U+4E50 ("music") to
+  `yin le` rather than `yin yue` (tone marks omitted here). Treat the
+  output as a sort or search key, not as pinyin to show a reader.
 
 - **No word spacing.** ICU inserts a space between Han syllables but not
   between scripts, so Han followed immediately by kana romanises to a
@@ -67,33 +74,32 @@ the output:
 
 ## It is slow, by a wide margin
 
-The figures below were measured on one machine and will move with the
-CPU, the load and the ICU build; the ratios are the durable part.
-Nothing in the test suite asserts them, deliberately, because a timing
-assertion on a CRAN build machine fails for reasons that have nothing to
-do with this package.
+ICU's transliterator is the most expensive thing this package calls. On
+a column of 5,000 twenty-character Chinese documents, romanising ran at
+a median of about 45,000 characters a second (95% CI 43,500 to 45,600)
+and took about 27 times as long as `cjk_segment(engine = "icu")` on the
+same column (95% CI 24 to 29; the closest of the pairs was 17 times).
+The cost is ICU's: a bare `stringi::stri_trans_general(x, "Any-Latin")`
+takes the same time (ratio 1.01, 95% CI 0.99 to 1.02), and there is no
+faster route to the same answer.
 
-ICU's transliterator is the most expensive thing this package calls.
-Measured here, romanising a column of short documents runs at roughly
-sixty thousand characters a second, and it degrades on a single very
-long string: the same volume in one string runs at nearer forty
-thousand, 200,000 characters take about five seconds, and a million
-takes over two minutes. For scale, `cjk_segment(engine = "icu")` gets
-through that same million in under half a second, so romanisation can be
-a few hundred times the cost of everything around it – measured at about
-320 times on the million.
+It also gets slower per character as one string gets longer, so the same
+100,000 characters took 1.4 times as long pasted into a single string as
+kept as a column (95% CI 1.35 to 1.43). Keep a corpus as one row per
+document, and romanise once into a column you keep rather than inside a
+loop.
 
-None of that is this package's doing – a bare
-`stringi::stri_trans_general(x, "Any-Latin")` takes the same time – and
-there is no faster route to the same answer. Two things help. Keep a
-corpus as one row per document rather than pasting it into one string,
-which is worth about a factor of two. And romanise once into a column
-you keep, rather than inside a loop.
+Those figures are medians of 30 paired, interleaved runs on one machine
+(an AMD EPYC 7702, ICU 74.1) and will move with the CPU, the load and
+the ICU build; the ratios are the durable part. Nothing in the test
+suite asserts them, because a timing assertion on a CRAN build machine
+fails for reasons that have nothing to do with this package.
 
 For Japanese specifically, a morphological analyser that knows the
-reading – [gibasa](https://CRAN.R-project.org/package=gibasa), which
-binds MeCab – is the right tool. This function is for Chinese, for kana,
-and for getting a sortable ASCII key out of a CJK column.
+reading is the right tool:
+[gibasa](https://CRAN.R-project.org/package=gibasa), which binds MeCab.
+This function is for Chinese, for kana, and for getting a sortable ASCII
+key out of a CJK column.
 
 ## See also
 

@@ -33,63 +33,77 @@ needs no compiled code of its own.
 
 ## Output and naming contract
 
-The package has two layers. The **vector layer** takes an atomic
-character vector and returns an atomic vector of the same length, in the
-manner of stringr:
-[`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md),
+The package has two layers. The **vector layer** takes a character
+vector and returns a vector of the same length, in the manner of
+stringr: detection
+([`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md),
 [`cjk_script()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_script.md),
 [`cjk_detect_language()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_detect_language.md),
-[`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
+[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)),
+layout
+([`cjk_width()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_width.md),
 [`cjk_pad()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_pad.md),
 [`cjk_truncate()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_truncate.md),
-[`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md),
-[`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md)
+[`cjk_wrap()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_wrap.md)),
+normalisation and cleaning
+([`to_halfwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md),
+[`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md),
+[`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md),
+[`cjk_strip_punct()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_strip_punct.md)),
+transliteration
+([`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md),
+[`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md),
+[`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md),
+[`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md),
+[`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md),
+[`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md))
+and ordering
+([`cjk_sort()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md),
 and
-[`to_fullwidth()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_halfwidth.md).
-[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md)
-belongs to the same layer but returns a list, because the number of
-tokens per string varies. The **tidy layer** takes
-`verb(data, col, ...)` with the column unquoted and returns a tibble:
+[`cjk_order()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sort.md),
+which returns the indices instead).
+[`cjk_segment()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segment.md),
+[`cjk_sentences()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_sentences.md),
+[`cjk_ngrams()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ngrams.md)
+and
+[`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md)
+belong to the same layer but return a list, because the number of pieces
+per string varies. The **tidy layer** takes `verb(data, col, ...)` with
+the column unquoted and returns a tibble:
 [`cjk_summary()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_summary.md),
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 and
 [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md).
 
-Every vector-layer function is vectorised, propagates `NA` element-wise,
-and returns a zero-length vector of the right type for zero-length
-input.
+Every vector-layer function is vectorised, propagates `NA` element-wise
+(the ordering verbs keep it and sort it last), and returns a zero-length
+result of the right type for zero-length input. Arguments are checked
+before that exit, so a bad argument is an error whatever the length of
+the input.
 
 ## Input encoding
 
 Text has to reach R either as UTF-8 or with its encoding declared, which
 means naming the encoding when the file is read:
-`read.csv(f, encoding = "GBK")`, `readLines(f, encoding = "Shift_JIS")`,
-or
+`read.csv(f, fileEncoding = "GBK")`,
+`readLines(file(f, encoding = "Shift_JIS"))`, `readr`'s
+`locale(encoding = "EUC-KR")`, or
 [`stringi::stri_encode()`](https://rdrr.io/pkg/stringi/man/stri_encode.html)
-afterwards. That is worth doing deliberately, because what happens
-otherwise is not uniform and cannot be made so.
+afterwards. (The `encoding` argument of
+[`read.csv()`](https://rdrr.io/r/utils/read.table.html) and
+[`readLines()`](https://rdrr.io/r/base/readLines.html) is not the one to
+use: it only labels the strings, so GBK bytes stay GBK and
+[`read.csv()`](https://rdrr.io/r/utils/read.table.html) fails on them
+outright in a UTF-8 session.)
 
-Whether a string of bytes is uninterpretable at all depends on the
-session's native encoding: GBK bytes with no declaration are an error in
-a UTF-8 locale and ordinary text in a GB18030 one, and both answers are
-right. When the bytes genuinely cannot be read, the verbs do not all
-report it the same way either – the ones that go through code points
-raise "`x` must be valid UTF-8" and name the legacy encodings, while the
-ones built on an ICU transform
-([`cjk_normalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_normalize.md),
-[`cjk_romanize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_romanize.md),
-[`cjk_simplify()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md),
-[`cjk_traditionalize()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_simplify.md),
-[`to_hiragana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md),
-[`to_katakana()`](https://pursuitofdatascience.github.io/tidycjk/reference/to_hiragana.md),
-[`cjk_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md),
-[`cjk_compose_jamo()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_jamo.md))
-hand back U+FFFD replacement characters, because that is what the
-transform does with a byte it cannot decode.
-
-So do not rely on an error to catch a mis-read file. Declare the
-encoding on the way in; a `\uFFFD` in the output means it was not
-declared.
+Whether a string of bytes can be read at all depends on the session's
+native encoding: GBK bytes with no declaration are invalid in a UTF-8
+locale and ordinary text in a GB18030 one, and both answers are right.
+When the bytes cannot be read, every verb stops with "`x` must be valid
+UTF-8", naming the argument and the legacy encodings, before doing any
+work; none of them hands back replacement characters or quietly drops
+the bytes it could not read. A string marked `"bytes"` is refused the
+same way, because its characters cannot be read either.
 
 ## What counts as CJK
 
@@ -106,28 +120,34 @@ hides the detail.
 
 ## Related packages
 
-tidycjk deliberately stops where another package already does the job:
+tidycjk bundles one word segmenter, one romaniser and one script
+converter, all of them ICU's. These go further, each in its own
+direction:
 
-- Chinese word segmentation –
-  [jiebaR](https://CRAN.R-project.org/package=jiebaR), which
+- Japanese morphological analysis:
+  [gibasa](https://CRAN.R-project.org/package=gibasa), a MeCab binding
+  that gives part of speech, lemma and reading, which the `"icu"` engine
+  does not. [audubon](https://CRAN.R-project.org/package=audubon)
+  collects Japanese text utilities.
+
+- Segmentation with a model rather than a word list:
+  [udpipe](https://CRAN.R-project.org/package=udpipe), whose Universal
+  Dependencies models cover Chinese, Japanese and Korean and are
+  downloaded separately.
+
+- Chinese segmentation with jieba's tuned dictionaries:
+  [jiebaR](https://CRAN.R-project.org/package=jiebaR), archived from
+  CRAN on 2025-05-01 and installable from GitHub;
   [`cjk_segmenters()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_segmenters.md)
-  shows how to register as an engine. It was archived from CRAN on
-  2025-05-01, which is why it is not a dependency.
+  shows how to register it as an engine.
 
-- Romanisation – [pinyin](https://CRAN.R-project.org/package=pinyin) and
-  [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin).
+- Pinyin: [hanyupinyin](https://CRAN.R-project.org/package=hanyupinyin).
 
-- Traditional/simplified conversion –
-  [tmcn](https://CRAN.R-project.org/package=tmcn) at the character
-  level. Character-level conversion is context-blind and often wrong, so
-  this package ships none; [OpenCC](https://github.com/BYVoid/OpenCC) is
-  the phrase-level answer outside R.
+- Regional vocabulary in simplified/traditional conversion, which ICU
+  does not attempt: [OpenCC](https://github.com/BYVoid/OpenCC), outside
+  R.
 
-- Japanese-specific utilities –
-  [zipangu](https://CRAN.R-project.org/package=zipangu) and
-  [Nippon](https://CRAN.R-project.org/package=Nippon).
-
-- Tokenising whitespace-delimited text –
+- Tokenising whitespace-delimited text:
   [tidytext](https://CRAN.R-project.org/package=tidytext), whose
   `unnest_tokens()`
   [`cjk_tokens()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_tokens.md)
@@ -135,14 +155,19 @@ tidycjk deliberately stops where another package already does the job:
 
 ## Relationship to stringi
 
-tidycjk does not re-implement Unicode. Display width comes from
-[`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html)
-and padding from
-[`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html) –
-[stringi](https://CRAN.R-project.org/package=stringi) – both of which
-read the live Unicode tables in [ICU](https://icu.unicode.org), the
-Unicode Consortium's C library. tidycjk adds the CJK-specific layer on
-top and keeps the naming consistent with the rest of the package. If all
+tidycjk does not re-implement Unicode. Width, padding and wrapping come
+from
+[`stringi::stri_width()`](https://rdrr.io/pkg/stringi/man/stri_width.html),
+[`stringi::stri_pad()`](https://rdrr.io/pkg/stringi/man/stri_pad.html)
+and
+[`stringi::stri_wrap()`](https://rdrr.io/pkg/stringi/man/stri_wrap.html);
+words, sentences and ordering from ICU's break iterators and collators;
+romanisation and script and kana conversion from ICU transforms. All of
+it is reached through
+[stringi](https://CRAN.R-project.org/package=stringi), which carries
+[ICU](https://icu.unicode.org), the Unicode Consortium's C library.
+tidycjk adds the CJK layer on top: one contract across the verbs, and
+guards where ICU's own behaviour is quietly wrong for this use. If all
 you need is the width of a string, call stringi directly.
 
 ## See also

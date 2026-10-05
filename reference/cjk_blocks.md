@@ -23,48 +23,59 @@ is what allows a whole corpus of code points to be classified with a
 single [`findInterval()`](https://rdrr.io/r/base/findInterval.html) call
 rather than a per-character regular expression.
 
-Two of the rows deserve comment. Halfwidth Katakana (U+FF65-U+FF9F) is a
+A block appears as more than one row where a single script label would
+be wrong for part of it. Halfwidth Katakana (U+FF65-U+FF9F) is a
 sub-range of the Halfwidth and Fullwidth Forms block; because the
 katakana label is the more useful one, the enclosing block appears as
-two rows either side of it. And the halfwidth Hangul jamo at
-U+FFA0-U+FFDC are reported as `"fullwidth"` rather than `"hangul"`,
-because this table follows the block boundaries rather than the Unicode
-Script property; use
+two rows either side of it. Kana Supplement, Kana Extended-A and Small
+Kana Extension each hold both hiragana and katakana, so each is split
+where the script changes. Otherwise the labels follow block boundaries
+rather than the Unicode Script property: the halfwidth Hangul jamo at
+U+FFA0-U+FFDC are reported as `"fullwidth"` rather than `"hangul"`, and
+the one hiragana digraph among the katakana of Kana Extended-A (U+1B123)
+as `"katakana"`. Use
 [`cjk_char_counts()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_char_counts.md)
 if you need to see exactly which code points a text contains.
 
-All ten blocks of unified ideographs are covered – the base block and
-Extensions A through I. They are not in alphabetical order, because
+All eleven blocks of unified ideographs are covered: the base block and
+Extensions A through J. They are not in alphabetical order, because
 Unicode allocated Extension I (U+2EBF0) below Extension G (U+30000)
 rather than after Extension H, and this table is in code point order.
 
-Ten is every block there was as of Unicode 16.0, which is what this
-table is current to. Unicode 17.0 added Extension J at U+323B0-U+3347F,
-and it is not here, so
+The table is current to Unicode 18.0. A block Unicode adds after that is
+not here until the table is updated, and
 [`has_cjk()`](https://pursuitofdatascience.github.io/tidycjk/reference/has_cjk.md)
-answers `FALSE` for an Extension J ideograph. That is a known limit of
-this version of the table rather than a judgement about the block, and
-it is the same gap the table once had at Extensions G, H and I.
+answers `FALSE` for its characters in the meantime; that is how
+Extension J, added in Unicode 17.0, came to be missing from 0.1.0.
 
 Ranges are Unicode block bounds, with one exception. Hangul Syllables
 stops at U+D7A3, the last assigned syllable, rather than at U+D7AF where
 the block ends; the twelve code points in between are unassigned, and
 calling them hangul would be reporting text that cannot exist. Elsewhere
 the block bound is used as-is, so a handful of unassigned code points
-inside a covered block – U+3100 to U+3104 at the head of Bopomofo, for
-instance – do count.
+inside a covered block (U+3100 to U+3104 at the head of Bopomofo, for
+instance) do count.
 
-Each phonetic script is covered in full, extension blocks included, so
-Bopomofo Extended (U+31A0-U+31BF) is here alongside Bopomofo. What is
-deliberately absent is everything that is neither a letter, an
-ideograph, CJK punctuation nor a width variant: the radical blocks
-(U+2E80-U+2EFF and the Kangxi radicals at U+2F00-U+2FDF), CJK Strokes
-(U+31C0-U+31EF), and the parenthesised, circled and squared
-compatibility symbols in Enclosed CJK Letters and Months and CJK
-Compatibility. Those are typographic presentation forms rather than
-text, and counting them as CJK would inflate
+Each phonetic script is covered in full, extension blocks included:
+Bopomofo Extended (U+31A0-U+31BF) alongside Bopomofo, and the
+hentaigana, archaic and small kana and the Minnan tone letters of Kana
+Supplement, Kana Extended-A, Kana Extended-B and Small Kana Extension
+alongside Hiragana and Katakana. What is deliberately absent is
+everything that is neither a letter, an ideograph, CJK punctuation nor a
+width variant: the radical blocks (U+2E80-U+2EFF and the Kangxi radicals
+at U+2F00-U+2FDF), CJK Strokes (U+31C0-U+31EF) and the Ideographic
+Description Characters (U+2FF0-U+2FFF); the vertical presentation forms
+in Vertical Forms (U+FE10-U+FE1F) and CJK Compatibility Forms
+(U+FE30-U+FE4F); and the parenthesised, circled and squared
+compatibility symbols in Enclosed CJK Letters and Months, CJK
+Compatibility and Enclosed Ideographic Supplement. Those are typographic
+presentation forms rather than text, and counting them as CJK would
+inflate
 [`cjk_ratio()`](https://pursuitofdatascience.github.io/tidycjk/reference/cjk_ratio.md)
-on a column that contains no CJK writing at all.
+on a column that contains no CJK writing at all. Also outside are the
+specialist marks of Ideographic Symbols and Punctuation
+(U+16FE0-U+16FFF), and the two bopomofo tone marks Unicode placed in
+Spacing Modifier Letters, U+02EA and U+02EB, far from any CJK block.
 
 The `script` column takes one of eight values. Six of them name a
 writing system – `"han"`, `"hiragana"`, `"katakana"`, `"hangul"`,
@@ -84,7 +95,7 @@ for a per-character breakdown.
 
 ``` r
 cjk_blocks()
-#> # A tibble: 27 × 5
+#> # A tibble: 35 × 5
 #>    block                              script      start   end n_codepoints
 #>    <chr>                              <chr>       <int> <int>        <int>
 #>  1 Hangul Jamo                        hangul       4352  4607          256
@@ -97,11 +108,11 @@ cjk_blocks()
 #>  8 Bopomofo Extended                  bopomofo    12704 12735           32
 #>  9 Katakana Phonetic Extensions       katakana    12784 12799           16
 #> 10 CJK Unified Ideographs Extension A han         13312 19903         6592
-#> # ℹ 17 more rows
+#> # ℹ 25 more rows
 
 # the blocks that make up "han"
 subset(cjk_blocks(), script == "han")
-#> # A tibble: 12 × 5
+#> # A tibble: 13 × 5
 #>    block                                   script  start    end n_codepoints
 #>    <chr>                                   <chr>   <int>  <int>        <int>
 #>  1 CJK Unified Ideographs Extension A      han     13312  19903         6592
@@ -116,4 +127,5 @@ subset(cjk_blocks(), script == "han")
 #> 10 CJK Compatibility Ideographs Supplement han    194560 195103          544
 #> 11 CJK Unified Ideographs Extension G      han    196608 201551         4944
 #> 12 CJK Unified Ideographs Extension H      han    201552 205743         4192
+#> 13 CJK Unified Ideographs Extension J      han    205744 210047         4304
 ```

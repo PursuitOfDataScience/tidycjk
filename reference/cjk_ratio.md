@@ -49,7 +49,8 @@ for the column-level summary.
 ## Examples
 
 ``` r
-# all CJK, half CJK, none, the empty string, and NA
+# all CJK; two CJK characters of seven, because the space and the Latin
+# letters count too; none; the empty string; NA
 cjk_ratio(c("\u4e2d\u6587", "half \u4e2d\u6587", "none", "", NA))
 #> [1] 1.0000000 0.2857143 0.0000000        NA        NA
 ```

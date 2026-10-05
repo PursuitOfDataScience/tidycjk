@@ -82,7 +82,9 @@ rather than the silent fallback to root collation stringi would
 otherwise give you, because that fallback produces a plausible-looking
 wrong order. An unrecognised *region* is not an error: `"zh-CH"`, a typo
 for `"zh-CN"`, resolves to `"zh"` and still sorts by pinyin, which is
-the right answer.
+the right answer. The language is matched without regard to case, as BCP
+47 specifies, so `"ZH"` is `"zh"`; and `"root"` asks for ICU's root
+collation by name, which is a choice rather than a fallback.
 
 ## Missing values
 
