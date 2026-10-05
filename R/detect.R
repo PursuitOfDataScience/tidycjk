@@ -24,7 +24,10 @@
 #'   numeric vector is measured as R chooses to write it -- which moves
 #'   with `options(scipen)` and `options(OutDec)`, and can therefore
 #'   differ between sessions. Convert deliberately if you mean to
-#'   measure numbers; these verbs are for text.
+#'   measure numbers; these verbs are for text. A list is *not* coerced --
+#'   [as.character()] deparses one rather than coercing it, so the text
+#'   measured would be the R code that builds the list -- so a list, a data
+#'   frame or a function is an error naming what to do instead.
 #'
 #' @return A logical vector the same length as `x`. `NA` input gives `NA`; the
 #'   empty string gives `FALSE`.
@@ -211,6 +214,7 @@ cjk_detect_language <- function(x, han_only = NA_character_) {
 #' @seealso [has_cjk()] for the yes/no version, [cjk_summary()] for the
 #'   column-level summary.
 #' @examples
+#' # all CJK, half CJK, none, the empty string, and NA
 #' cjk_ratio(c("\u4e2d\u6587", "half \u4e2d\u6587", "none", "", NA))
 #' @export
 cjk_ratio <- function(x) {

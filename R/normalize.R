@@ -256,7 +256,7 @@ to_halfwidth <- function(x, compose = TRUE) {
   if (!is.logical(compose) || length(compose) != 1L || is.na(compose)) {
     stop("`compose` must be TRUE or FALSE.", call. = FALSE)
   }
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(character(0))
   }
@@ -266,7 +266,7 @@ to_halfwidth <- function(x, compose = TRUE) {
 #' @rdname to_halfwidth
 #' @export
 to_fullwidth <- function(x) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(character(0))
   }
@@ -422,7 +422,7 @@ cjk_normalize <- function(x, form = c("nfc", "nfd", "nfkc", "nfkd",
         is.na(drop_variation_selectors)) {
     stop("`drop_variation_selectors` must be TRUE or FALSE.", call. = FALSE)
   }
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   # Restores nothing on the current stringi, which already returns
   # character(0) here, and kept for the reason .cjk_trans_verb()'s identical
   # exit is kept: the contract is ours and the stringi version is unpinned.

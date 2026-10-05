@@ -43,7 +43,15 @@
   if (is.data.frame(data)) {
     return(TRUE)
   }
-  # Anything else that can be pulled from. A package registering a pull method
+  # Anything else that can be pulled from. Untested, and not for want of
+  # trying: reaching this loop needs a class that is not a data frame and
+  # does have a dplyr pull method, which means a backend package -- dbplyr
+  # and a driver -- in Suggests for the sake of one branch, or registering a
+  # method into dplyr's own namespace from a test, which is not something to
+  # do to another package. It stays because deleting it would silently
+  # relabel a database backend's errors as bad input.
+  #
+  # A package registering a pull method
   # -- dbplyr for a database-backed tbl, say -- lands it in dplyr's S3 table,
   # so one lookup finds them all. It has to name that namespace: inside this
   # handler dplyr is loaded but not attached, and a plain getS3method() cannot
@@ -84,7 +92,8 @@
 #' @param data A data frame or tibble containing a text column.
 #' @param col The text column to scan, supplied unquoted. A non-character
 #'   column is coerced with [as.character()]; see [has_cjk()] for why
-#'   that makes a numeric column a poor thing to measure.
+#'   that makes a numeric column a poor thing to measure. A list-column is
+#'   an error rather than a coercion, for the reason given there.
 #'
 #' @return A one-row tibble with columns `n_docs` (all entries), `n_with_cjk`
 #'   (entries holding at least one CJK character), `prop_with_cjk` and
@@ -93,13 +102,14 @@
 #' @seealso [cjk_char_counts()] for the per-character breakdown, [cjk_ratio()]
 #'   for the per-row measure this averages.
 #' @examples
+#' # U+4E2D U+6587 is "Chinese writing": all CJK, then mixed, then neither
 #' df <- data.frame(
 #'   text = c("\u4e2d\u6587", "mixed \u4e2d\u6587 text", "plain ASCII", NA)
 #' )
 #' cjk_summary(df, text)
 #' @export
 cjk_summary <- function(data, col) {
-  v <- as.character(.cjk_pull(dplyr::pull(data, {{ col }}), data))
+  v <- .cjk_as_text(.cjk_pull(dplyr::pull(data, {{ col }}), data), "col")
   has <- has_cjk(v)
   ratio <- cjk_ratio(v)
 
@@ -143,6 +153,8 @@ cjk_summary <- function(data, col) {
 #' @seealso [cjk_summary()] for the column-level figures, [cjk_blocks()] for
 #'   the block table these labels come from.
 #' @examples
+#' # "Chinese writing" twice over, then "the Japanese language" in kanji and
+#' # kana, then a row with no CJK at all
 #' df <- data.frame(
 #'   text = c("\u4e2d\u6587\u4e2d\u6587",
 #'            "\u65e5\u672c\u306e\u3053\u3068\u3070",
@@ -151,7 +163,7 @@ cjk_summary <- function(data, col) {
 #' cjk_char_counts(df, text)
 #' @export
 cjk_char_counts <- function(data, col) {
-  v <- as.character(.cjk_pull(dplyr::pull(data, {{ col }}), data))
+  v <- .cjk_as_text(.cjk_pull(dplyr::pull(data, {{ col }}), data), "col")
   cps <- .cjk_codepoints(v)
   all_cp <- unlist(cps, use.names = FALSE)
   if (is.null(all_cp)) {

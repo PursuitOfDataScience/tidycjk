@@ -138,6 +138,26 @@ test_that("normalisation is surgical where NFKC is not", {
   expect_true(all(stringi::stri_trans_nfkc(untouched) != untouched))
 })
 
+test_that("both ends of the width-variant ASCII range convert", {
+  # The two directions are `cp >= 0x21 & cp <= 0x7E` and its fullwidth
+  # mirror, and both boundaries were untested: every earlier case used a
+  # letter or a digit from the middle. U+0021 is the first character the
+  # range covers, U+007E the last, and the space is the one member that
+  # maps outside the +0xFEE0 arithmetic.
+  half <- c("!", "~", " ", "A", "}")
+  full <- c("\uff01", "\uff5e", "\u3000", "\uff21", "\uff5d")
+  expect_identical(to_fullwidth(half), full)
+  expect_identical(to_halfwidth(full), half)
+  # and the round trip is exact in both directions
+  expect_identical(to_halfwidth(to_fullwidth(half)), half)
+  expect_identical(to_fullwidth(to_halfwidth(full)), full)
+  # one past each end is untouched: U+0020 has its own rule above, and
+  # U+007F and U+FF5F/U+FF00 are not width variants of anything.
+  untouched <- c("\u007f", "\uff5f", "\uff00")
+  expect_identical(to_fullwidth(untouched), untouched)
+  expect_identical(to_halfwidth(untouched), untouched)
+})
+
 test_that("the rest of the Halfwidth and Fullwidth Forms block is left alone", {
   # The mapped ranges are FF01-FF5E and FF61-FF9F, and ?to_halfwidth names what
   # sits either side of them so that nobody reads "narrows fullwidth forms" as

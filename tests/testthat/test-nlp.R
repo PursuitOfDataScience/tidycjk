@@ -62,8 +62,14 @@ test_that("cjk_ngrams keeps the NA / empty distinction and validates n", {
   expect_identical(out[[2]], NA_character_)
   expect_identical(out[[3]], character(0))
   expect_identical(cjk_ngrams(character(0)), list())
-  for (bad in list(0, -1, 2.5, NA, Inf, "2", c(2, 3))) {
-    expect_error(cjk_ngrams(NG, n = bad), "`n`")
+  # Pin the whole message rather than just "`n`". cjk_ngrams() raises a second,
+  # narrower error past the integer range, and a pattern matching only "`n`"
+  # accepts either -- so a guard that let Inf slip through to that second error
+  # would still pass here. Inf is the input that tells the two guards apart:
+  # it is the one non-finite value `n < 1` does not also reject.
+  msg <- "must be a single positive whole number"
+  for (bad in list(0, -1, 2.5, NA, NaN, NA_real_, Inf, -Inf, "2", c(2, 3))) {
+    expect_error(cjk_ngrams(NG, n = bad), msg)
   }
 })
 
@@ -79,6 +85,10 @@ test_that("cjk_ngrams rejects an n past the integer range", {
   # comparison against it fails with a missing-value error further down.
   expect_error(cjk_ngrams("abc", n = 1e10), "integer range")
   expect_error(cjk_ngrams("abc", n = 2^31), "integer range")
+  # ...but the limit itself is inside the range and must be accepted: the
+  # string is shorter than n, so the answer is the no-gram-formed one.
+  expect_identical(cjk_ngrams("abc", n = .Machine$integer.max)[[1]],
+                   character(0))
 })
 
 test_that("cjk_sentences rejects a locale ICU has no break data for", {

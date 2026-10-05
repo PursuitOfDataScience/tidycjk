@@ -11,7 +11,8 @@ cjk_tokens(data, col, engine, ..., output = "token")
 
 \item{col}{The text column to scan, supplied unquoted. A non-character
 column is coerced with \code{\link[=as.character]{as.character()}}; see \code{\link[=has_cjk]{has_cjk()}} for why
-that makes a numeric column a poor thing to measure.}
+that makes a numeric column a poor thing to measure. A list-column is
+an error rather than a coercion, for the reason given there.}
 
 \item{engine}{Name of a segmentation engine, or a function implementing
 one. Required; see \code{\link[=cjk_segmenters]{cjk_segmenters()}}.}
@@ -54,6 +55,7 @@ tibble even when \code{data} is a \code{grouped_df}. Regroup it afterwards if yo
 the groups back.
 }
 \examples{
+# "I am very happy", then a row mixing Latin with "Chinese writing"
 df <- data.frame(
   id = 1:2,
   text = c("\u6211\u5f88\u958b\u5fc3", "hello \u4e2d\u6587")

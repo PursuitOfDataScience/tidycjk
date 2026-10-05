@@ -44,7 +44,7 @@
 #' unambiguous. If your corpus is mixed and abbreviation-heavy, check the
 #' result before trusting it.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #' @param locale ICU locale for the break iterator, e.g. `"ja"`. `NULL`, the
 #'   default, uses the session default. See Details -- it does not change
 #'   where CJK sentences break.
@@ -74,7 +74,7 @@
 #' )
 #' @export
 cjk_sentences <- function(x, locale = NULL) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(list())
   }
@@ -153,7 +153,7 @@ cjk_sentences <- function(x, locale = NULL) {
 #' A string shorter than `n` characters yields `character(0)` rather than a
 #' padded gram.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #' @param n Size of each gram, a single positive whole number. Defaults to
 #'   `2`, the usual choice for Chinese.
 #'
@@ -185,7 +185,7 @@ cjk_ngrams <- function(x, n = 2L) {
     stop("`n` must be within integer range.", call. = FALSE)
   }
   n <- as.integer(n)
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(list())
   }
@@ -312,7 +312,7 @@ cjk_strip_punct <- function(x, replacement = " ", symbols = FALSE) {
   if (!is.logical(symbols) || length(symbols) != 1L || is.na(symbols)) {
     stop("`symbols` must be TRUE or FALSE.", call. = FALSE)
   }
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   # Restores nothing on the current stringi, which already answers
   # character(0) here; kept for the reason the identical exits in
   # .cjk_trans_verb() and cjk_normalize() are kept, and pinned by the same

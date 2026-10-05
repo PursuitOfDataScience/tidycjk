@@ -12,7 +12,10 @@ cjk_ratio(x)
 numeric vector is measured as R chooses to write it -- which moves
 with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
 differ between sessions. Convert deliberately if you mean to
-measure numbers; these verbs are for text.}
+measure numbers; these verbs are for text. A list is \emph{not} coerced --
+\code{\link[=as.character]{as.character()}} deparses one rather than coercing it, so the text
+measured would be the R code that builds the list -- so a list, a data
+frame or a function is an error naming what to do instead.}
 }
 \value{
 A numeric vector the same length as \code{x}, between 0 and 1. \code{NA} input
@@ -31,6 +34,7 @@ supplementary plane counts once, not twice. The denominator is every
 character in the string, including spaces and Latin punctuation.
 }
 \examples{
+# all CJK, half CJK, none, the empty string, and NA
 cjk_ratio(c("\u4e2d\u6587", "half \u4e2d\u6587", "none", "", NA))
 }
 \seealso{

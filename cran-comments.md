@@ -30,9 +30,24 @@ carries dictionary-based break iterators for Chinese and Japanese and
 `stringi` carries ICU, which has been an `Imports` dependency since the first
 release. NEWS says so plainly rather than presenting the engine as new work.
 
-A bug present in 0.1.0 is also fixed: `cjk_detect_language(han_only = )`
-accepted `NaN` and `list(NA)`, returning them as the detected languages
-`"NaN"` and the string `"NA"`. Both are now errors.
+Two bugs present in 0.1.0 are also fixed:
+
+* `cjk_detect_language(han_only = )` accepted `NaN` and `list(NA)`,
+  returning them as the detected languages `"NaN"` and the string `"NA"`.
+  Both are now errors.
+* Every verb deparsed a list argument instead of rejecting it.
+  `as.character()` does not coerce a list, it deparses one, so
+  `cjk_width(list(c("a", "b")))` answered **11** -- the display width of the
+  eleven-character string `c("a", "b")`, R source measured as if it were text,
+  with no error and no warning. This was reachable rather than theoretical:
+  `cjk_jamo()`, `cjk_sentences()` and `cjk_segment()` all return lists, and
+  the jamo round trip written the obvious way handed back
+  `c("\u1112", "\u1161", "\u11ab")` as a literal string. A shared guard now
+  raises, naming the two ways out, and the three tidy verbs check a pulled
+  list-column the same way. `NULL`, numeric, logical and factor input are
+  all still coerced exactly as before. This is the check `cjk_segment()`
+  already applied to what a segmentation *engine* returns, applied at last
+  to what a *caller* passes in.
 
 ## Overlap with existing packages
 
@@ -58,6 +73,23 @@ for this use. Three examples:
   warning, because stringi 1.6.2 does not emit one.
 * Several stringi entry points drop a leading U+FEFF; the verbs that call
   them restore it, so text from a BOM-carrying CSV is not silently edited.
+* One inherited behaviour is documented rather than guarded, because
+  guarding it would cost more than it saves. `stri_wrap()` normalises to
+  NFC, ICU's line-breaking being defined on normalised text, so
+  `cjk_wrap()` returns NFC where `cjk_pad()`, `cjk_truncate()` and
+  `cjk_segment()` do not: `cjk_wrap("\uf900", 2)` is U+8C48. A sweep of
+  every code point in Unicode puts the affected set at 1,120 and shows it
+  is exactly the set NFC changes: 460 of the 472 assigned CJK
+  compatibility ideographs, all 542 of the supplement, 34 Hebrew
+  presentation forms, 13 musical symbols, and 71 scattered singletons and
+  composition exclusions (the Kelvin and Ohm signs, Greek letters with an
+  oxia, Devanagari letters with a nukta and the like), each a duplicate of
+  a character or sequence Unicode prefers. `normalize = FALSE`
+  would stop it, but the same argument turns off whitespace collapsing and
+  makes `stri_wrap()` raise on any string containing a newline, which would
+  break re-wrapping already-wrapped text. `?cjk_wrap` says all of this, and
+  a test over the whole block table pins the set so a change upstream
+  surfaces as a failure.
 * `cjk_strip_punct()` exists because the obvious spelling is wrong on CJK
   in two different ways. `gsub("[[:punct:]]", "", x)` resolves the class
   through the C library, so it removes no CJK punctuation under `LC_ALL=C`
@@ -114,9 +146,29 @@ counterpart, so no signature changed.
 
 Every environment below was re-run against the final 0.2.0 sources rather
 than carried over from development, which is how the two non-portable
-assertions noted under R 4.1.0 were found. The suite is 1,928 assertions on
+assertions noted under R 4.1.0 were found. The suite is 2,259 assertions on
 a current R; the lower counts on older or non-UTF-8 configurations are
 skips with stated reasons, not absences.
+
+One test is `skip_on_cran()`: an exhaustive pass over all 111,012 code
+points in the package's block table, asserting idempotence of each of the
+five normalisation forms, the NFC and NFKC composition laws, that
+fullwidth text survives `to_halfwidth()` followed by `to_fullwidth()`,
+that the layout verbs are no-ops on a string that already fits, that one
+character is one token and one 1-gram, and that all thirteen transforms
+return one valid, non-missing UTF-8 string per input. It takes about twelve seconds, which
+is not CRAN's time to spend; a sampled version -- forty code points from
+every block -- runs everywhere, as does a boundary pass over every block
+edge and the code point either side of it. On the CRAN path the suite is
+2,195 assertions with that one skip, and `checking tests` takes 15s.
+
+A one-off sweep of all 1,112,029 valid code points in Unicode confirmed
+`has_cjk()`, `cjk_ratio()` and `cjk_script()` agree with the block table in
+both directions -- no character wrongly called CJK, none wrongly left out --
+and that `cjk_width()` is never missing and never outside 0:2. That result
+is recorded rather than re-run on every job, since the table is static
+data; what stays in the suite is the boundary pass, boundaries being where
+an interval lookup actually fails.
 
 * Locally on Linux (x86_64, glibc), R 4.4.1:
   - `R CMD check --as-cran`.
@@ -154,6 +206,15 @@ skips with stated reasons, not absences.
     `R (>= 3.5.0)` floor. That run has dplyr 1.0.5, below the declared
     `dplyr (>= 1.1.0)`, so it is evidence about the R version rather than a
     supported configuration.
+  - The spread of R versions earned its place again this release. The new
+    guard on list arguments has to admit `NULL`, and `is.atomic(NULL)`
+    changed from `TRUE` to `FALSE` in R 4.4.0 -- measured here as `TRUE` on
+    3.6.3 and 4.1.0, `FALSE` on 4.6.0. An `is.atomic()` test alone would
+    therefore have started rejecting `NULL` halfway through the versions
+    this package supports, so the guard tests `is.null()` first. Counts,
+    all with zero failures: 2,234 assertions on R 3.6.3 (3 skips), 2,238 on
+    R 4.1.0 (2 skips), 2,259 on R 4.4.1 (no skips), 2,195 on R 4.6.0
+    against the installed package.
 * GitHub Actions, on every push: macOS-latest (release), windows-latest
   (release), ubuntu-latest (devel, release, oldrel-1).
 

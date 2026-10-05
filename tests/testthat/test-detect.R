@@ -120,6 +120,26 @@ test_that("the Han-only guess is available but has to be asked for", {
   expect_error(cjk_detect_language(ZH, han_only = c("a", "b")), "single string")
 })
 
+test_that("CJK punctuation does not stop Han text being recognised", {
+  # Every Han fixture above is punctuation-free, which left the commonest
+  # real input untested: a Chinese sentence ends in U+3002, and U+3002 is a
+  # CJK block with a script of its own ("punctuation"). The Han rule asks
+  # whether ANY character is Han, so the full stop is beside the point --
+  # but nothing pinned that, and asking whether ALL of them are Han would
+  # turn every punctuated sentence into NA.
+  punct <- c("\u4e2d\u3002", "\u4e2d\u6587\uff0c\u5f88\u597d\u3002",
+             "\u4e2d\uff08\u6587\uff09", "\u3002\u4e2d")
+  expect_equal(cjk_detect_language(punct, han_only = "chinese"),
+               rep("chinese", length(punct)))
+  # The same for the scripts of a punctuated Japanese sentence.
+  expect_equal(cjk_detect_language(paste0(JA_KANA, "\u3002")), "japanese")
+  expect_equal(cjk_detect_language(paste0(KO, "\u3002")), "korean")
+  # cjk_script() counts rather than prioritises, so there the punctuation
+  # does carry weight -- and wins outright once it outnumbers the Han.
+  expect_equal(cjk_script("\u4e2d\u6587\u3002"), "han")
+  expect_equal(cjk_script("\u4e2d\u3002\u3002"), "punctuation")
+})
+
 test_that("han_only is not silently coerced from another type", {
   # as.character() on its own answered "1" for han_only = 1 and "TRUE" for
   # han_only = TRUE, returning a typo as a language rather than reporting it

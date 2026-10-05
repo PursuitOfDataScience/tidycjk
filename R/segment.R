@@ -143,7 +143,7 @@
 # because ICU may use it elsewhere and because the guard catches a typo --
 # not because it switches models.
 .cjk_engine_icu <- function(x, locale = NULL, ...) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   # stri_split_boundaries() drops a leading U+FEFF, while ICU keeps one in
   # the middle of a string and attaches it to the adjacent word. That made
   # the engine treat the same character two ways depending on where it sat,
@@ -462,7 +462,7 @@ cjk_segment <- function(x, engine, ...) {
          paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
          call. = FALSE)
   }
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(list())
   }
@@ -550,6 +550,7 @@ cjk_segment <- function(x, engine, ...) {
 #' @seealso [cjk_segment()] for the vector version, [cjk_char_counts()] when
 #'   you want characters rather than words.
 #' @examples
+#' # "I am very happy", then a row mixing Latin with "Chinese writing"
 #' df <- data.frame(
 #'   id = 1:2,
 #'   text = c("\u6211\u5f88\u958b\u5fc3", "hello \u4e2d\u6587")
@@ -573,7 +574,7 @@ cjk_tokens <- function(data, col, engine, ..., output = "token") {
          paste0("\"", cjk_segmenters(), "\"", collapse = ", "), ".",
          call. = FALSE)
   }
-  v <- as.character(.cjk_pull(dplyr::pull(data, {{ col }}), data))
+  v <- .cjk_as_text(.cjk_pull(dplyr::pull(data, {{ col }}), data), "col")
   toks <- cjk_segment(v, engine = engine, ...)
   # A row is repeated once per token, so a row that tokenised to nothing is
   # dropped by having its index repeated zero times. An NA document is not one

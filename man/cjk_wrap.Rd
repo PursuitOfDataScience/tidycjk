@@ -12,7 +12,10 @@ cjk_wrap(x, width, indent = 0L, exdent = 0L, locale = NULL)
 numeric vector is measured as R chooses to write it -- which moves
 with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
 differ between sessions. Convert deliberately if you mean to
-measure numbers; these verbs are for text.}
+measure numbers; these verbs are for text. A list is \emph{not} coerced --
+\code{\link[=as.character]{as.character()}} deparses one rather than coercing it, so the text
+measured would be the R code that builds the list -- so a list, a data
+frame or a function is an error naming what to do instead.}
 
 \item{width}{Target width in columns. Recycled against \code{x}.}
 
@@ -91,12 +94,33 @@ marking the start of a stream, so this only bites text that is already
 using it against the standard's advice -- but it is a content change, and
 this page would rather say so than have you find it.
 
-Two behaviours differ from \code{\link[=cjk_pad]{cjk_pad()}} and \code{\link[=cjk_truncate]{cjk_truncate()}}, because this
-verb re-flows text rather than measuring it in place. Existing newlines in
-\code{x} are whitespace to the algorithm and are replaced by the new line
-breaks, so \code{"a\\nb"} wrapped wide comes back as \code{"a b"}; wrap the pieces
-separately if the original breaks are meaningful. And a string of nothing
-but whitespace re-flows to \code{""}, where \code{cjk_pad()} would have kept it.
+Three behaviours differ from \code{\link[=cjk_pad]{cjk_pad()}} and \code{\link[=cjk_truncate]{cjk_truncate()}}, because
+this verb re-flows text rather than measuring it in place. Existing
+newlines in \code{x} are whitespace to the algorithm and are replaced by the
+new line breaks, so \code{"a\\nb"} wrapped wide comes back as \code{"a b"}; wrap the
+pieces separately if the original breaks are meaningful. A string of
+nothing but whitespace re-flows to \code{""}, where \code{cjk_pad()} would have
+kept it.
+
+And the output is in normalisation form C. ICU's line-breaking works on
+normalised text, so \code{stri_wrap()} normalises, and 1,120 code points
+therefore come back changed. 1,002 of them are the CJK Compatibility
+Ideographs (U+F900-U+FAD9 and U+2F800-U+2FA1D): \code{cjk_wrap("\\uf900", 2)}
+is U+8C48. The other 118 are the Hebrew presentation forms, a handful of
+musical symbols, and 71 scattered singletons and composition exclusions:
+the Kelvin, Ohm and Angstrom signs, Greek letters with an oxia,
+Devanagari letters with a nukta, and U+2329 and U+232A, which become the
+CJK angle brackets U+3008 and U+3009. These are exactly the code points
+NFC changes, no more and no fewer, each a duplicate of a character or
+sequence Unicode prefers and kept for compatibility. Everyday text,
+precomposed Latin and Hangul syllables included, is already NFC and
+passes through untouched.
+\code{\link[=cjk_pad]{cjk_pad()}}, \code{\link[=cjk_truncate]{cjk_truncate()}} and \code{\link[=cjk_segment]{cjk_segment()}} do \strong{not} normalise,
+so this is the one layout verb that can change a character. Undoing it
+would mean re-aligning re-flowed output against the input, which risks
+corrupting ordinary text to protect a deprecated corner of it; running
+\code{\link[=cjk_normalize]{cjk_normalize()}} first is the way to make the normalisation explicit
+and expected.
 }
 
 \examples{

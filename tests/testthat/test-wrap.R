@@ -40,6 +40,16 @@ test_that("cjk_wrap validates indent and exdent", {
   expect_error(cjk_wrap("\u4e2d", 5, indent = -1), "`indent`")
   expect_error(cjk_wrap("\u4e2d", 5, exdent = NA), "`exdent`")
   expect_error(cjk_wrap("\u4e2d", 5, indent = c(1, 2)), "`indent`")
+  # Inf clears is.numeric() and `v < 0` both, so the is.finite() clause is the
+  # only thing that stops it; without it as.integer(Inf) is a silent NA plus a
+  # bare "NAs introduced by coercion" warning that names no argument.
+  for (nm in c("indent", "exdent")) {
+    for (bad in list(Inf, -Inf, NaN)) {
+      args <- list("\u4e2d", 5)
+      args[[nm]] <- bad
+      expect_error(do.call(cjk_wrap, args), "non-negative, non-missing")
+    }
+  }
 })
 
 test_that("cjk_wrap applies exdent to continuation lines only", {
@@ -167,4 +177,33 @@ test_that("the greedy switch happens exactly where the help page says", {
 
   expect_equal(cjk_wrap(at, 10), wrapped(at, 2))       # at the threshold: optimal
   expect_equal(cjk_wrap(over, 10), wrapped(over, 0))   # one past it: greedy
+})
+
+
+test_that("cjk_wrap returns NFC, and exactly where NFC differs", {
+  # ICU line-breaks normalised text, so stri_wrap() normalises and this verb
+  # inherits it -- the one layout verb that can change a character, where
+  # cjk_pad(), cjk_truncate() and cjk_segment() cannot. Pinned rather than
+  # fixed: see ?cjk_wrap. The set is the point. If a future stringi stops
+  # normalising, or starts normalising something wider, this fails.
+  compat <- intToUtf8(0xF900)                 # canonically U+8C48
+  expect_identical(cjk_wrap(compat, 2L), "\u8c48")
+  expect_identical(cjk_wrap(compat, 2L), cjk_normalize(compat, "nfc"))
+  # the sibling verbs leave it alone
+  expect_identical(cjk_truncate(compat, 2L), compat)
+  expect_identical(cjk_pad(compat, 2L), compat)
+  expect_identical(cjk_segment(compat, engine = "character")[[1L]], compat)
+
+  # Over every code point in the block table, the characters cjk_wrap
+  # changes are precisely those NFC changes -- plus U+3000, which is
+  # whitespace to the wrapper and so re-flows to "".
+  cps <- unlist(Map(seq, cjk_blocks()$start, cjk_blocks()$end))
+  cps <- cps[!(cps >= 0xD800 & cps <= 0xDFFF)]
+  cps <- cps[bitwAnd(cps, 0xFFFE) != 0xFFFE]
+  x <- vapply(cps, intToUtf8, character(1))
+  moved <- cjk_wrap(x, pmax(cjk_width(x), 1L)) != x
+  nfc <- cjk_normalize(x, "nfc") != x
+  expect_identical(which(moved), which(nfc | cps == 0x3000L))
+  # and everyday text is on the untouched side of that line
+  expect_false(any(moved[cps %in% c(0x4E2D, 0x6587, 0xAC00, 0x3042, 0x30AB)]))
 })

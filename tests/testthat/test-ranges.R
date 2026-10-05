@@ -319,6 +319,51 @@ test_that("the byte-order mark reaches the verbs built on those code points", {
   expect_equal(nrow(cjk_char_counts(data.frame(t = paste0(bom, zh)), t)), 1L)
 })
 
+test_that("a BOM on some elements only is handled element by element", {
+  # The three BOM helpers all guard their work behind an any() over the
+  # elements that need it, which is a cheap exit for the common no-BOM
+  # vector. A vector where only *some* elements carry one is the case that
+  # tells that gate apart from a wrong one: an all() there would skip the
+  # whole vector because of the elements with nothing to do, leaving the
+  # mark in the output of every verb below. Every earlier BOM test used a
+  # length-one input, so none of them could see it.
+  bom <- "\uFEFF"
+  zh <- "\u4e2d"
+  mixed <- c(paste0(bom, zh), zh, NA)
+  # the detector reports per element, including across an NA
+  expect_identical(.cjk_leading_bom(mixed), c(1L, 0L, 0L))
+  expect_identical(.cjk_leading_bom(c(NA, paste0(bom, bom, zh))), c(0L, 2L))
+  # strip and restore are inverses on a mixed vector, NA included
+  n <- .cjk_leading_bom(mixed)
+  expect_identical(.cjk_strip_bom(mixed, n), c(zh, zh, NA))
+  expect_identical(.cjk_restore_bom(.cjk_strip_bom(mixed, n), n), mixed)
+  # and the mark survives into the verbs built on them
+  expect_identical(cjk_segment(mixed, engine = "character")[[1L]],
+                   c(bom, zh))
+  expect_identical(cjk_segment(mixed, engine = "character")[[2L]], zh)
+  expect_identical(cjk_strip_punct(c(paste0(bom, zh, "\uff0c"),
+                                     paste0(zh, "\uff0c")),
+                                   replacement = ""),
+                   c(paste0(bom, zh), zh))
+  expect_equal(cjk_ratio(mixed), c(0.5, 1, NA))
+  # Every verb that carries a BOM across has its own any() gate, so each
+  # needs the mixed vector: cjk_pad() restores the mark after stri_pad()
+  # eats it, and the rest strip and restore around their own work.
+  expect_identical(cjk_pad(mixed, 4L),
+                   c(paste0(bom, zh, "  "), paste0(zh, "  "), NA))
+  expect_identical(cjk_wrap(mixed, 4L), c(paste0(bom, zh), zh, NA))
+  expect_identical(cjk_truncate(mixed, 4L), c(paste0(bom, zh), zh, NA))
+  expect_identical(cjk_sentences(mixed)[[1L]], paste0(bom, zh))
+  expect_identical(to_halfwidth(mixed), c(paste0(bom, zh), zh, NA))
+  expect_identical(cjk_simplify(mixed), c(paste0(bom, zh), zh, NA))
+  # and the mark is never *added* to the element that arrived without one
+  for (out in list(cjk_pad(mixed, 4L), cjk_wrap(mixed, 4L),
+                   cjk_truncate(mixed, 4L), to_halfwidth(mixed),
+                   cjk_simplify(mixed), cjk_strip_punct(mixed))) {
+    expect_false(startsWith(out[[2L]], bom))
+  }
+})
+
 test_that("the BOM detector must not be built out of stringi", {
   # stringi strips a leading BOM from the *pattern* too, so a pattern of U+FEFF
   # alone arrives empty: stri_startswith_fixed() then warns and returns NA, and
@@ -497,4 +542,196 @@ test_that("an enumerated argument is rejected by name, not as 'arg'", {
   # an unmatched value keeps match.arg's own wording, which lists the choices
   expect_error(cjk_pad("a", 8, side = "middle"), "should be one of")
   expect_error(cjk_normalize("a", form = "NFC"), "should be one of")
+})
+
+
+test_that("a list argument is an error, not the R code that builds it", {
+  # as.character() deparses a list rather than coercing it, so every verb
+  # measured `c("a", "b")` -- eleven characters of R source -- as if a caller
+  # had passed that string. cjk_width(list(c("a", "b"))) answered 11. The
+  # list a caller has in hand is normally another verb's output, which is
+  # what made this reachable rather than theoretical.
+  L <- list(c("a", "b"))
+  one <- list(has_cjk, cjk_ratio, cjk_script, cjk_detect_language, cjk_width,
+              cjk_jamo, cjk_compose_jamo, cjk_romanize, cjk_simplify,
+              cjk_traditionalize, to_hiragana, to_katakana, to_fullwidth,
+              to_halfwidth, cjk_normalize, cjk_strip_punct, cjk_sentences,
+              cjk_sort, cjk_order)
+  for (f in one) {
+    expect_error(f(L), "must be an atomic vector")
+  }
+  expect_error(cjk_ngrams(L, 1L), "must be an atomic vector")
+  for (f in list(cjk_pad, cjk_truncate, cjk_wrap)) {
+    expect_error(f(L, 4L), "must be an atomic vector")
+  }
+  # the same for anything else as.character() would deparse rather than coerce
+  for (v in list(data.frame(a = 1), mean, globalenv(), quote(f(1)))) {
+    expect_error(cjk_width(v), "must be an atomic vector")
+  }
+  # and the message names a way out rather than only the fault
+  e <- tryCatch(cjk_width(L), error = function(e) e)
+  expect_match(conditionMessage(e), "unlist\\(\\)")
+  expect_match(conditionMessage(e), "vapply")
+
+  # The documented jamo round trip needs the re-joining step, and saying so
+  # is now enforced: the direct composition is an error.
+  zh <- "\ud55c\uae00"
+  expect_error(cjk_compose_jamo(cjk_jamo(zh)), "must be an atomic vector")
+  expect_identical(
+    cjk_compose_jamo(vapply(cjk_jamo(zh), paste, character(1), collapse = "")),
+    zh)
+
+  # a list-column reaching the tidy verbs is caught the same way, and names
+  # `col` rather than `x` because that is the argument the caller wrote
+  df <- data.frame(id = 1:2)
+  df$t <- list(c("a", "b"), "\u4e2d")
+  for (f in list(cjk_summary, cjk_char_counts)) {
+    expect_error(f(df, t), "`col` must be an atomic vector")
+  }
+  expect_error(cjk_tokens(df, t, engine = "character"),
+               "`col` must be an atomic vector")
+})
+
+test_that("the coercions the guard is careful to keep still work", {
+  # The point of coercing at all is that a factor or a numeric column goes
+  # through; only the shapes as.character() deparses are refused. NULL is
+  # the one that needs saying out loud: is.atomic(NULL) was TRUE until
+  # R 4.4.0 and is FALSE after it, so an is.atomic() guard alone would have
+  # started rejecting it halfway through the versions this package supports.
+  expect_identical(cjk_width(NULL), integer(0))
+  expect_identical(to_fullwidth(NULL), character(0))
+  expect_identical(has_cjk(NULL), logical(0))
+  expect_identical(cjk_jamo(NULL), list())
+  expect_identical(cjk_width(character(0)), integer(0))
+  expect_identical(cjk_width(factor("\u4e2d")), 2L)
+  expect_identical(has_cjk(factor(c("\u4e2d", "a"))), c(TRUE, FALSE))
+  expect_identical(cjk_width(123), 3L)
+  expect_identical(cjk_width(TRUE), 4L)
+  expect_identical(cjk_width(NA), NA_integer_)
+})
+
+test_that("every error the package constructs carries no call", {
+  # All 36 message-constructing stop() calls pass call. = FALSE, so an error
+  # reads as this package's own sentence rather than as an R traceback naming
+  # a function the caller may not know they were in. Nothing enforced that: a
+  # mutation flipping call. = FALSE to TRUE survived the whole suite, because
+  # the message text -- which is all expect_error() looks at -- is unchanged.
+  # conditionCall() is what tells them apart. The three remaining stop()
+  # calls re-raise a foreign condition and must NOT strip its call; that is
+  # the last test in this file.
+  nocall <- function(expr) {
+    e <- tryCatch(expr, error = function(e) e)
+    expect_s3_class(e, "error")
+    expect_null(conditionCall(e))
+  }
+  zh <- "\u4e2d\u6587"
+  nocall(cjk_segment(zh, engine = 1))
+  nocall(cjk_segment(zh, engine = "nope"))
+  nocall(cjk_segment(zh, engine = ""))
+  nocall(cjk_tokens(data.frame(t = zh), t, engine = "character",
+                    output = NA_character_))
+  nocall(cjk_tokens(data.frame(t = zh), t))
+  nocall(cjk_pad(zh, "wide"))
+  nocall(cjk_pad(zh, Inf))
+  nocall(cjk_pad(zh, integer(0)))
+  nocall(cjk_pad(zh, 6, pad = NA))
+  nocall(cjk_pad(zh, 6, side = NA))
+  nocall(cjk_truncate(zh, 6, ellipsis = NA))
+  nocall(cjk_wrap(zh, 6, indent = -1))
+  nocall(cjk_wrap(zh, 6, locale = "nonsense"))
+  nocall(cjk_sort(zh, locale = "nonsense"))
+  nocall(cjk_sort(zh, decreasing = NA))
+  nocall(cjk_sentences(zh, locale = "nonsense"))
+  nocall(cjk_ngrams(zh, n = 0))
+  nocall(cjk_normalize(zh, form = NA))
+  nocall(cjk_normalize(zh, drop_variation_selectors = NA))
+  nocall(cjk_strip_punct(zh, replacement = NA_character_))
+  nocall(cjk_strip_punct(zh, symbols = NA))
+  nocall(cjk_romanize(zh, ascii = NA))
+  nocall(to_halfwidth(zh, compose = NA))
+  nocall(cjk_detect_language(zh, han_only = 1))
+  nocall(register_cjk_segmenter("", function(x, ...) as.list(x)))
+  nocall(register_cjk_segmenter("ok", "not a function"))
+  nocall(cjk_summary(matrix(zh), t))
+  nocall(.cjk_stri(stop("invalid UTF-8 byte sequence detected")))
+})
+
+test_that("no stop() in the package can be reached without call. = FALSE", {
+  # The structural counterpart to the tests either side of it. Enumerating error
+  # paths by hand covers only the paths I thought of: a mutation sweep found
+  # call. = FALSE silently flippable at four sites, and the hand-written list
+  # still does not reach every one of the 36. Walking the namespace's own
+  # syntax trees needs no such list -- it sees every stop() there is, in
+  # nested handlers included, and it reads the installed package rather than
+  # R/*.R so it works where CRAN runs tests from and no sources are shipped.
+  ns <- asNamespace("tidycjk")
+  stops <- list()
+  walk <- function(e, where) {
+    if (!is.call(e)) {
+      return(invisible(NULL))
+    }
+    if (identical(e[[1L]], quote(stop))) {
+      stops[[length(stops) + 1L]] <<- list(where = where, call = e)
+    }
+    # Recurse by passing e[[i]] as an argument rather than looping over
+    # as.list(e). A call can hold the empty symbol -- the second slot of
+    # x[, 1] -- and binding that to a loop variable makes the next use of it
+    # an "argument is missing" error, even from identical(); handing it to a
+    # function instead lets it arrive harmlessly as a name.
+    recurse <- function(part) {
+      if (is.function(part)) part <- body(part)
+      walk(part, where)
+    }
+    for (i in seq_along(e)) {
+      recurse(e[[i]])
+    }
+    invisible(NULL)
+  }
+  for (nm in ls(ns, all.names = TRUE)) {
+    obj <- get(nm, envir = ns)
+    if (is.function(obj)) walk(body(obj), nm)
+  }
+  # Sanity: the walk found the stop() calls rather than silently nothing.
+  expect_gt(length(stops), 30L)
+
+  reraise <- character(0)
+  bad <- character(0)
+  for (s in stops) {
+    args <- as.list(s$call)[-1L]
+    nms <- names(args)
+    if (!is.null(nms) && "call." %in% nms) {
+      if (!identical(args[["call."]], FALSE)) {
+        bad <- c(bad, paste0(s$where, ": call. = ",
+                             paste(deparse(args[["call."]]), collapse = " ")))
+      }
+    } else if (length(args) == 1L && is.symbol(args[[1L]])) {
+      # stop(e) re-raises a condition built elsewhere; stripping its call
+      # would relabel someone else's failure as ours. Tested just below.
+      reraise <- c(reraise, s$where)
+    } else {
+      bad <- c(bad, paste0(s$where, ": ",
+                           paste(deparse(s$call), collapse = " ")))
+    }
+  }
+  expect_identical(bad, character(0))
+  # And the exceptions are only ever the three relabelling handlers, so a
+  # fourth bare stop(e) has to be added deliberately rather than by drift.
+  expect_setequal(reraise, c(".cjk_pull", ".cjk_stri", ".cjk_trans"))
+})
+
+test_that("a foreign error is re-raised with its call and message intact", {
+  # The counterpart to the convention above. .cjk_stri() and .cjk_pull()
+  # relabel exactly one failure each and re-throw everything else with
+  # stop(e) -- so for those the call must survive, not be stripped. Testing
+  # only the no-call side would let a handler that swallowed every error into
+  # its own message pass, which is the mistake both comments warn against.
+  e0 <- simpleError("totally unrelated failure", call = quote(f(1)))
+  for (expr in list(
+    quote(.cjk_stri(stop(e0))),
+    quote(.cjk_pull(stop(e0), data.frame(a = 1)))
+  )) {
+    e <- tryCatch(eval(expr), error = function(e) e)
+    expect_identical(conditionMessage(e), "totally unrelated failure")
+    expect_identical(conditionCall(e), quote(f(1)))
+  }
 })

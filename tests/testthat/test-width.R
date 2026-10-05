@@ -233,6 +233,66 @@ test_that("both layout verbs reject a width that cannot be an integer", {
   expect_silent(try(cjk_pad("a", Inf), silent = TRUE))
 })
 
+test_that("the integer-range guard rejects past the limit, not at it", {
+  # The guard is `> .Machine$integer.max`, and the boundary matters: that
+  # value IS representable as an integer, so rejecting it would refuse a
+  # width the documented contract accepts. Tested through cjk_truncate()
+  # rather than cjk_pad(), because padding to two billion columns would
+  # try to allocate the result.
+  expect_identical(cjk_truncate("abc", .Machine$integer.max), "abc")
+  expect_identical(cjk_truncate("abc", -.Machine$integer.max), "")
+  expect_error(cjk_truncate("abc", .Machine$integer.max + 1), "integer range")
+})
+
+test_that("an all-NA width passes but a part-NA non-numeric one does not", {
+  # The escape hatch is deliberately narrow: a width that is *entirely* NA
+  # is missing input and propagates, which is why the guard tests
+  # all(is.na(width)) rather than any(). A character vector that merely
+  # contains an NA is not missing input -- it is a wrong type with a hole in
+  # it -- and coercing it would give NA output plus a bare coercion warning.
+  expect_identical(cjk_pad(c("a", "b"), c(NA, NA)), c(NA_character_, NA_character_))
+  expect_error(cjk_pad(c("a", "b"), c(NA, "a")), "must be numeric")
+  expect_error(cjk_pad(c("a", "b"), c(NA, "a", NA)), "must be numeric")
+  expect_error(cjk_pad(c("a", "b"), list(NA, 2)), "must be numeric")
+})
+
+test_that("cjk_pad rejects a pad that is not one single character", {
+  # The length and the NA test are separate clauses for a reason: a pad of
+  # length two is not missing, and a length-two is.na() answer is not
+  # something `&&` can use -- so collapsing them turns this from the
+  # package's own message into a base R "invalid length" error.
+  expect_error(cjk_pad("a", 5, pad = c("-", "=")), "single, non-missing")
+  # A non-character pad of length one clears the length test, so the type
+  # test has to be reached on its own: nchar(1) is 1 and stri_width(1) is 1,
+  # which means everything downstream of the guard would accept it.
+  expect_error(cjk_pad("a", 5, pad = 1), "single, non-missing")
+  expect_error(cjk_pad("a", 5, pad = TRUE), "single, non-missing")
+  expect_error(cjk_pad("a", 5, pad = list("-")), "single, non-missing")
+  expect_error(cjk_pad("a", 5, pad = character(0)), "single, non-missing")
+  expect_error(cjk_pad("a", 5, pad = c("-", NA)), "single, non-missing")
+  expect_error(cjk_pad("a", 5, pad = ""), "single, non-missing")
+  expect_error(cjk_pad("a", 5, pad = "--"), "single, non-missing")
+  # The width guard is the next one along, and only a single character that
+  # is not one column wide reaches it.
+  expect_error(cjk_pad("a", 5, pad = "\u4e2d"), "one column wide")
+  expect_error(cjk_pad("a", 5, pad = "\u0301"), "one column wide")
+})
+
+test_that(".cjk_take_width() answers an empty string for a zero budget", {
+  # Unreachable from cjk_truncate(), which returns early for a string that
+  # already fits. Pinned anyway because the helper documents itself as
+  # usable by a caller that has not made those checks, and because the
+  # `w <= 0L` boundary is otherwise indistinguishable from `w < 0L`: a
+  # zero-width combining mark has a cumulative width of 0 and so would be
+  # taken rather than dropped.
+  take <- .cjk_take_width
+  expect_identical(take(utf8ToInt("\u4e2d"), 0L), "")
+  expect_identical(take(utf8ToInt("\u0301"), 0L), "")
+  expect_identical(take(utf8ToInt("\u4e2d"), -1L), "")
+  expect_identical(take(NULL, 4L), "")
+  expect_identical(take(integer(0), 4L), "")
+})
+
 test_that("a missing width is still missing output, not an error", {
   # NA is how every other function in the package reports missing input, and
   # NaN is a kind of NA in R, so neither is caught by the check above

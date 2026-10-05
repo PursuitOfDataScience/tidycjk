@@ -34,7 +34,7 @@
 # Every verb here is a plain vectorised map: NA in, NA out; zero length in,
 # zero length out. Sharing the shell keeps that promise identical across them.
 .cjk_trans_verb <- function(x, id) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   # stri_trans_general() already returns character(0) for zero-length input,
   # so this exit changes nothing on the current stringi. Kept for the reason
   # the NULL-to-NA restoration in .cjk_rewidth() is kept -- the stringi
@@ -109,7 +109,7 @@
 #' -- is the right tool. This function is for Chinese, for kana, and for
 #' getting a sortable ASCII key out of a CJK column.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #' @param ascii If `TRUE`, strip diacritics so the result is plain ASCII:
 #'   pinyin tone marks are removed, so that `wo` with a caron becomes plain
 #'   `wo`. Defaults to `FALSE`,
@@ -165,7 +165,7 @@ cjk_romanize <- function(x, ascii = FALSE) {
 #' Taiwanese or Hong Kong idiom -- its regional configurations are what carry
 #' that.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #'
 #' @return A character vector the same length as `x`. `NA` gives `NA`.
 #' @seealso [cjk_romanize()], [to_halfwidth()] for the width axis.
@@ -217,7 +217,7 @@ cjk_traditionalize <- function(x) {
 #' [to_halfwidth()] and [to_fullwidth()] remain the way to move along the
 #' width axis without touching the syllabary.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #'
 #' @return A character vector the same length as `x`. `NA` gives `NA`.
 #' @seealso [to_halfwidth()] for the width axis, [cjk_script()] to see which
@@ -262,9 +262,18 @@ to_katakana <- function(x) {
 #' a combining acute comes back as the single character `U+00E9`, because
 #' that is what NFC is for.
 #'
-#' So the guarantee is `cjk_compose_jamo(cjk_jamo(x))` equals
+#' So the guarantee is that re-joining the jamo and composing them equals
 #' `stringi::stri_trans_nfc(x)`, which equals `x` exactly when `x` is already
 #' NFC. Normalise first if you need to be certain.
+#'
+#' Note the re-joining step, which the `rt()` helper in the examples below
+#' spells out. `cjk_jamo()` returns a **list** -- one character vector of
+#' jamo per element of `x` -- and `cjk_compose_jamo()` takes a character
+#' vector, so the two do not compose directly. Writing
+#' `cjk_compose_jamo(cjk_jamo(x))` is an error rather than a silent wrong
+#' answer, which it was until 0.2.0: `as.character()` deparses a list, so
+#' the jamo came back as the literal string `c("\u1112", "\u1161",
+#' "\u11ab")` -- R code spelled out as text.
 #'
 #' That makes jamo the right unit for questions the syllable hides: which
 #' initial consonants a corpus favours, whether two spellings differ only in
@@ -276,7 +285,7 @@ to_katakana <- function(x) {
 #' Text that is not Hangul passes through unchanged, so it is safe to run over
 #' a mixed column.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #'
 #' @return `cjk_jamo()` returns a list the same length as `x`, each element a
 #'   character vector of jamo; `NA` gives `NA_character_` and the empty string
@@ -299,7 +308,7 @@ to_katakana <- function(x) {
 #' rt("e\u0301")
 #' @export
 cjk_jamo <- function(x) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(list())
   }
@@ -327,7 +336,7 @@ cjk_jamo <- function(x) {
 #' @rdname cjk_jamo
 #' @export
 cjk_compose_jamo <- function(x) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(character(0))
   }

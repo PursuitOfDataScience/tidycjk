@@ -113,7 +113,10 @@
 #'   numeric vector is measured as R chooses to write it -- which moves
 #'   with `options(scipen)` and `options(OutDec)`, and can therefore
 #'   differ between sessions. Convert deliberately if you mean to
-#'   measure numbers; these verbs are for text.
+#'   measure numbers; these verbs are for text. A list is *not* coerced --
+#'   [as.character()] deparses one rather than coercing it, so the text
+#'   measured would be the R code that builds the list -- so a list, a data
+#'   frame or a function is an error naming what to do instead.
 #'
 #' @return An integer vector the same length as `x`. `NA` input gives `NA`; the
 #'   empty string gives `0`.
@@ -131,7 +134,7 @@
 #' cjk_width(c("\u4e2d\u6587", "abcd"))
 #' @export
 cjk_width <- function(x) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(integer(0))
   }
@@ -181,7 +184,7 @@ cjk_width <- function(x) {
 #' cat(paste0("|", cjk_pad(c("\u4e2d\u6587", "abcd"), 6), "|"), sep = "\n")
 #' @export
 cjk_pad <- function(x, width, side = "right", pad = " ") {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   side <- .cjk_arg_match(side, c("right", "left", "both"), "side")
   if (!is.character(pad) || length(pad) != 1L || is.na(pad) ||
       nchar(pad) != 1L) {
@@ -261,7 +264,7 @@ cjk_pad <- function(x, width, side = "right", pad = " ") {
 #' cjk_truncate("\u4e2d\u6587", 10)
 #' @export
 cjk_truncate <- function(x, width, ellipsis = "...") {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (!is.character(ellipsis) || length(ellipsis) != 1L || is.na(ellipsis)) {
     stop("`ellipsis` must be a single, non-missing string.", call. = FALSE)
   }
@@ -413,12 +416,33 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 #' using it against the standard's advice -- but it is a content change, and
 #' this page would rather say so than have you find it.
 #'
-#' Two behaviours differ from [cjk_pad()] and [cjk_truncate()], because this
-#' verb re-flows text rather than measuring it in place. Existing newlines in
-#' `x` are whitespace to the algorithm and are replaced by the new line
-#' breaks, so `"a\nb"` wrapped wide comes back as `"a b"`; wrap the pieces
-#' separately if the original breaks are meaningful. And a string of nothing
-#' but whitespace re-flows to `""`, where `cjk_pad()` would have kept it.
+#' Three behaviours differ from [cjk_pad()] and [cjk_truncate()], because
+#' this verb re-flows text rather than measuring it in place. Existing
+#' newlines in `x` are whitespace to the algorithm and are replaced by the
+#' new line breaks, so `"a\nb"` wrapped wide comes back as `"a b"`; wrap the
+#' pieces separately if the original breaks are meaningful. A string of
+#' nothing but whitespace re-flows to `""`, where `cjk_pad()` would have
+#' kept it.
+#'
+#' And the output is in normalisation form C. ICU's line-breaking works on
+#' normalised text, so `stri_wrap()` normalises, and 1,120 code points
+#' therefore come back changed. 1,002 of them are the CJK Compatibility
+#' Ideographs (U+F900-U+FAD9 and U+2F800-U+2FA1D): `cjk_wrap("\uf900", 2)`
+#' is U+8C48. The other 118 are the Hebrew presentation forms, a handful of
+#' musical symbols, and 71 scattered singletons and composition exclusions:
+#' the Kelvin, Ohm and Angstrom signs, Greek letters with an oxia,
+#' Devanagari letters with a nukta, and U+2329 and U+232A, which become the
+#' CJK angle brackets U+3008 and U+3009. These are exactly the code points
+#' NFC changes, no more and no fewer, each a duplicate of a character or
+#' sequence Unicode prefers and kept for compatibility. Everyday text,
+#' precomposed Latin and Hangul syllables included, is already NFC and
+#' passes through untouched.
+#' [cjk_pad()], [cjk_truncate()] and [cjk_segment()] do **not** normalise,
+#' so this is the one layout verb that can change a character. Undoing it
+#' would mean re-aligning re-flowed output against the input, which risks
+#' corrupting ordinary text to protect a deprecated corner of it; running
+#' [cjk_normalize()] first is the way to make the normalisation explicit
+#' and expected.
 #'
 #' @inheritParams cjk_pad
 #' @param width Target width in columns. Recycled against `x`.
@@ -452,7 +476,7 @@ cjk_truncate <- function(x, width, ellipsis = "...") {
 #' @export
 cjk_wrap <- function(x, width, indent = 0L, exdent = 0L,
                      locale = NULL) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   # Validate ahead of the zero-length exit, so a bad argument is an error
   # whatever the length of `x` -- the same ordering as cjk_pad().
   width <- .cjk_as_width(width)

@@ -182,6 +182,33 @@
   })
 }
 
+# Coerce the text argument, rejecting what as.character() would deparse.
+#
+# Every verb here starts by coercing `x`, which lets a numeric or a factor
+# column through and is deliberate. But as.character() does not coerce a
+# list, it *deparses* it: cjk_width(list(c("a", "b"))) answered 11, the
+# display width of the eleven-character string `c("a", "b")` -- R source code
+# measured as if it were text, with no error and no warning. cjk_segment()
+# already caught exactly this for what an engine returns; this is the same
+# check for what a caller passes in, which is the likelier direction. The
+# list a caller has in hand is usually another verb's output --
+# cjk_jamo(), cjk_sentences() and cjk_segment() all return one -- so the
+# message names the two ways out rather than only the fault.
+#
+# NULL is admitted explicitly: is.atomic(NULL) was TRUE until R 4.4.0 and is
+# FALSE after it, and `character(0)` in, `character(0)` out has to hold on
+# both sides of that change.
+.cjk_as_text <- function(x, name = "x") {
+  if (!is.null(x) && !is.atomic(x)) {
+    stop("`", name, "` must be an atomic vector, not ", class(x)[[1L]],
+         ". as.character() deparses a list rather than coercing it, so the ",
+         "text measured would have been the R code that builds it. Use ",
+         "unlist() to flatten it, or vapply(x, paste, character(1), ",
+         "collapse = \"\") to keep one string per element.", call. = FALSE)
+  }
+  as.character(x)
+}
+
 # One place to match an enumerated argument.
 #
 # match.arg() reports a value that is not character at all as "'arg' must be
@@ -288,7 +315,7 @@
 # an NA string becomes NULL, an empty string becomes integer(0). Everything
 # downstream distinguishes those two cases, so the difference matters.
 .cjk_codepoints <- function(x) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (length(x) == 0L) {
     return(list())
   }

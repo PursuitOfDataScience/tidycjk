@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """Crossfade two cairo SVGs into man/figures/hero-width.svg.
 
+Usage: python3 data-raw/merge-hero.py <dir>
+
+<dir> is the directory data-raw/make-hero.R wrote state-a.svg and
+state-b.svg into, i.e. whatever HERO_OUT was set to. This script takes it as
+an argument rather than reading HERO_OUT. The output path is relative to the
+working directory, so run this from the package root.
+
 R's cairo SVG device emits every glyph as a <path>, so the animation carries
 its own outlines and renders identically without a CJK font installed. The two
 files reuse ids (glyph0-1, clip1, ...), so each side is namespaced first.

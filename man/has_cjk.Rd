@@ -12,7 +12,10 @@ has_cjk(x)
 numeric vector is measured as R chooses to write it -- which moves
 with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
 differ between sessions. Convert deliberately if you mean to
-measure numbers; these verbs are for text.}
+measure numbers; these verbs are for text. A list is \emph{not} coerced --
+\code{\link[=as.character]{as.character()}} deparses one rather than coercing it, so the text
+measured would be the R code that builds the list -- so a list, a data
+frame or a function is an error naming what to do instead.}
 }
 \value{
 A logical vector the same length as \code{x}. \code{NA} input gives \code{NA}; the

@@ -10,7 +10,15 @@ cjk_jamo(x)
 cjk_compose_jamo(x)
 }
 \arguments{
-\item{x}{A character vector.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text. A list is \emph{not} coerced --
+\code{\link[=as.character]{as.character()}} deparses one rather than coercing it, so the text
+measured would be the R code that builds the list -- so a list, a data
+frame or a function is an error naming what to do instead.}
 }
 \value{
 \code{cjk_jamo()} returns a list the same length as \code{x}, each element a
@@ -38,9 +46,17 @@ unchanged. If it was not, the result is \code{x} normalised: an \code{e} followe
 a combining acute comes back as the single character \code{U+00E9}, because
 that is what NFC is for.
 
-So the guarantee is \code{cjk_compose_jamo(cjk_jamo(x))} equals
+So the guarantee is that re-joining the jamo and composing them equals
 \code{stringi::stri_trans_nfc(x)}, which equals \code{x} exactly when \code{x} is already
 NFC. Normalise first if you need to be certain.
+
+Note the re-joining step, which the \code{rt()} helper in the examples below
+spells out. \code{cjk_jamo()} returns a \strong{list} -- one character vector of
+jamo per element of \code{x} -- and \code{cjk_compose_jamo()} takes a character
+vector, so the two do not compose directly. Writing
+\code{cjk_compose_jamo(cjk_jamo(x))} is an error rather than a silent wrong
+answer, which it was until 0.2.0: \code{as.character()} deparses a list, so
+the jamo came back as the literal string \code{c("\\u1112", "\\u1161", "\\u11ab")} -- R code spelled out as text.
 
 That makes jamo the right unit for questions the syllable hides: which
 initial consonants a corpus favours, whether two spellings differ only in

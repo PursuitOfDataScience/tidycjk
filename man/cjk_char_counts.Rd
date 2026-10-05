@@ -11,7 +11,8 @@ cjk_char_counts(data, col)
 
 \item{col}{The text column to scan, supplied unquoted. A non-character
 column is coerced with \code{\link[=as.character]{as.character()}}; see \code{\link[=has_cjk]{has_cjk()}} for why
-that makes a numeric column a poor thing to measure.}
+that makes a numeric column a poor thing to measure. A list-column is
+an error rather than a coercion, for the reason given there.}
 }
 \value{
 A tibble with one row per distinct character and columns \code{char},
@@ -39,6 +40,8 @@ Grouping is ignored: the counts are always for the whole column. Use
 \code{\link[dplyr:group_map]{dplyr::group_modify()}} if you need them per group.
 }
 \examples{
+# "Chinese writing" twice over, then "the Japanese language" in kanji and
+# kana, then a row with no CJK at all
 df <- data.frame(
   text = c("\u4e2d\u6587\u4e2d\u6587",
            "\u65e5\u672c\u306e\u3053\u3068\u3070",

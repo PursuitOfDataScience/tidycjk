@@ -11,7 +11,8 @@ cjk_summary(data, col)
 
 \item{col}{The text column to scan, supplied unquoted. A non-character
 column is coerced with \code{\link[=as.character]{as.character()}}; see \code{\link[=has_cjk]{has_cjk()}} for why
-that makes a numeric column a poor thing to measure.}
+that makes a numeric column a poor thing to measure. A list-column is
+an error rather than a coercion, for the reason given there.}
 }
 \value{
 A one-row tibble with columns \code{n_docs} (all entries), \code{n_with_cjk}
@@ -41,6 +42,7 @@ Grouping is ignored: the result is always one row for the whole column. Use
 \code{\link[dplyr:group_map]{dplyr::group_modify()}} if you need it per group.
 }
 \examples{
+# U+4E2D U+6587 is "Chinese writing": all CJK, then mixed, then neither
 df <- data.frame(
   text = c("\u4e2d\u6587", "mixed \u4e2d\u6587 text", "plain ASCII", NA)
 )

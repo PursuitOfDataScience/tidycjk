@@ -55,7 +55,7 @@
 #' `x`. `stringi::stri_sort()` drops missing values by default, which would
 #' silently shorten a column.
 #'
-#' @param x A character vector.
+#' @inheritParams has_cjk
 #' @param locale ICU locale naming the collation, e.g. `"zh"`. `NULL`, the
 #'   default, uses the session default -- which is unlikely to order Han
 #'   usefully, so name one.
@@ -80,7 +80,7 @@
 #' df[cjk_order(x, locale = "zh"), , drop = FALSE]
 #' @export
 cjk_sort <- function(x, locale = NULL, decreasing = FALSE) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (!is.logical(decreasing) || length(decreasing) != 1L ||
       is.na(decreasing)) {
     stop("`decreasing` must be TRUE or FALSE.", call. = FALSE)
@@ -101,7 +101,7 @@ cjk_sort <- function(x, locale = NULL, decreasing = FALSE) {
 #' @rdname cjk_sort
 #' @export
 cjk_order <- function(x, locale = NULL, decreasing = FALSE) {
-  x <- as.character(x)
+  x <- .cjk_as_text(x)
   if (!is.logical(decreasing) || length(decreasing) != 1L ||
       is.na(decreasing)) {
     stop("`decreasing` must be TRUE or FALSE.", call. = FALSE)

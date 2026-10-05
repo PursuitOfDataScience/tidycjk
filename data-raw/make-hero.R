@@ -1,4 +1,16 @@
 # Generates man/figures/hero-width.svg's two states.
+#
+# Run with:
+#   HERO_OUT=/some/scratch/dir Rscript data-raw/make-hero.R
+#   python3 data-raw/merge-hero.py /some/scratch/dir
+#
+# HERO_OUT is required and is where state-a.svg and state-b.svg are written;
+# unset, file.path("", ...) resolves to the filesystem root and the device
+# fails with a bare cairo "error while writing to output stream". The merge
+# step takes the same directory as its first argument -- it does not read
+# HERO_OUT -- and writes man/figures/hero-width.svg relative to the working
+# directory, so run both from the package root.
+#
 # The cairo SVG device turns every glyph into a <path>, so the result needs no
 # CJK font on the reader's machine. data-raw/merge-hero.py crossfades them.
 library(grid); library(tidycjk)

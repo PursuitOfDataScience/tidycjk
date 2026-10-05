@@ -7,7 +7,15 @@
 cjk_romanize(x, ascii = FALSE)
 }
 \arguments{
-\item{x}{A character vector.}
+\item{x}{A character vector. Anything else is coerced with
+\code{\link[=as.character]{as.character()}}. That coercion is R's, not this package's, so a
+numeric vector is measured as R chooses to write it -- which moves
+with \code{options(scipen)} and \code{options(OutDec)}, and can therefore
+differ between sessions. Convert deliberately if you mean to
+measure numbers; these verbs are for text. A list is \emph{not} coerced --
+\code{\link[=as.character]{as.character()}} deparses one rather than coercing it, so the text
+measured would be the R code that builds the list -- so a list, a data
+frame or a function is an error naming what to do instead.}
 
 \item{ascii}{If \code{TRUE}, strip diacritics so the result is plain ASCII:
 pinyin tone marks are removed, so that \code{wo} with a caron becomes plain

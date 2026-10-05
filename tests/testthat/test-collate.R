@@ -36,8 +36,16 @@ test_that("cjk_order returns a permutation that reproduces cjk_sort", {
 test_that("decreasing reverses, and is validated", {
   expect_equal(cjk_sort(ZH, locale = "zh", decreasing = TRUE),
                rev(cjk_sort(ZH, locale = "zh")))
-  expect_error(cjk_sort(ZH, decreasing = NA), "`decreasing`")
-  expect_error(cjk_order(ZH, decreasing = 1), "`decreasing`")
+  # All three clauses of the guard, on both verbs. Each rejects a case the
+  # other two let through: a non-logical of length one clears the length
+  # test, a length-two logical clears the type test, and NA clears both --
+  # so any pair of them joined by && instead of || accepts something.
+  for (verb in list(cjk_sort, cjk_order)) {
+    for (bad in list(NA, 1, 0, "TRUE", NULL, c(TRUE, TRUE), logical(0),
+                     c(TRUE, NA), NA_integer_)) {
+      expect_error(verb(ZH, decreasing = bad), "`decreasing`")
+    }
+  }
 })
 
 test_that("NA is kept and sorts last, so length is preserved", {
